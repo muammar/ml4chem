@@ -1,5 +1,6 @@
 import hashlib
 from collections import OrderedDict
+from ase.neighborlist import NeighborList
 
 def prepare_images(images):
     """Function to prepare a dictionary of images to operate with mlchem
@@ -50,3 +51,20 @@ def get_hash(image):
 
     return _hash
 
+def get_neighborlist(image, cutoff):
+    """Get the list of neighbors
+
+    Parameters
+    ----------
+    image : object
+        ASE image.
+
+    Returns
+    -------
+    A list of neighbors with offset distances.
+    """
+    cutoffs = [cutoff / 2.] * len(image)
+    nlist = NeighborList(cutoffs=cutoffs, self_interaction=False,
+                         bothways=True, skin=0.)
+    nlist.update(image)
+    return [nlist.get_neighbors(index) for index in range(len(image))]
