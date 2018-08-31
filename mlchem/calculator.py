@@ -1,5 +1,6 @@
 from ase.calculators.calculator import Calculator, Parameters
 from ase.io import Trajectory
+
 from mlchem.utils import prepare_images
 
 class MlChem(Calculator, object):

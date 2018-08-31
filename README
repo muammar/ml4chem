@@ -1,3 +1,5 @@
-mlchem
+# mlchem -- Machine-Learning for Chemistry.
 
-Machine-Learning for Chemistry.
+This package is written in Python, and features:
+
+- DataFrame structure to handle datasets.
