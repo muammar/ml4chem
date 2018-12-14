@@ -1,7 +1,7 @@
-mlchem
-======
+mlchemistry
+===========
 
-**MLChem** is machine-learning for chemistry. 
+**MLChemistry** is machine-learning for chemistry. 
 
 This package is written in Python, and features:
 
