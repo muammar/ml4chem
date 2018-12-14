@@ -1,4 +1,4 @@
-from mlchem.utils import get_neighborlist
+from mlchemistry.utils import get_neighborlist
 
 
 class Gaussian(object):

@@ -1,9 +1,9 @@
 from ase.calculators.calculator import Calculator, Parameters
 from ase.io import Trajectory
 
-from mlchem.utils import prepare_images
+from mlchemistry.utils import prepare_images
 
-class MlChem(Calculator, object):
+class MlChemistry(Calculator, object):
     """Machine-Learning for Chemistry
 
     Parameters

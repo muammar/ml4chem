@@ -3,7 +3,7 @@ from collections import OrderedDict
 from ase.neighborlist import NeighborList
 
 def prepare_images(images):
-    """Function to prepare a dictionary of images to operate with mlchem
+    """Function to prepare a dictionary of images to operate with mlchemistry
 
     Parameters
     ----------
