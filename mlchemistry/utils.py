@@ -2,32 +2,6 @@ import hashlib
 from collections import OrderedDict
 from ase.neighborlist import NeighborList
 
-def prepare_images(images):
-    """Function to prepare a dictionary of images to operate with mlchemistry
-
-    Parameters
-    ----------
-    images : object
-        Images to prepare.
-
-    Returns
-    -------
-    _images : dict
-        Dictionary of images.
-    """
-    _images = OrderedDict()
-
-    duplicates = 0
-
-    for image in images:
-        key = get_hash(image)
-        if key in _images.keys():
-            duplicates += 1
-        else:
-            _images[key] = image
-
-    return _images
-
 def get_hash(image):
     """Get the SHA1 hash of an image object
 

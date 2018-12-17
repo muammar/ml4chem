@@ -1,7 +1,7 @@
 from ase.calculators.calculator import Calculator, Parameters
 from ase.io import Trajectory
 
-from mlchemistry.utils import prepare_images
+from mlchemistry.data.handler import Data
 
 class MlChemistry(Calculator, object):
     """Machine-Learning for Chemistry
@@ -31,7 +31,8 @@ class MlChemistry(Calculator, object):
         training_set : object, list
             List containing the training set.
         """
-        training_set = prepare_images(training_set)
+        data_handler = Data()
+        training_set, targets = data_handler.prepare_images(training_set)
         print(len(training_set.keys()))
 
     def calculate(self):
