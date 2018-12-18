@@ -6,6 +6,11 @@ import numpy as np
 class Gaussian(object):
     """Behler-Parrinello symmetry functions
 
+    This class builds local chemical environments for atoms based on the
+    Behler-Parrinello Gaussian type symmetry functions. It is modular enough
+    that can be used just for creating feature spaces.
+
+
     Parameters
     ----------
     cutoff : float
@@ -38,7 +43,7 @@ class Gaussian(object):
 
     def get_atomic_fingerprint(self, index, symbol, n_symbols,
                                neighborpositions):
-        """Class method to compute atomic fingerprint
+        """Class method to compute atomic fingerprints
 
 
         Parameters
@@ -52,7 +57,7 @@ class Gaussian(object):
         print(index, symbol, n_symbols, neighborpositions)
 
 
-def make_symmetry_functions(symbols):
+def make_symmetry_functions(symbols, defaults=True):
     """Function to make symmetry functions
 
     Parameters
@@ -61,6 +66,35 @@ def make_symmetry_functions(symbols):
         List of strings with chemical symbols to create symmetry functions.
 
         >>> symbols = ['H', 'O']
+
+    defaults : bool
+        Are we building defaults symmetry functions or not?
+
+    Return
+    ------
+    GP : dict
+        Symmetry function parameters.
+
     """
-    print(symbols)
-    pass
+
+    GP = {}
+
+    if defaults:
+        for symbol in symbols:
+            # Radial
+            etas = np.logspace(np.log10(0.05), np.log10(5.), num=4)
+            _GP = get_symmetry_functions(type='G2', etas=etas, symbols=symbols)
+
+            # Angular
+            etas = [0.005]
+            zetas = [1., 4.]
+            gammas = [1., -1.]
+            _GP += get_symmetry_functions(type='G3', symbols=symbols,
+                                          etas=etas, zetas=zetas,
+                                          gammas=gammas)
+
+            GP[symbol] = _GP
+    else:
+        pass
+
+    return GP
