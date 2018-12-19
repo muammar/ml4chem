@@ -19,14 +19,21 @@ class Gaussian(object):
     def __init__(self, cutoff=6.5):
         self.cutoff = cutoff
 
-    def calculate_features(self, atoms):
+    def calculate_features(self, images, defaults=True):
         """Calculate the features per atom in an atoms objects
 
         Parameters
         ----------
-        atoms : ase object, list
-            A list of atoms in a molecule or solid.
+        images : ase object, list
+            A list of atoms.
+        defaults : bool
+            Are we creating default symmetry functions?
         """
+        # Unique symbols in training set
+
+        symbols = list(set([atom.symbol for image in images
+                            for atom in image]))
+
         for atom in atoms:
             index = atom.index
             symbol = atom.symbol
@@ -34,9 +41,10 @@ class Gaussian(object):
             nl = get_neighborlist(atoms, cutoff=self.cutoff)
             n_indices, n_offsets = nl[atom.index]
             n_symbols = [atoms[i].symbol for i in n_indices]
-            neighborpositions = \
-                    [atoms.positions[neighbor] + np.dot(offset, atoms.cell)
-                     for (neighbor, offset) in zip(n_indices, n_offsets)]
+            neighborpositions = [atoms.positions[neighbor] +
+                                 np.dot(offset, atoms.cell)
+                                 for (neighbor, offset) in
+                                 zip(n_indices, n_offsets)]
 
             self.get_atomic_fingerprint(index, symbol, n_symbols,
                                         neighborpositions)
