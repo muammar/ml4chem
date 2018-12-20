@@ -1,13 +1,31 @@
-class CutoffFunction(object):
-    """Cutoff function class
+class Cosine(object):
+    """Cosine cutoff function
+
+    Parameters
+    ----------
+    rc : float
+        The cutoff radius.
     """
-    def __init__(self, function='cosine', cutoff='6.5'):
+    def __init__(self, rc='6.5'):
+        self.cutoff = rc
 
-        function_caller = {'cosine': cosine}
+    def __call__(self, rij):
+        """Function to calculate Cosine cutoff function value
 
-        function_caller[function](cutoff)
+        Parameters
+        ----------
+        rij : float
+            Distance between two atoms.
 
-    def cosine(self, cutoff):
-        """docstring for cosine"""
-        print(cutoff)
+        Returns
+        -------
+        cutofffxn : float
+            Value of the cutoff function.
+        """
 
+        if rij > self.cutoff:
+            cutofffxn = 0.
+        else:
+            cutofffxn = .5 * (np.cos(np.pi * rij / self.cutoff) + 1.)
+
+        return cutofffxn

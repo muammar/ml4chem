@@ -34,20 +34,21 @@ class Gaussian(object):
         symbols = list(set([atom.symbol for image in images
                             for atom in image]))
 
-        for atom in atoms:
-            index = atom.index
-            symbol = atom.symbol
+        for atoms in images:
+            for atom in atoms:
+                index = atom.index
+                symbol = atom.symbol
 
-            nl = get_neighborlist(atoms, cutoff=self.cutoff)
-            n_indices, n_offsets = nl[atom.index]
-            n_symbols = [atoms[i].symbol for i in n_indices]
-            neighborpositions = [atoms.positions[neighbor] +
-                                 np.dot(offset, atoms.cell)
-                                 for (neighbor, offset) in
-                                 zip(n_indices, n_offsets)]
+                nl = get_neighborlist(atoms, cutoff=self.cutoff)
+                n_indices, n_offsets = nl[atom.index]
+                n_symbols = [atoms[i].symbol for i in n_indices]
+                neighborpositions = [atoms.positions[neighbor] +
+                                     np.dot(offset, atoms.cell)
+                                     for (neighbor, offset) in
+                                     zip(n_indices, n_offsets)]
 
-            self.get_atomic_fingerprint(index, symbol, n_symbols,
-                                        neighborpositions)
+                self.get_atomic_fingerprint(index, symbol, n_symbols,
+                                            neighborpositions)
 
     def get_atomic_fingerprint(self, index, symbol, n_symbols,
                                neighborpositions):
