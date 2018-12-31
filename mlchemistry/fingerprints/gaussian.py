@@ -16,10 +16,20 @@ class Gaussian(object):
     ----------
     cutoff : float
         Cutoff radius used for computing fingerprints.
+    cutofffxn : object
+        A Cutoff function object.
+    normalized : bool
+        Set it to true if the features are being normalized with respect to the
+        cutoff radius.
     """
-    def __init__(self, cutoff=6.5, normalized=True):
+    def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True):
         self.cutoff = cutoff
-        self.cutofffxn = Cosine(cutoff=cutoff)
+
+        if cutofffxn is None:
+            self.cutofffxn = Cosine(cutoff=cutoff)
+        else:
+            self.cutofffxn = cutofffxn
+
         self.normalized = normalized
         self.data = Data()
 
