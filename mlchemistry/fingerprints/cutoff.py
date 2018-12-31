@@ -1,13 +1,16 @@
+import numpy as np
+
+
 class Cosine(object):
     """Cosine cutoff function
 
     Parameters
     ----------
-    rc : float
+    cutoff : float
         The cutoff radius.
     """
-    def __init__(self, rc='6.5'):
-        self.cutoff = rc
+    def __init__(self, cutoff):
+        self.cutoff = cutoff
 
     def __call__(self, rij):
         """Function to calculate Cosine cutoff function value
@@ -22,7 +25,6 @@ class Cosine(object):
         cutofffxn : float
             Value of the cutoff function.
         """
-
         if rij > self.cutoff:
             cutofffxn = 0.
         else:

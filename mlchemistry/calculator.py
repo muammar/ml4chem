@@ -3,6 +3,7 @@ from ase.io import Trajectory
 
 from mlchemistry.data.handler import Data
 
+
 class MlChemistry(Calculator, object):
     """Machine-Learning for Chemistry
 

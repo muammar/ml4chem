@@ -1,5 +1,6 @@
 from mlchemistry.utils import get_neighborlist
-from .cutoff import CutoffFunction
+from mlchemistry.data.handler import Data
+from .cutoff import Cosine
 import numpy as np
 
 
@@ -18,32 +19,39 @@ class Gaussian(object):
     """
     def __init__(self, cutoff=6.5):
         self.cutoff = cutoff
+        self.cutofffxn = Cosine(cutoff=cutoff)
+        self.data = Data()
 
-    def calculate_features(self, images, defaults=True):
+    def calculate_features(self, images, defaults=True,
+                           category='trainingset'):
         """Calculate the features per atom in an atoms objects
 
         Parameters
         ----------
-        images : ase object, list
+        image : ase object, list
             A list of atoms.
         defaults : bool
             Are we creating default symmetry functions?
+        category : str
+            The supported categories are: 'trainingset', 'testset'.
         """
-        # Unique symbols in training set
 
-        symbols = list(set([atom.symbol for image in images
-                            for atom in image]))
+        if self.data.unique_element_symbols is None:
+            print('Getting unique element symbols for {}' .format(category))
+            unique_element_symbols = \
+                self.data.get_unique_element_symbols(images, category=category)
+            unique_element_symbols = unique_element_symbols[category]
 
-        for atoms in images:
-            for atom in atoms:
+        for image in images:
+            for atom in image:
                 index = atom.index
                 symbol = atom.symbol
 
-                nl = get_neighborlist(atoms, cutoff=self.cutoff)
+                nl = get_neighborlist(image, cutoff=self.cutoff)
                 n_indices, n_offsets = nl[atom.index]
-                n_symbols = [atoms[i].symbol for i in n_indices]
-                neighborpositions = [atoms.positions[neighbor] +
-                                     np.dot(offset, atoms.cell)
+                n_symbols = [image[i].symbol for i in n_indices]
+                neighborpositions = [image.positions[neighbor] +
+                                     np.dot(offset, image.cell)
                                      for (neighbor, offset) in
                                      zip(n_indices, n_offsets)]
 
@@ -57,17 +65,25 @@ class Gaussian(object):
 
         Parameters
         ----------
+        image : ase object, list
+            List of atoms in an image.
         index : int
             Index of atom in atoms object.
         symbol : str
             Chemical symbol of atom in atoms object.
         """
-        print("I will do something I promise")
-        print(index, symbol, n_symbols, neighborpositions)
+
+        num_symmetries = len(self.GP[symbol])
+        # print("I will do something I promise")
+        # print(index, symbol, n_symbols, neighborpositions)
+        pass
 
 
-def make_symmetry_functions(symbols, defaults=True):
+def make_symmetry_functions(symbols, defaults=True, type=None, etas=None,
+                            zetas=None, gammas=None):
     """Function to make symmetry functions
+
+    This method needs at least unique symbols and defaults set to true.
 
     Parameters
     ----------
@@ -79,6 +95,15 @@ def make_symmetry_functions(symbols, defaults=True):
     defaults : bool
         Are we building defaults symmetry functions or not?
 
+    type : str
+        The supported Gaussian type functions are 'G2', 'G3', and 'G4'.
+    etas : list
+        List of etas.
+    zetas : list
+        Lists of zeta values.
+    gammas : list
+        List of gammas.
+
     Return
     ------
     GP : dict
@@ -89,6 +114,7 @@ def make_symmetry_functions(symbols, defaults=True):
     GP = {}
 
     if defaults:
+        print('Making default symmetry functions')
         for symbol in symbols:
             # Radial
             etas = np.logspace(np.log10(0.05), np.log10(5.), num=4)
@@ -103,6 +129,7 @@ def make_symmetry_functions(symbols, defaults=True):
                                           gammas=gammas)
 
             GP[symbol] = _GP
+        print(GP)
     else:
         pass
 

@@ -19,12 +19,18 @@ class Data(object):
         A list of atoms in molecules or solids.
     """
 
-    def __init__(self, images):
-
+    def __init__(self):
+        self.unique_element_symbols = None
+        pass
+        """
+        # We check if the data strucure is the one needed by MlChemistry
         if self.is_valid_structure(images):
-            print('Nothing to do')
+            print('The images have the right structure')
         else:
-            self.prepare_images(images)
+            print('Preparing images...')
+            images = self.prepare_images(images)
+            print('Images prepared...')
+        """
 
     def prepare_images(self, images):
         """Function to prepare images to operate with mlchemistry
@@ -52,8 +58,53 @@ class Data(object):
 
         return _images
 
-    def is_valid_structure(self):
+    def is_valid_structure(self, images):
         """Check if the data has a valid structure
 
+        Parameters
+        ----------
+        images : list of atoms
+            List of images.
+
+        Returns
+        -------
+        valid : bool
+            Whether or not the structure is valid.
         """
-        print('Do something')
+        if isinstance(images, dict):
+            valid = True
+        else:
+            valid = False
+
+        return valid
+
+    def get_unique_element_symbols(self, images, category=None):
+        """Unique element symbol in data set
+
+
+        Parameters
+        ----------
+        images : list of images.
+            ASE object.
+        category : str
+            The supported categories are: 'trainingset', 'testset'.
+        """
+
+        supported_categories = ['trainingset', 'testset']
+
+        symbols = {}
+
+        if category in supported_categories:
+            if category not in symbols.keys():
+                symbols[category] = {}
+                symbols[category] = sorted(list(set([atom.symbol for image in
+                                           images for atom in image])))
+            else:
+                print('what happens in the following case?')    # FIXME
+        else:
+            print('The requested category is not supported...')
+            symbols = None
+
+        self.unique_element_symbols = symbols
+
+        return self.unique_element_symbols
