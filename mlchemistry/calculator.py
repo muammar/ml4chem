@@ -2,6 +2,7 @@ from ase.calculators.calculator import Calculator, Parameters
 from ase.io import Trajectory
 
 from mlchemistry.data.handler import Data
+from mlchemistry.backends.available import available_backends
 
 
 class MlChemistry(Calculator, object):
@@ -18,7 +19,8 @@ class MlChemistry(Calculator, object):
     implemented_properties = ['energy', 'forces']
 
     def __init__(self, fingerprints=None, model=None):
-        pass
+        self.available_backends = available_backends()
+        print('Available backends', self.available_backends)
 
     def load(self):
         """docstring for load"""
