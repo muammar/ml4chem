@@ -1,7 +1,7 @@
 from mlchemistry.utils import get_neighborlist
 from mlchemistry.data.handler import Data
+from mlchemistry.backends.operations import BackendOperations
 from .cutoff import Cosine
-import numpy as np
 
 
 class Gaussian(object):
@@ -21,14 +21,21 @@ class Gaussian(object):
     normalized : bool
         Set it to true if the features are being normalized with respect to the
         cutoff radius.
+    backend : object
+        An object used as backend.
     """
-    def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True):
+    def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
+                 backend=None):
         self.cutoff = cutoff
 
         if cutofffxn is None:
             self.cutofffxn = Cosine(cutoff=cutoff)
         else:
             self.cutofffxn = cutofffxn
+
+        if backend is None:
+            import numpy
+            self.backend = BackendOperations(numpy)
 
         self.normalized = normalized
         self.data = Data()
@@ -66,7 +73,7 @@ class Gaussian(object):
                 n_indices, n_offsets = nl[atom.index]
                 n_symbols = [image[i].symbol for i in n_indices]
                 neighborpositions = [image.positions[neighbor] +
-                                     np.dot(offset, image.cell)
+                                     self.backend.dot(offset, image.cell)
                                      for (neighbor, offset) in
                                      zip(n_indices, n_offsets)]
 
@@ -99,7 +106,8 @@ class Gaussian(object):
                 feature = calculate_G2(n_symbols, neighborpositions,
                                      GP['symbol'], GP['eta'],
                                      self.cutoff, self.cutofffxn, Ri,
-                                     normalized=self.normalized)
+                                     normalized=self.normalized,
+                                     backend=self.backend)
             elif G['type'] == 'G3':
                 feature = calculate_G4(n_symbols, neighborpositions,
                                      GP['elements'], GP['gamma'],
@@ -155,7 +163,8 @@ class Gaussian(object):
             print('Making default symmetry functions')
             for symbol in symbols:
                 # Radial
-                etas = np.logspace(np.log10(0.05), np.log10(5.), num=4)
+                etas = self.backend.logspace(self.backend.log10(0.05),
+                                             self.backend.log10(5.), num=4)
                 _GP = self.get_symmetry_functions(type='G2', etas=etas, symbols=symbols)
 
                 # Angular
@@ -203,7 +212,7 @@ class Gaussian(object):
                   ' supported.')
 
 def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
-                 cutoff, cutofffxn, Ri, normalized=True):
+                 cutoff, cutofffxn, Ri, normalized=True, backend=None):
     """Calculate G2 symmetry function.
 
     Parameters
@@ -224,6 +233,8 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
         Position of the center atom. Should be fed as a list of three floats.
     normalized : bool
         Whether or not the symmetry function is normalized.
+    backed : object
+        A backend.
 
     Returns
     -------
@@ -238,12 +249,11 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
         symbol = neighborsymbols[count]
         Rj = neighborpositions[count]
         if symbol == center_symbol:
-            Rij = np.linalg.norm(Rj - Ri)
+            Rij = backend.norm(Rj - Ri)
             if normalized:
                 Rc = cutoff
             else:
                 Rc = 1.
-            feature += (np.exp(-eta * (Rij ** 2.) / (Rc ** 2.)) *
+            feature += (backend.exp(-eta * (Rij ** 2.) / (Rc ** 2.)) *
                         cutofffxn(Rij))
     return feature
-
