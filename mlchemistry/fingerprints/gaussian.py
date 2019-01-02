@@ -256,15 +256,19 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
 
     num_neighbors = len(neighborpositions)
 
+    Rc = cutoff
+    feature = 0.
+    num_neighbors = len(neighborpositions)
+
+    # Are we normalzing the feature?
+    if normalized:
+        Rc = cutoff
+    else:
+        Rc = 1.
+
     for count in range(num_neighbors):
         symbol = neighborsymbols[count]
         Rj = neighborpositions[count]
-
-        # Are we normalzing the feature?
-        if normalized:
-            Rc = cutoff
-        else:
-            Rc = 1.
 
         # Backend checks
         if backend.backend_name == 'torch':
@@ -273,6 +277,8 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
 
         if symbol == center_symbol:
             Rij = backend.norm(Rj - Ri)
-            feature += (backend.exp(-eta * (backend.square(Rij)) /
-                        (backend.square(Rc)) * cutofffxn(Rij)))
+
+            feature += (backend.exp(-eta * (Rij ** 2.) / (Rc ** 2.)) *
+                                    cutofffxn(Rij))
+
     return feature

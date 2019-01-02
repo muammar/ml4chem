@@ -56,10 +56,3 @@ class BackendOperations(object):
         """Convert from numpy to right data type"""
         a = np.array(a)     # This is the safest way
         return self.backend.from_numpy(a).float()
-
-    def square(self, a):
-        """Square a number"""
-        if self.backend_name == 'torch':
-            return self.backend.pow(a, 2)
-        else:
-            return self.backend.square(a)
