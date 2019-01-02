@@ -19,15 +19,19 @@ class MlChemistry(Calculator, object):
     implemented_properties = ['energy', 'forces']
 
     def __init__(self, fingerprints=None, model=None):
+        print('Starting MLChem')
+        self.fingerprints = fingerprints
         self.available_backends = available_backends()
         print('Available backends', self.available_backends)
+
+        self.model = model
 
     def load(self):
         """docstring for load"""
         pass
 
     def train(self, training_set):
-        """Method to train the models
+        """Method to train models
 
         Parameters
         ----------
@@ -35,8 +39,10 @@ class MlChemistry(Calculator, object):
             List containing the training set.
         """
         data_handler = Data()
+        # Raw input and targets aka y
         training_set, targets = data_handler.prepare_images(training_set)
-        print(len(training_set.keys()))
+        # Mapping raw positions into a feature space aka X
+        feature_space = self.fingerprints.calculate_features(training_set)
 
     def calculate(self):
         """docstring for calculate"""

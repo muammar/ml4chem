@@ -2,6 +2,7 @@ from mlchemistry.utils import get_neighborlist
 from mlchemistry.data.handler import Data
 from mlchemistry.backends.operations import BackendOperations
 from .cutoff import Cosine
+from collections import OrderedDict
 
 
 class Gaussian(object):
@@ -33,12 +34,7 @@ class Gaussian(object):
         else:
             self.cutofffxn = cutofffxn
 
-        if backend is None:
-            print('No backend provided')
-            import numpy
-            self.backend = BackendOperations(numpy)
-        else:
-            self.backend = BackendOperations(backend)
+        self.backend = backend
 
         self.normalized = normalized
         self.data = Data()
@@ -55,7 +51,22 @@ class Gaussian(object):
             Are we creating default symmetry functions?
         category : str
             The supported categories are: 'trainingset', 'testset'.
+
+        Returns
+        -------
+        feature_space : dict
+            A dictionary with key hash and value as a list with the following
+            structure: {'hash': [('H', [vector]]}
         """
+
+        feature_space = OrderedDict()
+
+        if self.backend is None:
+            print('No backend provided')
+            import numpy
+            self.backend = BackendOperations(numpy)
+        else:
+            self.backend = BackendOperations(backend)
 
         if self.data.unique_element_symbols is None:
             print('Getting unique element symbols for {}' .format(category))
@@ -63,11 +74,18 @@ class Gaussian(object):
                 self.data.get_unique_element_symbols(images, category=category)
             unique_element_symbols = unique_element_symbols[category]
 
+            print('Unique elements: {}' .format(unique_element_symbols))
+
         if defaults:
             self.GP = self.make_symmetry_functions(unique_element_symbols,
                                                    defaults=True)
 
-        for image in images:
+        if self.data.is_valid_structure(images) is False:
+            images = self.data.prepare_images(images)[0]
+
+        for key, image in images.items():
+            feature_space[key] = []
+
             if self.backend.name == 'torch':
                 image_positions = self.backend.from_numpy(image.positions)
             else:
@@ -88,8 +106,12 @@ class Gaussian(object):
                                      for (neighbor, offset) in
                                      zip(n_indices, n_offsets)]
 
-                print(self.get_atomic_fingerprint(atom, index, symbol,
-                      n_symbols, neighborpositions))
+                feature_vector = self.get_atomic_fingerprint(atom, index,
+                                                            symbol, n_symbols,
+                                                            neighborpositions)
+                feature_space[key].append(feature_vector)
+
+        return feature_space
 
     def get_atomic_fingerprint(self, atom, index, symbol, n_symbols,
                                neighborpositions):

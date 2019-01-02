@@ -16,15 +16,6 @@ class Data(object):
     """
     def __init__(self):
         self.unique_element_symbols = None
-        """
-        # We check if the data strucure is the one needed by MlChemistry
-        if self.is_valid_structure(images):
-            print('The images have the right structure')
-        else:
-            print('Preparing images...')
-            images = self.prepare_images(images)
-            print('Images prepared...')
-        """
 
     def prepare_images(self, images):
         """Function to prepare images to operate with mlchemistry
@@ -39,7 +30,9 @@ class Data(object):
         _images : dict
             Dictionary of images.
         """
+        print('Preparing images...')
         _images = OrderedDict()
+        targets = []
 
         duplicates = 0
 
@@ -49,8 +42,10 @@ class Data(object):
                 duplicates += 1
             else:
                 _images[key] = image
+                targets.append(image.get_potential_energy())
 
-        return _images
+        print('Images hashed...')
+        return _images, targets
 
     def is_valid_structure(self, images):
         """Check if the data has a valid structure
@@ -91,8 +86,13 @@ class Data(object):
         if category in supported_categories:
             if category not in symbols.keys():
                 symbols[category] = {}
-                symbols[category] = sorted(list(set([atom.symbol for image in
+                try:
+                    symbols[category] = sorted(list(set([atom.symbol for image in
                                            images for atom in image])))
+                except AttributeError:
+                    symbols[category] = sorted(list(set([atom.symbol for key, image in
+                                           images.items() for atom in image])))
+
             else:
                 print('what happens in the following case?')    # FIXME
         else:
