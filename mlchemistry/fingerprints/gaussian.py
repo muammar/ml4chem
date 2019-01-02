@@ -22,7 +22,7 @@ class Gaussian(object):
         Set it to true if the features are being normalized with respect to the
         cutoff radius.
     backend : object
-        An object used as backend.
+        A backend object.
     """
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
                  backend=None):
@@ -34,8 +34,11 @@ class Gaussian(object):
             self.cutofffxn = cutofffxn
 
         if backend is None:
+            print('No backend provided')
             import numpy
             self.backend = BackendOperations(numpy)
+        else:
+            self.backend = BackendOperations(backend)
 
         self.normalized = normalized
         self.data = Data()
@@ -65,14 +68,22 @@ class Gaussian(object):
                                                    defaults=True)
 
         for image in images:
+            if self.backend.backend_name == 'torch':
+                image_positions = self.backend.from_numpy(image.positions)
+            else:
+                image_positions = image.positions
+
             for atom in image:
                 index = atom.index
                 symbol = atom.symbol
-
                 nl = get_neighborlist(image, cutoff=self.cutoff)
                 n_indices, n_offsets = nl[atom.index]
+
+                if self.backend.backend_name == 'torch':
+                    n_offsets = self.backend.from_numpy(n_offsets)
+
                 n_symbols = [image[i].symbol for i in n_indices]
-                neighborpositions = [image.positions[neighbor] +
+                neighborpositions = [image_positions[neighbor] +
                                      self.backend.dot(offset, image.cell)
                                      for (neighbor, offset) in
                                      zip(n_indices, n_offsets)]
@@ -248,12 +259,20 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
     for count in range(num_neighbors):
         symbol = neighborsymbols[count]
         Rj = neighborpositions[count]
+
+        # Are we normalzing the feature?
+        if normalized:
+            Rc = cutoff
+        else:
+            Rc = 1.
+
+        # Backend checks
+        if backend.backend_name == 'torch':
+            Ri = backend.from_numpy(Ri)
+            Rc = backend.from_numpy(Rc)
+
         if symbol == center_symbol:
             Rij = backend.norm(Rj - Ri)
-            if normalized:
-                Rc = cutoff
-            else:
-                Rc = 1.
-            feature += (backend.exp(-eta * (Rij ** 2.) / (Rc ** 2.)) *
-                        cutofffxn(Rij))
+            feature += (backend.exp(-eta * (backend.square(Rij)) /
+                        (backend.square(Rc)) * cutofffxn(Rij)))
     return feature

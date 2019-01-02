@@ -13,15 +13,10 @@ class Data(object):
 
     The central object here is the data set.
 
-    Parameters
-    ----------
-    images : object or list
-        A list of atoms in molecules or solids.
     """
 
     def __init__(self):
         self.unique_element_symbols = None
-        pass
         """
         # We check if the data strucure is the one needed by MlChemistry
         if self.is_valid_structure(images):
