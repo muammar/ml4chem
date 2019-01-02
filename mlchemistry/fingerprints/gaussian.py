@@ -68,7 +68,7 @@ class Gaussian(object):
                                                    defaults=True)
 
         for image in images:
-            if self.backend.backend_name == 'torch':
+            if self.backend.name == 'torch':
                 image_positions = self.backend.from_numpy(image.positions)
             else:
                 image_positions = image.positions
@@ -79,7 +79,7 @@ class Gaussian(object):
                 nl = get_neighborlist(image, cutoff=self.cutoff)
                 n_indices, n_offsets = nl[atom.index]
 
-                if self.backend.backend_name == 'torch':
+                if self.backend.name == 'torch':
                     n_offsets = self.backend.from_numpy(n_offsets)
 
                 n_symbols = [image[i].symbol for i in n_indices]
@@ -120,15 +120,17 @@ class Gaussian(object):
                                        normalized=self.normalized,
                                        backend=self.backend)
             elif GP['type'] == 'G3':
-                feature = calculate_G4(n_symbols, neighborpositions,
-                                       GP['elements'], GP['gamma'],
+                feature = calculate_G3(n_symbols, neighborpositions,
+                                       GP['symbols'], GP['gamma'],
                                        GP['zeta'], GP['eta'], self.cutoff,
-                                       self.cutofffxn, Ri)
+                                       self.cutofffxn, Ri,
+                                       backend=self.backend)
             elif GP['type'] == 'G4':
-                feature = calculate_G5(n_symbols, neighborpositions,
-                                       GP['elements'], GP['gamma'],
+                feature = calculate_G4(n_symbols, neighborpositions,
+                                       GP['symbols'], GP['gamma'],
                                        GP['zeta'], GP['eta'], self.cutoff,
-                                       self.cutofffxn, Ri)
+                                       self.cutofffxn, Ri,
+                                       backend=self.backend)
             else:
                 print('not implemented')
             fingerprint[count] = feature
@@ -226,7 +228,7 @@ class Gaussian(object):
                             for sym2 in symbols[idx1:]:
                                 pairs = sorted([sym1, sym2])
                                 GP.append({'type': type,
-                                           'elements': pairs,
+                                           'symbols': pairs,
                                            'eta': eta,
                                            'gamma': gamma,
                                            'zeta': zeta})
@@ -285,7 +287,7 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
         Rj = neighborpositions[count]
 
         # Backend checks
-        if backend.backend_name == 'torch':
+        if backend.name == 'torch':
             Ri = backend.from_numpy(Ri)
             Rc = backend.from_numpy(Rc)
 
@@ -295,4 +297,65 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
             feature += (backend.exp(-eta * (Rij ** 2.) / (Rc ** 2.)) *
                         cutofffxn(Rij))
 
+    return feature
+
+def calculate_G3(neighborsymbols, neighborpositions, G_elements, gamma, zeta,
+                 eta, cutoff, cutofffxn, Ri, backend=None):
+    """Calculate G3 symmetry function.
+
+    Parameters
+    ----------
+    neighborsymbols : list of str
+        List of symbols of neighboring atoms.
+    neighborpositions : list of list of floats
+        List of Cartesian atomic positions of neighboring atoms.
+    G_elements : list of str
+        A list of two members, each member is the chemical species of one of
+        the neighboring atoms forming the triangle with the center atom.
+    gamma : float
+        Parameter of Gaussian symmetry functions.
+    zeta : float
+        Parameter of Gaussian symmetry functions.
+    eta : float
+        Parameter of Gaussian symmetry functions.
+    cutoff : float
+        Cutoff radius.
+    cutofffxn : object
+        Cutoff function.
+    Ri : list
+        Position of the center atom. Should be fed as a list of three floats.
+    backend : object
+        A backend object.
+
+    Returns
+    -------
+    feature : float
+        G3 feature value.
+    """
+    Rc = cutoff
+    feature = 0.
+    counts = range(len(neighborpositions))
+    for j in counts:
+        for k in counts[(j + 1):]:
+            els = sorted([neighborsymbols[j], neighborsymbols[k]])
+            if els != G_elements:
+                continue
+
+            if backend.name == 'torch':
+                Ri = backend.from_numpy(Ri)
+            Rij_vector = neighborpositions[j] - Ri
+            Rij = backend.norm(Rij_vector)
+            Rik_vector = neighborpositions[k] - Ri
+            Rik = backend.norm(Rik_vector)
+            Rjk_vector = neighborpositions[k] - neighborpositions[j]
+            Rjk = backend.norm(Rjk_vector)
+            cos_theta_ijk = backend.dot(Rij_vector, Rik_vector) / Rij / Rik
+            term = (1. + gamma * cos_theta_ijk) ** zeta
+            term *= backend.exp(-eta * (Rij ** 2. + Rik ** 2. + Rjk ** 2.) /
+                           (Rc ** 2.))
+            term *= cutofffxn(Rij)
+            term *= cutofffxn(Rik)
+            term *= cutofffxn(Rjk)
+            feature += term
+    feature *= 2. ** (1. - zeta)
     return feature

@@ -15,11 +15,11 @@ class BackendOperations(object):
     """
     def __init__(self, backend):
         self.backend = backend
-        self.backend_name = self.backend.__name__
+        self.name = self.backend.__name__
 
     def dot(self, a, b):
         """Dot product"""
-        if self.backend_name == 'torch':
+        if self.name == 'torch':
             if isinstance(a, np.ndarray):
                 a = self.backend.Tensor(a).float()
             if isinstance(b, np.ndarray):
@@ -30,7 +30,7 @@ class BackendOperations(object):
 
     def logspace(self, a, b, num):
         """Logspace"""
-        if self.backend_name == 'torch':
+        if self.name == 'torch':
             return self.backend.logspace(start=float(a), end=float(b),
                                          steps=num)
         else:
@@ -38,13 +38,13 @@ class BackendOperations(object):
 
     def log10(self, a):
         """Log base 10"""
-        if self.backend_name == 'torch':
+        if self.name == 'torch':
             a = self.backend.Tensor([a])
         return self.backend.log10(a)
 
     def norm(self, a):
         """Norm between two vectors"""
-        if self.backend_name == 'torch':
+        if self.name == 'torch':
             return self.backend.norm(a).float()
         else:
             return self.backend.linalg.norm(a)
