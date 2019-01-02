@@ -14,7 +14,6 @@ class Data(object):
     The central object here is the data set.
 
     """
-
     def __init__(self):
         self.unique_element_symbols = None
         """

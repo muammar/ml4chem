@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class BackendOperations(object):
     """A class for centralizing backend operations
 

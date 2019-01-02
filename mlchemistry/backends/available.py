@@ -1,5 +1,6 @@
 import pkg_resources
 
+
 def available_backends():
     """A function that reports available backends"""
     supported_backends = ['tensorflow', 'torch', 'torchvision', 'numpy']

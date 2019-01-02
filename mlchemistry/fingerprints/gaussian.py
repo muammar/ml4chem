@@ -88,8 +88,8 @@ class Gaussian(object):
                                      for (neighbor, offset) in
                                      zip(n_indices, n_offsets)]
 
-                print(self.get_atomic_fingerprint(atom, index, symbol, n_symbols,
-                                            neighborpositions))
+                print(self.get_atomic_fingerprint(atom, index, symbol,
+                      n_symbols, neighborpositions))
 
     def get_atomic_fingerprint(self, atom, index, symbol, n_symbols,
                                neighborpositions):
@@ -115,26 +115,25 @@ class Gaussian(object):
 
             if GP['type'] == 'G2':
                 feature = calculate_G2(n_symbols, neighborpositions,
-                                     GP['symbol'], GP['eta'],
-                                     self.cutoff, self.cutofffxn, Ri,
-                                     normalized=self.normalized,
-                                     backend=self.backend)
-            elif G['type'] == 'G3':
+                                       GP['symbol'], GP['eta'],
+                                       self.cutoff, self.cutofffxn, Ri,
+                                       normalized=self.normalized,
+                                       backend=self.backend)
+            elif GP['type'] == 'G3':
                 feature = calculate_G4(n_symbols, neighborpositions,
-                                     GP['elements'], GP['gamma'],
-                                     GP['zeta'], GP['eta'], self.cutoff,
-                                     self.cutofffxn, Ri)
-            elif G['type'] == 'G4':
+                                       GP['elements'], GP['gamma'],
+                                       GP['zeta'], GP['eta'], self.cutoff,
+                                       self.cutofffxn, Ri)
+            elif GP['type'] == 'G4':
                 feature = calculate_G5(n_symbols, neighborpositions,
-                                     GP['elements'], GP['gamma'],
-                                     GP['zeta'], GP['eta'], self.cutoff,
-                                     self.cutofffxn, Ri)
+                                       GP['elements'], GP['gamma'],
+                                       GP['zeta'], GP['eta'], self.cutoff,
+                                       self.cutofffxn, Ri)
             else:
                 print('not implemented')
             fingerprint[count] = feature
 
         return symbol, fingerprint
-
 
     def make_symmetry_functions(self, symbols, defaults=True, type=None,
                                 etas=None, zetas=None, gammas=None):
@@ -176,15 +175,16 @@ class Gaussian(object):
                 # Radial
                 etas = self.backend.logspace(self.backend.log10(0.05),
                                              self.backend.log10(5.), num=4)
-                _GP = self.get_symmetry_functions(type='G2', etas=etas, symbols=symbols)
+                _GP = self.get_symmetry_functions(type='G2', etas=etas,
+                                                  symbols=symbols)
 
                 # Angular
-                #####etas = [0.005]
-                #####zetas = [1., 4.]
-                #####gammas = [1., -1.]
-                #####_GP += self.get_symmetry_functions(type='G3', symbols=symbols,
-                #####                                   etas=etas, zetas=zetas,
-                #####                                   gammas=gammas)
+                etas = [0.005]
+                zetas = [1., 4.]
+                gammas = [1., -1.]
+                _GP += self.get_symmetry_functions(type='G3', symbols=symbols,
+                                                   etas=etas, zetas=zetas,
+                                                   gammas=gammas)
 
                 GP[symbol] = _GP
         else:
@@ -192,9 +192,22 @@ class Gaussian(object):
 
         return GP
 
-    def get_symmetry_functions(self, type, symbols, etas=None, zetas=None, gammas=None):
+    def get_symmetry_functions(self, type, symbols, etas=None, zetas=None,
+                               gammas=None):
         """Get requested symmetry functions
 
+        Parameters
+        ----------
+        type : str
+            The desired symmetry function: 'G2', 'G3', or 'G4'.
+        symbols : list
+            List of chemical symbols.
+        etas : list
+            List of etas to build the Gaussian function.
+        zetas : list
+            List of zetas to build the Gaussian function.
+        gammas : list
+            List of gammas to build the Gaussian function.
         """
 
         supported_angular_symmetry_functions = ['G3', 'G4']
@@ -221,6 +234,7 @@ class Gaussian(object):
         else:
             print('The requested type of angular symmetry function is not'
                   ' supported.')
+
 
 def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
                  cutoff, cutofffxn, Ri, normalized=True, backend=None):
@@ -279,6 +293,6 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
             Rij = backend.norm(Rj - Ri)
 
             feature += (backend.exp(-eta * (Rij ** 2.) / (Rc ** 2.)) *
-                                    cutofffxn(Rij))
+                        cutofffxn(Rij))
 
     return feature
