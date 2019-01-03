@@ -39,6 +39,7 @@ class MlChemistry(Calculator, object):
             List containing the training set.
         """
         data_handler = Data()
+
         # Raw input and targets aka y
         training_set, targets = data_handler.prepare_images(training_set)
         # Mapping raw positions into a feature space aka X
