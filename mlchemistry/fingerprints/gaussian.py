@@ -3,6 +3,7 @@ from mlchemistry.data.handler import Data
 from mlchemistry.backends.operations import BackendOperations
 from .cutoff import Cosine
 from collections import OrderedDict
+import numpy
 
 
 class Gaussian(object):
@@ -63,7 +64,6 @@ class Gaussian(object):
 
         if self.backend is None:
             print('No backend provided')
-            import numpy
             self.backend = BackendOperations(numpy)
         else:
             self.backend = BackendOperations(backend)
