@@ -38,13 +38,14 @@ class MlChemistry(Calculator, object):
         training_set : object, list
             List containing the training set.
         """
-        data_handler = Data()
+        data_handler = Data(training_set, self.model, purpose='training')
 
         # Raw input and targets aka y
-        training_set, targets = data_handler.prepare_images(training_set)
+        training_set, targets = data_handler.get_images(purpose='training')
 
         # Mapping raw positions into a feature space aka X
-        feature_space = self.fingerprints.calculate_features(training_set)
+        feature_space = self.fingerprints.calculate_features(training_set,
+                                                             data=data_handler)
 
         # Now let's train
         self.model.train(feature_space, targets)

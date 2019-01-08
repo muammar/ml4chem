@@ -15,18 +15,19 @@ class NeuralNetwork(nn.Module):
         Number of full training cycles.
     convergence : dict
         Instead of using epochs, users can set a convergence criterion.
+    device : str
+        Calculation can be run in the CPU or GPU.
     """
 
-    def __init__(self, hiddenlayers=(3, 3), epochs=100, convergence=None):
+    def __init__(self, hiddenlayers=(3, 3), epochs=100, convergence=None,
+                 device='cpu'):
         super(NeuralNetwork, self).__init__()
+        self.epochs = epochs
+        self.device = device.lower()    # This is to assure we are in lowercase
+
         print('Number of hidden-layers: {}' .format(len(hiddenlayers)))
         self.hiddenlayers = hiddenlayers
-        self.epochs = epochs
-        self.fc1 = nn.Linear(8, 8)
-        self.fc2 = nn.Linear(8, 3)
-        self.fc3 = nn.Linear(3, 1)
-        self.backend = backend(torch)
-        self.device = 'cpu'
+
 
     def forward(self, x):
         """Forward propagation
@@ -36,9 +37,11 @@ class NeuralNetwork(nn.Module):
         x : list
             List of features.
         """
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        for i, l in enumerate(self.linears):
+            if i != self.last_index:
+                x = F.relu(l(x))
+            else:
+                x = l(x)
         return x
 
     def train(self, feature_space, targets):
@@ -53,12 +56,32 @@ class NeuralNetwork(nn.Module):
         """
 
 
+        linears = []
+        layers = enumerate(range(len(self.hiddenlayers) + 1))
+
+
+        for index, layer in layers:
+            if index == 0:
+                inp_dimension = 8
+                out_dimension = self.hiddenlayers[0]
+            elif index == len(self.hiddenlayers):
+                inp_dimension = self.hiddenlayers[1]
+                out_dimension = 1
+                self.last_index = index
+            else:
+                inp_dimension, out_dimension = self.hiddenlayers
+
+            linears.append(nn.Linear(inp_dimension, out_dimension))
+
+        # Stacking up the layers.
+        self.linears = nn.ModuleList(linears)
+        self.backend = backend(torch)
         targets = self.backend.from_numpy(targets)
 
         # Definition of weights
-        w1 = torch.randn(8, 8, device=self.device, requires_grad=False)
-        w2 = torch.randn(8, 3, device=self.device, requires_grad=True)
-        w3 = torch.randn(3, 1, device=self.device, requires_grad=True)
+        #w1 = torch.randn(8, 3, device=self.device, requires_grad=True)
+        #w2 = torch.randn(8, 3, device=self.device, requires_grad=True)
+        #w3 = torch.randn(3, 1, device=self.device, requires_grad=True)
 
         # Define optimizer
         optimizer = torch.optim.Adam(self.parameters(), lr=0.0001)
@@ -66,6 +89,7 @@ class NeuralNetwork(nn.Module):
         for epoch in range(self.epochs):
             print(epoch)
             outputs = []
+            optimizer.zero_grad()  # clear previous gradients
 
             for hash, fs in feature_space.items():
                 image_energy = 0.
@@ -93,6 +117,8 @@ class NeuralNetwork(nn.Module):
             criterion = nn.MSELoss()
             loss = torch.sqrt(criterion(outputs, targets))
             print('Loss function', loss)
-            optimizer.zero_grad()  # clear previous gradients
             loss.backward()
             optimizer.step()
+
+        for model in self.linears:
+            print(list(model.parameters()))

@@ -28,20 +28,19 @@ class Gaussian(object):
     """
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
                  backend=None):
+
         self.cutoff = cutoff
+        self.backend = backend
+        self.normalized = normalized
 
         if cutofffxn is None:
             self.cutofffxn = Cosine(cutoff=cutoff)
         else:
             self.cutofffxn = cutofffxn
 
-        self.backend = backend
-
-        self.normalized = normalized
-        self.data = Data()
 
     def calculate_features(self, images, defaults=True,
-                           category='trainingset'):
+                           category='trainingset', data=None):
         """Calculate the features per atom in an atoms objects
 
         Parameters
@@ -52,6 +51,8 @@ class Gaussian(object):
             Are we creating default symmetry functions?
         category : str
             The supported categories are: 'trainingset', 'testset'.
+        data : obj
+            data object
 
         Returns
         -------
@@ -68,10 +69,10 @@ class Gaussian(object):
         else:
             self.backend = BackendOperations(backend)
 
-        if self.data.unique_element_symbols is None:
+        if data.unique_element_symbols is None:
             print('Getting unique element symbols for {}' .format(category))
             unique_element_symbols = \
-                self.data.get_unique_element_symbols(images, category=category)
+                data.get_unique_element_symbols(images, category=category)
             unique_element_symbols = unique_element_symbols[category]
 
             print('Unique elements: {}' .format(unique_element_symbols))
@@ -79,9 +80,6 @@ class Gaussian(object):
         if defaults:
             self.GP = self.make_symmetry_functions(unique_element_symbols,
                                                    defaults=True)
-
-        if self.data.is_valid_structure(images) is False:
-            images = self.data.prepare_images(images)[0]
 
         for key, image in images.items():
             feature_space[key] = []

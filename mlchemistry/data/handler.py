@@ -13,39 +13,62 @@ class Data(object):
 
     The central object here is the data set.
 
+    Parameters
+    ----------
+    images : list or object
+        List of images.
+    model : object
+        The model can determine the data structure.
+    purpose : str
+        Are we needing the data for training or inferring?
     """
-    def __init__(self):
+    def __init__(self, images, model=None, purpose=None):
+
+        self.images = None
+        self.targets = None
         self.unique_element_symbols = None
 
-    def prepare_images(self, images):
+        if self.is_valid_structure(images) is False:
+            self.prepare_images(images, purpose=purpose)
+
+    def prepare_images(self, images, purpose=None):
         """Function to prepare images to operate with mlchemistry
 
         Parameters
         ----------
-        images : object
-            Images to prepare.
+        images : list or object
+            List of images.
+        purpose : str
+            The purpose of the data so that structure is prepared accordingly.
+            Supported are: 'training', 'inference'
 
         Returns
         -------
-        _images : dict
-            Dictionary of images.
+        self.images : dict
+            Ordered dictionary of images corresponding to order of self.targets
+            list.
+        self.targets : list
+            Targets used for training the model.
         """
         print('Preparing images...')
-        _images = OrderedDict()
-        targets = []
+        self.images = OrderedDict()
+
+        if purpose == 'training':
+            self.targets = []
 
         duplicates = 0
 
         for image in images:
             key = get_hash(image)
-            if key in _images.keys():
+            if key in self.images.keys():
                 duplicates += 1
             else:
-                _images[key] = image
-                targets.append(image.get_potential_energy())
+                self.images[key] = image
+                if purpose == 'training':
+                    # When purpose is training then you also need targets
+                    self.targets.append(image.get_potential_energy())
 
         print('Images hashed...')
-        return _images, targets
 
     def is_valid_structure(self, images):
         """Check if the data has a valid structure
@@ -102,3 +125,17 @@ class Data(object):
         self.unique_element_symbols = symbols
 
         return self.unique_element_symbols
+
+    def get_images(self, purpose=None):
+        """
+        Parameters
+        ----------
+        purpose : str
+            The purpose of the data so that structure is prepared accordingly.
+            Supported are: 'training', 'inference'
+        model_name : str
+            The model that is going to be used. Supported models are 'NeuralNetwork'.
+        """
+
+        if purpose == 'training':
+            return self.images, self.targets
