@@ -26,6 +26,7 @@ class NeuralNetwork(nn.Module):
         self.fc2 = nn.Linear(8, 3)
         self.fc3 = nn.Linear(3, 1)
         self.backend = backend(torch)
+        self.device = 'cpu'
 
     def forward(self, x):
         """Forward propagation
@@ -51,28 +52,47 @@ class NeuralNetwork(nn.Module):
             The expected values that the model has to learn aka y.
         """
 
-        device = 'cpu'
+
+        targets = self.backend.from_numpy(targets)
 
         # Definition of weights
-        w1 = torch.randn(8, 8, device=device, requires_grad=False)
-        w2 = torch.randn(8, 3, device=device, requires_grad=True)
-        w3 = torch.randn(3, 1, device=device, requires_grad=True)
+        w1 = torch.randn(8, 8, device=self.device, requires_grad=False)
+        w2 = torch.randn(8, 3, device=self.device, requires_grad=True)
+        w3 = torch.randn(3, 1, device=self.device, requires_grad=True)
 
-        for hash, feature_space in feature_space.items():
-            image_energy = 0.
+        # Define optimizer
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.0001)
 
-            tensorial = []
-            for symbol, feature_vector in feature_space:
-                print(symbol, feature_vector)
-                atomic_energy = self.forward(self.backend.from_numpy(feature_vector))
-                tensorial.append(feature_vector)
-                print('atomic_energy', atomic_energy)
-                image_energy += atomic_energy
+        for epoch in range(self.epochs):
+            print(epoch)
+            outputs = []
 
-            tensorial_space = self.backend.from_numpy(tensorial)
-            print('tensor shape', tensorial_space.shape)
-            print('Energy for hash {} is {} with tensors'
-                    .format(hash, self.forward(tensorial_space).sum()))
-            print('Energy for hash {} is {}' .format(hash, image_energy))
-        #for epoch in range(self.epochs):
-        #    print(epoch)
+            for hash, fs in feature_space.items():
+                image_energy = 0.
+
+                tensorial = []
+                for symbol, feature_vector in fs:
+                    print(symbol, feature_vector)
+                    atomic_energy = self.forward(self.backend.from_numpy(feature_vector))
+                    tensorial.append(feature_vector)
+                    print('atomic_energy', atomic_energy)
+                    image_energy += atomic_energy
+
+                tensorial_space = self.backend.from_numpy(tensorial)
+                print('tensor shape', tensorial_space.shape)
+                print('Energy for hash {} is {} with tensors'
+                        .format(hash, self.forward(tensorial_space).sum()))
+                print('Energy for hash {} is {}' .format(hash, image_energy))
+                outputs.append(image_energy)
+            print('outputs')
+            print(outputs)
+            print('targets')
+            print(targets)
+            outputs = torch.stack(outputs)
+
+            criterion = nn.MSELoss()
+            loss = torch.sqrt(criterion(outputs, targets))
+            print('Loss function', loss)
+            optimizer.zero_grad()  # clear previous gradients
+            loss.backward()
+            optimizer.step()
