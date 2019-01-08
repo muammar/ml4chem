@@ -17,13 +17,16 @@ class NeuralNetwork(nn.Module):
         Instead of using epochs, users can set a convergence criterion.
     device : str
         Calculation can be run in the CPU or GPU.
+    lr : float
+        Learning rate.
     """
 
     def __init__(self, hiddenlayers=(3, 3), epochs=100, convergence=None,
-                 device='cpu'):
+                 device='cpu', lr=0.001):
         super(NeuralNetwork, self).__init__()
         self.epochs = epochs
         self.device = device.lower()    # This is to assure we are in lowercase
+        self.lr = lr
 
         print('Number of hidden-layers: {}' .format(len(hiddenlayers)))
         self.hiddenlayers = hiddenlayers
@@ -55,14 +58,13 @@ class NeuralNetwork(nn.Module):
             The expected values that the model has to learn aka y.
         """
 
-
         linears = []
         layers = enumerate(range(len(self.hiddenlayers) + 1))
 
 
         for index, layer in layers:
             if index == 0:
-                inp_dimension = 8
+                inp_dimension = len(list(feature_space.values())[0][0][-1])
                 out_dimension = self.hiddenlayers[0]
             elif index == len(self.hiddenlayers):
                 inp_dimension = self.hiddenlayers[1]
@@ -84,7 +86,7 @@ class NeuralNetwork(nn.Module):
         #w3 = torch.randn(3, 1, device=self.device, requires_grad=True)
 
         # Define optimizer
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.0001)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 
         for epoch in range(self.epochs):
             print(epoch)
