@@ -59,19 +59,23 @@ class NeuralNetwork(nn.Module):
         """
 
         linears = []
-        layers = enumerate(range(len(self.hiddenlayers) + 1))
+        layers = range(len(self.hiddenlayers) + 1)
 
 
-        for index, layer in layers:
+        for index in layers:
+            # This is the input layer
             if index == 0:
                 inp_dimension = len(list(feature_space.values())[0][0][-1])
                 out_dimension = self.hiddenlayers[0]
+            # This is the output layer
             elif index == len(self.hiddenlayers):
-                inp_dimension = self.hiddenlayers[1]
+                inp_dimension = self.hiddenlayers[index - 1]
                 out_dimension = 1
                 self.last_index = index
+            # These are hidden-layers
             else:
-                inp_dimension, out_dimension = self.hiddenlayers
+                inp_dimension = self.hiddenlayers[index -1]
+                out_dimension = self.hiddenlayers[index]
 
             linears.append(nn.Linear(inp_dimension, out_dimension))
 
