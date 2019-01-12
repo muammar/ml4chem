@@ -19,7 +19,6 @@ class MlChemistry(Calculator, object):
     implemented_properties = ['energy', 'forces']
 
     def __init__(self, fingerprints=None, model=None):
-        print('Starting MLChem')
         self.fingerprints = fingerprints
         self.available_backends = available_backends()
         print('Available backends', self.available_backends)

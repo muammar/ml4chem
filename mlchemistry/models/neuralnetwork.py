@@ -30,23 +30,22 @@ class NeuralNetwork(nn.Module):
         self.lr = lr
         self.optimizer = optimizer
 
-        print('Number of hidden-layers: {}' .format(len(hiddenlayers)))
         self.hiddenlayers = hiddenlayers
 
-    def forward(self, x):
+    def forward(self, X):
         """Forward propagation
 
         Parameters
         ----------
-        x : list
+        X : list
             List of features.
         """
         for i, l in enumerate(self.linears):
-            if i != self.last_index:
-                x = F.relu(l(x))
+            if i != self.out_layer_index:
+                X = F.relu(l(X))
             else:
-                x = l(x)
-        return x
+                X = l(X)
+        return X
 
     def train(self, feature_space, targets):
         """Train the model
@@ -59,6 +58,13 @@ class NeuralNetwork(nn.Module):
             The expected values that the model has to learn aka y.
         """
 
+        print()
+        print('Model Training')
+        print('==============')
+        print('Number of hidden-layers: {}' .format(len(self.hiddenlayers)))
+        print('Structure of Neural Net: {}' .format('(input, ' +
+                                                    str(self.hiddenlayers)[1:-1]
+                                                    + ', output)'))
         linears = []
         layers = range(len(self.hiddenlayers) + 1)
 
@@ -71,7 +77,7 @@ class NeuralNetwork(nn.Module):
             elif index == len(self.hiddenlayers):
                 inp_dimension = self.hiddenlayers[index - 1]
                 out_dimension = 1
-                self.last_index = index
+                self.out_layer_index = index
             # These are hidden-layers
             else:
                 inp_dimension = self.hiddenlayers[index - 1]
@@ -94,8 +100,8 @@ class NeuralNetwork(nn.Module):
         if self.optimizer is None:
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 
+        print('{:6s} {:8s}'.format('Epoch', 'Loss'))
         for epoch in range(self.epochs):
-            print(epoch)
             outputs = []
             self.optimizer.zero_grad()  # clear previous gradients
 
@@ -104,26 +110,32 @@ class NeuralNetwork(nn.Module):
 
                 tensorial = []
                 for symbol, feature_vector in fs:
-                    print(symbol, feature_vector)
+                    #print(symbol, feature_vector)
                     atomic_energy = \
                         self.forward(self.backend.from_numpy(feature_vector))
                     tensorial.append(feature_vector)
-                    print('atomic_energy', atomic_energy)
+                    #print('atomic_energy', atomic_energy)
                     image_energy += atomic_energy
 
                 tensorial_space = self.backend.from_numpy(tensorial)
-                print('tensor shape', tensorial_space.shape)
-                print('Energy for hash {} is {} with tensors'
-                      .format(hash, self.forward(tensorial_space).sum()))
-                print('Energy for hash {} is {}' .format(hash, image_energy))
+                #print('tensor shape', tensorial_space.shape)
+                #print('Energy for hash {} is {} with tensors'
+                      #.format(hash, self.forward(tensorial_space).sum()))
+                #print('Energy for hash {} is {}' .format(hash, image_energy))
                 outputs.append(image_energy)
-            print('outputs')
-            print(outputs)
-            print('targets')
-            print(targets)
+            #print('outputs')
+            #print(outputs)
+            #print('targets')
+            #print(targets)
             outputs = torch.stack(outputs)
-            self.get_loss(outputs, targets)
+            loss = self.get_loss(outputs, targets)
 
+            print('{:6d} {:8f}' .format(epoch, loss))
+
+        print('outputs')
+        print(outputs)
+        print('targets')
+        print(targets)
         for model in self.linears:
             print(list(model.parameters()))
 
@@ -146,7 +158,6 @@ class NeuralNetwork(nn.Module):
 
         criterion = nn.MSELoss()
         loss = torch.sqrt(criterion(outputs, targets))
-        print('Loss Function Value {}'. format(loss.item()))
         loss.backward()
         self.optimizer.step()
         return loss

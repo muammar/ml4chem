@@ -63,6 +63,10 @@ class Gaussian(object):
 
         feature_space = OrderedDict()
 
+        print()
+        print('Fingerprinting')
+        print('==============')
+
         if self.backend is None:
             print('No backend provided')
             self.backend = BackendOperations(numpy)
