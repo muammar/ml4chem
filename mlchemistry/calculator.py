@@ -5,7 +5,7 @@ from mlchemistry.data.handler import Data
 from mlchemistry.backends.available import available_backends
 
 
-class MlChemistry(Calculator, object):
+class Potentials(Calculator, object):
     """Machine-Learning for Chemistry
 
     Parameters

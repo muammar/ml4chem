@@ -1,6 +1,6 @@
-from mlchemistry.calculator import MlChemistry
+from mlchemistry.calculator import Potentials
 
-__all__ = ['MlChemistry']
+__all__ = ['Potentials']
 
 name = """
 -------------------------------------------------------------------------------------
