@@ -1,3 +1,5 @@
+import time
+import datetime
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -100,7 +102,12 @@ class NeuralNetwork(nn.Module):
         if self.optimizer is None:
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 
-        print('{:6s} {:8s}'.format('Epoch', 'Loss'))
+        print()
+        print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp','Loss'))
+        print('{:6s} {:19s} {:8s}'.format('------',
+                                          '-------------------','---------'))
+        initial_time = time.time()
+
         for epoch in range(self.epochs):
             outputs = []
             self.optimizer.zero_grad()  # clear previous gradients
@@ -130,8 +137,12 @@ class NeuralNetwork(nn.Module):
             outputs = torch.stack(outputs)
             loss = self.get_loss(outputs, targets)
 
-            print('{:6d} {:8f}' .format(epoch, loss))
+            ts = time.time()
+            ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
+                                                              '%H:%M:%S')
+            print('{:6d} {} {:8f}' .format(epoch, ts, loss))
 
+        training_time = time.time() - initial_time
         print('outputs')
         print(outputs)
         print('targets')
