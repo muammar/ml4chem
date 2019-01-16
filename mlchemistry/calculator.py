@@ -39,7 +39,7 @@ class Potentials(Calculator, object):
         """
         data_handler = Data(training_set, self.model, purpose='training')
 
-        # Raw input and targets aka y
+        # Raw input and targets aka X, y
         training_set, targets = data_handler.get_images(purpose='training')
 
         # Mapping raw positions into a feature space aka X
@@ -47,7 +47,7 @@ class Potentials(Calculator, object):
                                                              data=data_handler)
 
         # Now let's train
-        self.model.train(feature_space, targets)
+        self.model.train(feature_space, targets, data=data_handler)
 
     def calculate(self):
         """docstring for calculate"""

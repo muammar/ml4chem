@@ -34,22 +34,24 @@ class NeuralNetwork(nn.Module):
 
         self.hiddenlayers = hiddenlayers
 
-    def forward(self, X):
+    def forward(self, symbol, X):
         """Forward propagation
 
         Parameters
         ----------
+        symbol : str
+            Chemical symbol serving as key to query the right model.
         X : list
             List of features.
         """
-        for i, l in enumerate(self.linears):
+        for i, l in enumerate(self.linears[symbol]):
             if i != self.out_layer_index:
                 X = F.relu(l(X))
             else:
                 X = l(X)
         return X
 
-    def train(self, feature_space, targets):
+    def train(self, feature_space, targets, data=None):
         """Train the model
 
         Parameters
@@ -58,6 +60,8 @@ class NeuralNetwork(nn.Module):
             Dictionary with hashed feature space.
         targets : list
             The expected values that the model has to learn aka y.
+        data : object
+            Data object created from the handler.
         """
 
         print()
@@ -67,28 +71,37 @@ class NeuralNetwork(nn.Module):
         print('Structure of Neural Net: {}' .format('(input, ' +
                                                     str(self.hiddenlayers)[1:-1]
                                                     + ', output)'))
-        linears = []
         layers = range(len(self.hiddenlayers) + 1)
+        unique_element_symbols = data.unique_element_symbols['trainingset']
 
-        for index in layers:
-            # This is the input layer
-            if index == 0:
-                inp_dimension = len(list(feature_space.values())[0][0][-1])
-                out_dimension = self.hiddenlayers[0]
-            # This is the output layer
-            elif index == len(self.hiddenlayers):
-                inp_dimension = self.hiddenlayers[index - 1]
-                out_dimension = 1
-                self.out_layer_index = index
-            # These are hidden-layers
-            else:
-                inp_dimension = self.hiddenlayers[index - 1]
-                out_dimension = self.hiddenlayers[index]
 
-            linears.append(nn.Linear(inp_dimension, out_dimension))
+        symbol_model_pair = []
 
-        # Stacking up the layers.
-        self.linears = nn.ModuleList(linears)
+        for symbol in unique_element_symbols:
+            linears = []
+            for index in layers:
+                # This is the input layer
+                if index == 0:
+                    inp_dimension = len(list(feature_space.values())[0][0][-1])
+                    out_dimension = self.hiddenlayers[0]
+                # This is the output layer
+                elif index == len(self.hiddenlayers):
+                    inp_dimension = self.hiddenlayers[index - 1]
+                    out_dimension = 1
+                    self.out_layer_index = index
+                # These are hidden-layers
+                else:
+                    inp_dimension = self.hiddenlayers[index - 1]
+                    out_dimension = self.hiddenlayers[index]
+
+                linears.append(nn.Linear(inp_dimension, out_dimension))
+
+            # Stacking up the layers.
+            linears = nn.ModuleList(linears)
+            symbol_model_pair.append([symbol, linears])
+
+        self.linears = nn.ModuleDict(symbol_model_pair)
+
         self.backend = backend(torch)
         targets = self.backend.from_numpy(targets)
 
@@ -114,26 +127,18 @@ class NeuralNetwork(nn.Module):
 
             for hash, fs in feature_space.items():
                 image_energy = 0.
-
                 tensorial = []
+
                 for symbol, feature_vector in fs:
-                    #print(symbol, feature_vector)
                     atomic_energy = \
-                        self.forward(self.backend.from_numpy(feature_vector))
-                    tensorial.append(feature_vector)
-                    #print('atomic_energy', atomic_energy)
+                        self.forward(symbol,
+                                     self.backend.from_numpy(feature_vector))
+                    #tensorial.append(feature_vector)
                     image_energy += atomic_energy
 
-                tensorial_space = self.backend.from_numpy(tensorial)
-                #print('tensor shape', tensorial_space.shape)
-                #print('Energy for hash {} is {} with tensors'
-                      #.format(hash, self.forward(tensorial_space).sum()))
-                #print('Energy for hash {} is {}' .format(hash, image_energy))
+                #tensorial_space = self.backend.from_numpy(tensorial)
                 outputs.append(image_energy)
-            #print('outputs')
-            #print(outputs)
-            #print('targets')
-            #print(targets)
+
             outputs = torch.stack(outputs)
             loss = self.get_loss(outputs, targets)
 
@@ -147,7 +152,11 @@ class NeuralNetwork(nn.Module):
         print(outputs)
         print('targets')
         print(targets)
-        for model in self.linears:
+
+        print()
+        for symbol in unique_element_symbols:
+            model = self.linears[symbol]
+            print('Parameters for {} symbol' .format(symbol))
             print(list(model.parameters()))
 
     def get_loss(self, outputs, targets):
