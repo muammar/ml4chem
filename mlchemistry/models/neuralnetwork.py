@@ -22,17 +22,25 @@ class NeuralNetwork(nn.Module):
         Calculation can be run in the CPU or GPU.
     lr : float
         Learning rate.
+    optimizer : object
+        An optimizer class.
+    activation_function : str
+        The activation function.
+    weight_decay : float
+        L2 penalty.
     """
 
     def __init__(self, hiddenlayers=(3, 3), epochs=100, convergence=None,
-                 device='cpu', lr=0.001, optimizer=None):
+                 device='cpu', lr=0.001, optimizer=None,
+                 activation_function='tanh', weight_decay=1e-5):
         super(NeuralNetwork, self).__init__()
         self.epochs = epochs
         self.device = device.lower()    # This is to assure we are in lowercase
         self.lr = lr
         self.optimizer = optimizer
-
+        self.activation_function = activation_function
         self.hiddenlayers = hiddenlayers
+        self.weight_decay = weight_decay
 
     def forward(self, symbol, X):
         """Forward propagation
@@ -44,9 +52,11 @@ class NeuralNetwork(nn.Module):
         X : list
             List of features.
         """
+        activation_function = {'tanh': F.tanh, 'relu': F.relu}
+
         for i, l in enumerate(self.linears[symbol]):
             if i != self.out_layer_index:
-                X = F.relu(l(X))
+                X = activation_function[self.activation_function](l(X))
             else:
                 X = l(X)
         return X
@@ -94,7 +104,9 @@ class NeuralNetwork(nn.Module):
                     inp_dimension = self.hiddenlayers[index - 1]
                     out_dimension = self.hiddenlayers[index]
 
-                linears.append(nn.Linear(inp_dimension, out_dimension))
+                _linear = nn.Linear(inp_dimension, out_dimension)
+                nn.init.xavier_uniform(_linear.weight)
+                linears.append(_linear)
 
             # Stacking up the layers.
             linears = nn.ModuleList(linears)
@@ -105,15 +117,11 @@ class NeuralNetwork(nn.Module):
         self.backend = backend(torch)
         targets = self.backend.from_numpy(targets)
 
-        # Definition of weights
-        # w1 = torch.randn(8, 3, device=self.device, requires_grad=True)
-        # w2 = torch.randn(8, 3, device=self.device, requires_grad=True)
-        # w3 = torch.randn(3, 1, device=self.device, requires_grad=True)
-
         # Define optimizer
 
         if self.optimizer is None:
-            self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+            self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr,
+                                              weight_decay=self.weight_decay)
 
         print()
         print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp','Loss'))
