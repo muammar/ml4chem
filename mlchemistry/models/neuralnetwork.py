@@ -42,20 +42,22 @@ class NeuralNetwork(nn.Module):
         self.hiddenlayers = hiddenlayers
         self.weight_decay = weight_decay
 
-    def forward(self, symbol, X):
+    def forward(self, feature_vector):
         """Forward propagation
 
         Parameters
         ----------
-        symbol : str
-            Chemical symbol serving as key to query the right model.
-        X : list
-            List of features.
+        X : dict
+            Dictionary with symbol keys and feature vector vector.
         """
-        activation_function = {'tanh': F.tanh, 'relu': F.relu}
+        activation_function = {'tanh': torch.tanh, 'relu': F.relu}
+
+        symbol, X = feature_vector
+
+        X = self.backend.from_numpy(X)
 
         for i, l in enumerate(self.linears[symbol]):
-            if i != self.out_layer_index:
+            if i != self.out_layer_indices[symbol]:
                 X = activation_function[self.activation_function](l(X))
             else:
                 X = l(X)
@@ -86,6 +88,7 @@ class NeuralNetwork(nn.Module):
 
 
         symbol_model_pair = []
+        self.out_layer_indices = {}
 
         for symbol in unique_element_symbols:
             linears = []
@@ -99,6 +102,7 @@ class NeuralNetwork(nn.Module):
                     inp_dimension = self.hiddenlayers[index - 1]
                     out_dimension = 1
                     self.out_layer_index = index
+                    self.out_layer_indices[symbol] = index
                 # These are hidden-layers
                 else:
                     inp_dimension = self.hiddenlayers[index - 1]
@@ -113,6 +117,7 @@ class NeuralNetwork(nn.Module):
             symbol_model_pair.append([symbol, linears])
 
         self.linears = nn.ModuleDict(symbol_model_pair)
+        print(self.linears)
 
         self.backend = backend(torch)
         targets = self.backend.from_numpy(targets)
@@ -124,23 +129,21 @@ class NeuralNetwork(nn.Module):
                                               weight_decay=self.weight_decay)
 
         print()
-        print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp','Loss'))
+        print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp', 'Loss'))
         print('{:6s} {:19s} {:8s}'.format('------',
-                                          '-------------------','---------'))
+                                          '-------------------', '---------'))
         initial_time = time.time()
 
         for epoch in range(self.epochs):
             outputs = []
-            self.optimizer.zero_grad()  # clear previous gradients
 
             for hash, fs in feature_space.items():
                 image_energy = 0.
                 tensorial = []
 
-                for symbol, feature_vector in fs:
+                for feature_vector in fs:
                     atomic_energy = \
-                        self.forward(symbol,
-                                     self.backend.from_numpy(feature_vector))
+                        self.forward(feature_vector)
                     #tensorial.append(feature_vector)
                     image_energy += atomic_energy
 
@@ -149,6 +152,7 @@ class NeuralNetwork(nn.Module):
 
             outputs = torch.stack(outputs)
             loss = self.get_loss(outputs, targets)
+
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
@@ -186,6 +190,7 @@ class NeuralNetwork(nn.Module):
 
         criterion = nn.MSELoss()
         loss = torch.sqrt(criterion(outputs, targets))
+        self.optimizer.zero_grad()  # clear previous gradients
         loss.backward()
         self.optimizer.step()
         return loss
