@@ -2,8 +2,8 @@ from collections import OrderedDict
 from mlchemistry.utils import get_hash
 
 
-class Data(object):
-    """A Data class
+class DataSet(object):
+    """A DataSet class
 
     An adequate data structure is very important to develop machine-learning
     models. In general a model receives a data set (X) and a target vector (y).
@@ -68,6 +68,15 @@ class Data(object):
                     # When purpose is training then you also need targets
                     self.targets.append(image.get_potential_energy())
 
+        max_energy = max(self.targets)
+        max_index = self.targets.index(max_energy)
+        min_energy = min(self.targets)
+        min_index = self.targets.index(min_energy)
+
+        max_energy = max_energy / len(images[max_index])
+        min_energy = min_energy / len(images[min_index])
+
+        self.max_energy, self.min_energy = max_energy, min_energy
         print('Images hashed...')
 
     def is_valid_structure(self, images):

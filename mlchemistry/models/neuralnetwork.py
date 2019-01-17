@@ -3,6 +3,7 @@ import datetime
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 
 from mlchemistry.backends.operations import BackendOperations as backend
 
@@ -19,7 +20,7 @@ class NeuralNetwork(nn.Module):
     convergence : dict
         Instead of using epochs, users can set a convergence criterion.
     device : str
-        Calculation can be run in the CPU or GPU.
+        Calculation can be run in the cpu or gpu.
     lr : float
         Learning rate.
     optimizer : object
@@ -32,7 +33,7 @@ class NeuralNetwork(nn.Module):
 
     def __init__(self, hiddenlayers=(3, 3), epochs=100, convergence=None,
                  device='cpu', lr=0.001, optimizer=None,
-                 activation_function='tanh', weight_decay=1e-5):
+                 activation_function='relu', weight_decay=1e-5):
         super(NeuralNetwork, self).__init__()
         self.epochs = epochs
         self.device = device.lower()    # This is to assure we are in lowercase
@@ -41,6 +42,7 @@ class NeuralNetwork(nn.Module):
         self.activation_function = activation_function
         self.hiddenlayers = hiddenlayers
         self.weight_decay = weight_decay
+        self.backend = backend(torch)
 
     def forward(self, feature_vector):
         """Forward propagation
@@ -57,7 +59,7 @@ class NeuralNetwork(nn.Module):
         X = self.backend.from_numpy(X)
 
         for i, l in enumerate(self.linears[symbol]):
-            if i != self.out_layer_indices[symbol]:
+            if i < self.out_layer_indices[symbol]:
                 X = activation_function[self.activation_function](l(X))
             else:
                 X = l(X)
@@ -73,8 +75,9 @@ class NeuralNetwork(nn.Module):
         targets : list
             The expected values that the model has to learn aka y.
         data : object
-            Data object created from the handler.
+            DataSet object created from the handler.
         """
+
 
         print()
         print('Model Training')
@@ -92,6 +95,13 @@ class NeuralNetwork(nn.Module):
 
         for symbol in unique_element_symbols:
             linears = []
+
+            intercept = (data.max_energy + data.min_energy) / 2.
+            intercept = self.backend.from_numpy(intercept)
+
+            slope = (data.max_energy - data.min_energy) / 2.
+            slope = self.backend.from_numpy(slope)
+
             for index in layers:
                 # This is the input layer
                 if index == 0:
@@ -101,7 +111,6 @@ class NeuralNetwork(nn.Module):
                 elif index == len(self.hiddenlayers):
                     inp_dimension = self.hiddenlayers[index - 1]
                     out_dimension = 1
-                    self.out_layer_index = index
                     self.out_layer_indices[symbol] = index
                 # These are hidden-layers
                 else:
@@ -109,17 +118,24 @@ class NeuralNetwork(nn.Module):
                     out_dimension = self.hiddenlayers[index]
 
                 _linear = nn.Linear(inp_dimension, out_dimension)
-                nn.init.xavier_uniform(_linear.weight)
+
+                #nn.init.xavier_uniform_(_linear.weight)
                 linears.append(_linear)
+
+
+            # Addition of a linear layer that acts as mX + b
+            _linear = nn.Linear(1, 1)
+            _linear.bias.data = intercept
+            #_linear.weight.data = slope
+
+            linears.append(_linear)
 
             # Stacking up the layers.
             linears = nn.ModuleList(linears)
             symbol_model_pair.append([symbol, linears])
 
         self.linears = nn.ModuleDict(symbol_model_pair)
-        print(self.linears)
 
-        self.backend = backend(torch)
         targets = self.backend.from_numpy(targets)
 
         # Define optimizer

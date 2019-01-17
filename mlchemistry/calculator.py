@@ -1,7 +1,7 @@
 from ase.calculators.calculator import Calculator, Parameters
 from ase.io import Trajectory
 
-from mlchemistry.data.handler import Data
+from mlchemistry.data.handler import DataSet
 from mlchemistry.backends.available import available_backends
 
 
@@ -37,7 +37,7 @@ class Potentials(Calculator, object):
         training_set : object, list
             List containing the training set.
         """
-        data_handler = Data(training_set, self.model, purpose='training')
+        data_handler = DataSet(training_set, self.model, purpose='training')
 
         # Raw input and targets aka X, y
         training_set, targets = data_handler.get_images(purpose='training')
