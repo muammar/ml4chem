@@ -111,6 +111,7 @@ class NeuralNetwork(nn.Module):
                 elif index == len(self.hiddenlayers):
                     inp_dimension = self.hiddenlayers[index - 1]
                     out_dimension = 1
+                    self.out_layer_indices[symbol] = index
                 # These are hidden-layers
                 else:
                     inp_dimension = self.hiddenlayers[index - 1]
@@ -120,15 +121,6 @@ class NeuralNetwork(nn.Module):
 
                 #nn.init.xavier_uniform_(_linear.weight)
                 linears.append(_linear)
-
-
-            # Addition of a linear layer that acts as mX + b
-            self.out_layer_indices[symbol] = index + 1
-            _linear = nn.Linear(1, 1)
-            _linear.bias.data = intercept
-            #_linear.weight.data = slope
-
-            linears.append(_linear)
 
             # Stacking up the layers.
             linears = nn.ModuleList(linears)
