@@ -111,7 +111,6 @@ class NeuralNetwork(nn.Module):
                 elif index == len(self.hiddenlayers):
                     inp_dimension = self.hiddenlayers[index - 1]
                     out_dimension = 1
-                    self.out_layer_indices[symbol] = index
                 # These are hidden-layers
                 else:
                     inp_dimension = self.hiddenlayers[index - 1]
@@ -124,6 +123,7 @@ class NeuralNetwork(nn.Module):
 
 
             # Addition of a linear layer that acts as mX + b
+            self.out_layer_indices[symbol] = index + 1
             _linear = nn.Linear(1, 1)
             _linear.bias.data = intercept
             #_linear.weight.data = slope
@@ -151,6 +151,7 @@ class NeuralNetwork(nn.Module):
         initial_time = time.time()
 
         for epoch in range(self.epochs):
+            self.optimizer.zero_grad()  # clear previous gradients
             outputs = []
 
             for hash, fs in feature_space.items():
@@ -160,15 +161,12 @@ class NeuralNetwork(nn.Module):
                 for feature_vector in fs:
                     atomic_energy = \
                         self.forward(feature_vector)
-                    #tensorial.append(feature_vector)
                     image_energy += atomic_energy
 
-                #tensorial_space = self.backend.from_numpy(tensorial)
                 outputs.append(image_energy)
 
             outputs = torch.stack(outputs)
             loss = self.get_loss(outputs, targets)
-
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
@@ -206,7 +204,6 @@ class NeuralNetwork(nn.Module):
 
         criterion = nn.MSELoss()
         loss = torch.sqrt(criterion(outputs, targets))
-        self.optimizer.zero_grad()  # clear previous gradients
         loss.backward()
         self.optimizer.step()
         return loss

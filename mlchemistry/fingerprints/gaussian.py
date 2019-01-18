@@ -25,13 +25,16 @@ class Gaussian(object):
         cutoff radius.
     backend : object
         A backend object.
+    scaler : str
+        Use some scaling method to preprocess the data.
     """
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
-                 backend=None):
+                 backend=None, scaler=None):
 
         self.cutoff = cutoff
         self.backend = backend
         self.normalized = normalized
+        self.scaler = scaler
 
         if cutofffxn is None:
             self.cutofffxn = Cosine(cutoff=cutoff)
@@ -85,6 +88,11 @@ class Gaussian(object):
             self.GP = self.make_symmetry_functions(unique_element_symbols,
                                                    defaults=True)
 
+        if self.scaler is not None:
+            from sklearn.preprocessing import MinMaxScaler
+            stack_features = []
+            scaler = MinMaxScaler(feature_range=(-1, 1))
+
         for key, image in images.items():
             feature_space[key] = []
 
@@ -109,9 +117,23 @@ class Gaussian(object):
                                      zip(n_indices, n_offsets)]
 
                 feature_vector = self.get_atomic_fingerprint(atom, index,
-                                                            symbol, n_symbols,
-                                                            neighborpositions)
-                feature_space[key].append(feature_vector)
+                                                             symbol, n_symbols,
+                                                             neighborpositions)
+                if self.scaler is not None:
+                    stack_features.append(feature_vector[1])
+                else:
+                    feature_space[key].append(feature_vector)
+
+        if self.scaler is not None:
+            scaler.fit(stack_features)
+            scaled_feature_space = scaler.transform(stack_features)
+            index = 0
+            for key, image in images.items():
+                for atom in image:
+                    symbol = atom.symbol
+                    feature_space[key].append((symbol,
+                        scaled_feature_space[index]))
+                    index += 1
 
         return feature_space
 
