@@ -3,7 +3,6 @@ import datetime
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 from mlchemistry.backends.operations import BackendOperations as backend
 
@@ -33,7 +32,7 @@ class NeuralNetwork(nn.Module):
 
     def __init__(self, hiddenlayers=(3, 3), epochs=100, convergence=None,
                  device='cpu', lr=0.001, optimizer=None,
-                 activation_function='relu', weight_decay=1e-5):
+                 activation_function='relu', weight_decay=0.):
         super(NeuralNetwork, self).__init__()
         self.epochs = epochs
         self.device = device.lower()    # This is to assure we are in lowercase
@@ -59,10 +58,19 @@ class NeuralNetwork(nn.Module):
         X = self.backend.from_numpy(X)
 
         for i, l in enumerate(self.linears[symbol]):
-            if i < self.out_layer_indices[symbol]:
-                X = activation_function[self.activation_function](l(X))
-            else:
-                X = l(X)
+            X = activation_function[self.activation_function](l(X))
+
+
+        intercept_name = 'intercept_' + symbol
+        slope_name = 'slope_' + symbol
+
+        for name, param in self.named_parameters():
+            if intercept_name == name:
+                intercept = param
+            elif slope_name == name:
+                slope = param
+
+        X = (slope * X) + intercept
         return X
 
     def train(self, feature_space, targets, data=None):
@@ -97,10 +105,16 @@ class NeuralNetwork(nn.Module):
             linears = []
 
             intercept = (data.max_energy + data.min_energy) / 2.
-            intercept = self.backend.from_numpy(intercept)
+            intercept = nn.Parameter(self.backend.from_numpy(intercept))
 
             slope = (data.max_energy - data.min_energy) / 2.
-            slope = self.backend.from_numpy(slope)
+            slope = nn.Parameter(self.backend.from_numpy(slope))
+
+            intercept_name = 'intercept_' + symbol
+            slope_name = 'slope_' + symbol
+
+            self.register_parameter(intercept_name, intercept)
+            self.register_parameter(slope_name, slope)
 
             for index in layers:
                 # This is the input layer
