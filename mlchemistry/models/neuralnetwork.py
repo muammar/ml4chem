@@ -2,7 +2,6 @@ import time
 import datetime
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from mlchemistry.backends.operations import BackendOperations as backend
 
@@ -24,7 +23,7 @@ class NeuralNetwork(nn.Module):
         Learning rate.
     optimizer : object
         An optimizer class.
-    activation_function : str
+    activation : str
         The activation function.
     weight_decay : float
         L2 penalty.
@@ -32,13 +31,13 @@ class NeuralNetwork(nn.Module):
 
     def __init__(self, hiddenlayers=(3, 3), epochs=100, convergence=None,
                  device='cpu', lr=0.001, optimizer=None,
-                 activation_function='relu', weight_decay=0.):
+                 activation='relu', weight_decay=0.):
         super(NeuralNetwork, self).__init__()
         self.epochs = epochs
         self.device = device.lower()    # This is to assure we are in lowercase
         self.lr = lr
         self.optimizer = optimizer
-        self.activation_function = activation_function
+        self.activation = activation
         self.hiddenlayers = hiddenlayers
         self.weight_decay = weight_decay
         self.backend = backend(torch)
@@ -51,26 +50,22 @@ class NeuralNetwork(nn.Module):
         X : dict
             Dictionary with symbol keys and feature vector vector.
         """
-        activation_function = {'tanh': torch.tanh, 'relu': F.relu}
 
         symbol, X = feature_vector
 
         X = self.backend.from_numpy(X)
+        X = self.linears[symbol](X)
 
-        for i, l in enumerate(self.linears[symbol]):
-            X = activation_function[self.activation_function](l(X))
+        #intercept_name = 'intercept_' + symbol
+        #slope_name = 'slope_' + symbol
 
+        #for name, param in self.named_parameters():
+        #    if intercept_name == name:
+        #        intercept = param
+        #    elif slope_name == name:
+        #        slope = param
 
-        intercept_name = 'intercept_' + symbol
-        slope_name = 'slope_' + symbol
-
-        for name, param in self.named_parameters():
-            if intercept_name == name:
-                intercept = param
-            elif slope_name == name:
-                slope = param
-
-        X = (slope * X) + intercept
+        ##X = (slope * X) + intercept
         return X
 
     def train(self, feature_space, targets, data=None):
@@ -85,7 +80,7 @@ class NeuralNetwork(nn.Module):
         data : object
             DataSet object created from the handler.
         """
-
+        activation = {'tanh': nn.Tanh, 'relu': nn.ReLU}
 
         print()
         print('Model Training')
@@ -99,48 +94,55 @@ class NeuralNetwork(nn.Module):
 
 
         symbol_model_pair = []
-        self.out_layer_indices = {}
+        self.output_layer_index = {}
 
         for symbol in unique_element_symbols:
             linears = []
 
-            intercept = (data.max_energy + data.min_energy) / 2.
-            intercept = nn.Parameter(self.backend.from_numpy(intercept))
+            #intercept = (data.max_energy + data.min_energy) / 2.
+            #intercept = nn.Parameter(self.backend.from_numpy(intercept))
 
-            slope = (data.max_energy - data.min_energy) / 2.
-            slope = nn.Parameter(self.backend.from_numpy(slope))
+            #slope = (data.max_energy - data.min_energy) / 2.
+            #slope = nn.Parameter(self.backend.from_numpy(slope))
 
-            intercept_name = 'intercept_' + symbol
-            slope_name = 'slope_' + symbol
+            #intercept_name = 'intercept_' + symbol
+            #slope_name = 'slope_' + symbol
 
-            self.register_parameter(intercept_name, intercept)
-            self.register_parameter(slope_name, slope)
+            #self.register_parameter(intercept_name, intercept)
+            #self.register_parameter(slope_name, slope)
 
             for index in layers:
                 # This is the input layer
                 if index == 0:
                     inp_dimension = len(list(feature_space.values())[0][0][-1])
                     out_dimension = self.hiddenlayers[0]
+                    _linear = nn.Linear(inp_dimension, out_dimension)
+                    linears.append(_linear)
+                    linears.append(activation[self.activation]())
                 # This is the output layer
                 elif index == len(self.hiddenlayers):
                     inp_dimension = self.hiddenlayers[index - 1]
                     out_dimension = 1
-                    self.out_layer_indices[symbol] = index
+                    self.output_layer_index[symbol] = index
+                    _linear = nn.Linear(inp_dimension, out_dimension)
+                    linears.append(_linear)
                 # These are hidden-layers
                 else:
                     inp_dimension = self.hiddenlayers[index - 1]
                     out_dimension = self.hiddenlayers[index]
+                    _linear = nn.Linear(inp_dimension, out_dimension)
+                    linears.append(_linear)
+                    linears.append(activation[self.activation]())
 
-                _linear = nn.Linear(inp_dimension, out_dimension)
 
                 #nn.init.xavier_uniform_(_linear.weight)
-                linears.append(_linear)
 
             # Stacking up the layers.
-            linears = nn.ModuleList(linears)
+            linears = nn.Sequential(*linears)
             symbol_model_pair.append([symbol, linears])
 
         self.linears = nn.ModuleDict(symbol_model_pair)
+        print(self.linears)
 
         targets = self.backend.from_numpy(targets)
 
@@ -150,6 +152,7 @@ class NeuralNetwork(nn.Module):
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr,
                                               weight_decay=self.weight_decay)
 
+
         print()
         print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp', 'Loss'))
         print('{:6s} {:19s} {:8s}'.format('------',
@@ -157,7 +160,6 @@ class NeuralNetwork(nn.Module):
         initial_time = time.time()
 
         for epoch in range(self.epochs):
-            self.optimizer.zero_grad()  # clear previous gradients
             outputs = []
 
             for hash, fs in feature_space.items():
@@ -193,21 +195,18 @@ class NeuralNetwork(nn.Module):
 
     def get_loss(self, outputs, targets):
         """Get loss function value
-
         Parameters
         ----------
         outputs : list
             List or tensor with outputs from the Neural Networks.
         targets : list
             List or tensor with expected values.
-
-
         Returns
         -------
         loss : float
             Current value of loss function.
         """
-
+        self.optimizer.zero_grad()  # clear previous gradients
         criterion = nn.MSELoss()
         loss = torch.sqrt(criterion(outputs, targets))
         loss.backward()
