@@ -58,6 +58,11 @@ class BackendOperations(object):
         a = np.array(a)     # This is the safest way
         return self.backend.from_numpy(a).float()
 
+    def to_numpy(self, a):
+        """Convert from numpy to right data type"""
+        if self.name == 'torch':
+            return a.numpy()
+
     def divide(self, a, b):
         """Divide two vectors/tensors"""
         if self.name == 'torch':

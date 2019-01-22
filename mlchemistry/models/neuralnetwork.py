@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 
 from mlchemistry.backends.operations import BackendOperations as backend
+from mlchemistry.data.visualization import parity
 
 
 class NeuralNetwork(nn.Module):
@@ -219,6 +220,8 @@ class NeuralNetwork(nn.Module):
             for param in model.parameters():
                 print(param)
 
+        parity(self.backend.to_numpy(outputs),
+               self.backend.to_numpy(targets))
         import matplotlib.pyplot as plt
         plt.plot(list(range(self.epochs)), _loss)
         plt.show()
