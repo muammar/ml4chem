@@ -42,7 +42,7 @@ class NeuralNetwork(nn.Module):
         self.weight_decay = weight_decay
         self.backend = backend(torch)
 
-    def forward(self, feature_vector):
+    def forward(self, symbol, X):
         """Forward propagation
 
         Parameters
@@ -51,21 +51,19 @@ class NeuralNetwork(nn.Module):
             Dictionary with symbol keys and feature vector vector.
         """
 
-        symbol, X = feature_vector
-
         X = self.backend.from_numpy(X)
         X = self.linears[symbol](X)
 
-        #intercept_name = 'intercept_' + symbol
-        #slope_name = 'slope_' + symbol
+        intercept_name = 'intercept_' + symbol
+        slope_name = 'slope_' + symbol
 
-        #for name, param in self.named_parameters():
-        #    if intercept_name == name:
-        #        intercept = param
-        #    elif slope_name == name:
-        #        slope = param
+        for name, param in self.named_parameters():
+            if intercept_name == name:
+                intercept = param
+            elif slope_name == name:
+                slope = param
 
-        ##X = (slope * X) + intercept
+        X = (slope * X) + intercept
         return X
 
     def train(self, feature_space, targets, data=None):
@@ -99,17 +97,18 @@ class NeuralNetwork(nn.Module):
         for symbol in unique_element_symbols:
             linears = []
 
-            #intercept = (data.max_energy + data.min_energy) / 2.
-            #intercept = nn.Parameter(self.backend.from_numpy(intercept))
+            intercept = (data.max_energy + data.min_energy) / 2.
+            intercept = nn.Parameter(self.backend.from_numpy(intercept))
 
-            #slope = (data.max_energy - data.min_energy) / 2.
-            #slope = nn.Parameter(self.backend.from_numpy(slope))
+            slope = (data.max_energy - data.min_energy) / 2.
+            slope = nn.Parameter(self.backend.from_numpy(slope))
 
-            #intercept_name = 'intercept_' + symbol
-            #slope_name = 'slope_' + symbol
+            print(intercept, slope)
+            intercept_name = 'intercept_' + symbol
+            slope_name = 'slope_' + symbol
 
-            #self.register_parameter(intercept_name, intercept)
-            #self.register_parameter(slope_name, slope)
+            self.register_parameter(intercept_name, intercept)
+            self.register_parameter(slope_name, slope)
 
             for index in layers:
                 # This is the input layer
@@ -144,6 +143,15 @@ class NeuralNetwork(nn.Module):
         self.linears = nn.ModuleDict(symbol_model_pair)
         print(self.linears)
 
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight)#, mean=0, std=0.01)
+                #nn.init.xavier_uniform_(m.weight)
+
+        old_state_dict = {}
+        for key in self.state_dict():
+            old_state_dict[key] = self.state_dict()[key].clone()
+
         targets = self.backend.from_numpy(targets)
 
         # Define optimizer
@@ -166,9 +174,9 @@ class NeuralNetwork(nn.Module):
                 image_energy = 0.
                 tensorial = []
 
-                for feature_vector in fs:
+                for symbol, feature_vector in fs:
                     atomic_energy = \
-                        self.forward(feature_vector)
+                        self.forward(symbol, feature_vector)
                     image_energy += atomic_energy
 
                 outputs.append(image_energy)
@@ -187,11 +195,23 @@ class NeuralNetwork(nn.Module):
         print('targets')
         print(targets)
 
+        new_state_dict = {}
+        for key in self.state_dict():
+            print(key)
+            new_state_dict[key] = self.state_dict()[key].clone()
+
+        for key in old_state_dict:
+            if not (old_state_dict[key] == new_state_dict[key]).all():
+                print('Diff in {}'.format(key))
+            else:
+                print('They are the same shit')
+
         print()
         for symbol in unique_element_symbols:
             model = self.linears[symbol]
-            print('Parameters for {} symbol' .format(symbol))
-            print(list(model.parameters()))
+            print('Optimized parameters for {} symbol' .format(symbol))
+            for param in model.parameters():
+                print(param)
 
     def get_loss(self, outputs, targets):
         """Get loss function value
@@ -209,6 +229,17 @@ class NeuralNetwork(nn.Module):
         self.optimizer.zero_grad()  # clear previous gradients
         criterion = nn.MSELoss()
         loss = torch.sqrt(criterion(outputs, targets))
+
+        # L2 regularization does not seem to be the same as weight_decay.
+        # See: https://arxiv.org/abs/1711.05101
+        l2 = 0.
+
+        for symbol in self.linears.keys():
+            model = self.linears[symbol]
+            for param in model.parameters():
+                l2 += l2 + param.norm(2)
+
+        loss = loss + (l2 * 1e-6)
         loss.backward()
         self.optimizer.step()
         return loss
