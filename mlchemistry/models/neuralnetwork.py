@@ -170,6 +170,7 @@ class NeuralNetwork(nn.Module):
                                           '-------------------', '---------'))
         initial_time = time.time()
 
+        _loss = []
         for epoch in range(self.epochs):
             outputs = []
 
@@ -186,6 +187,7 @@ class NeuralNetwork(nn.Module):
 
             outputs = self.backend.from_numpy(outputs)
             loss = self.get_loss(outputs, targets, data.atoms_per_image)
+            _loss.append(loss)
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
@@ -216,6 +218,10 @@ class NeuralNetwork(nn.Module):
             print('Optimized parameters for {} symbol' .format(symbol))
             for param in model.parameters():
                 print(param)
+
+        import matplotlib.pyplot as plt
+        plt.plot(list(range(self.epochs)), _loss)
+        plt.show()
 
     def get_loss(self, outputs, targets, atoms_per_image):
         """Get loss function value
