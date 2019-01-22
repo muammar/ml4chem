@@ -26,12 +26,14 @@ class NeuralNetwork(nn.Module):
     activation : str
         The activation function.
     weight_decay : float
-        L2 penalty.
+        Weight decay passed to the optimizer. Default is 0.
+    regularization : float
+        This is the L2 regularization. It is not the same as weight decay.
     """
 
     def __init__(self, hiddenlayers=(3, 3), epochs=100, convergence=None,
                  device='cpu', lr=0.001, optimizer=None,
-                 activation='relu', weight_decay=0.):
+                 activation='relu', weight_decay=0., regularization=1e-6):
         super(NeuralNetwork, self).__init__()
         self.epochs = epochs
         self.device = device.lower()    # This is to assure we are in lowercase
@@ -41,6 +43,7 @@ class NeuralNetwork(nn.Module):
         self.hiddenlayers = hiddenlayers
         self.weight_decay = weight_decay
         self.backend = backend(torch)
+        self.regularization = regularization
 
     def forward(self, symbol, X):
         """Forward propagation
@@ -179,10 +182,10 @@ class NeuralNetwork(nn.Module):
                         self.forward(symbol, feature_vector)
                     image_energy += atomic_energy
 
-                outputs.append(image_energy)
+                outputs.append(image_energy.item())
 
-            outputs = torch.stack(outputs)
-            loss = self.get_loss(outputs, targets)
+            outputs = self.backend.from_numpy(outputs)
+            loss = self.get_loss(outputs, targets, data.atoms_per_image)
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
@@ -190,6 +193,7 @@ class NeuralNetwork(nn.Module):
             print('{:6d} {} {:8f}' .format(epoch, ts, loss))
 
         training_time = time.time() - initial_time
+
         print('outputs')
         print(outputs)
         print('targets')
@@ -213,14 +217,18 @@ class NeuralNetwork(nn.Module):
             for param in model.parameters():
                 print(param)
 
-    def get_loss(self, outputs, targets):
+    def get_loss(self, outputs, targets, atoms_per_image):
         """Get loss function value
+
         Parameters
         ----------
         outputs : list
             List or tensor with outputs from the Neural Networks.
         targets : list
             List or tensor with expected values.
+        atoms_per_image : list
+            List or tensor with number of atom in each image
+
         Returns
         -------
         loss : float
@@ -228,6 +236,10 @@ class NeuralNetwork(nn.Module):
         """
         self.optimizer.zero_grad()  # clear previous gradients
         criterion = nn.MSELoss()
+        atoms_per_image = self.backend.from_numpy(atoms_per_image)
+        outputs = self.backend.divide(outputs, atoms_per_image)
+        targets = self.backend.divide(targets, atoms_per_image)
+
         loss = torch.sqrt(criterion(outputs, targets))
 
         # L2 regularization does not seem to be the same as weight_decay.
@@ -239,7 +251,7 @@ class NeuralNetwork(nn.Module):
             for param in model.parameters():
                 l2 += l2 + param.norm(2)
 
-        loss = loss + (l2 * 1e-6)
+        loss = loss + (l2 * self.regularization)
         loss.backward()
         self.optimizer.step()
         return loss

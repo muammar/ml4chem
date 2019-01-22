@@ -55,6 +55,7 @@ class DataSet(object):
 
         if purpose == 'training':
             self.targets = []
+            self.atoms_per_image = []
 
         duplicates = 0
 
@@ -65,8 +66,10 @@ class DataSet(object):
             else:
                 self.images[key] = image
                 if purpose == 'training':
-                    # When purpose is training then you also need targets
+                    # When purpose is training then you also need targets and
+                    # number of atoms in each image
                     self.targets.append(image.get_potential_energy())
+                    self.atoms_per_image.append(len(image))
 
         max_energy = max(self.targets)
         max_index = self.targets.index(max_energy)
@@ -77,7 +80,7 @@ class DataSet(object):
         min_energy = min_energy / len(images[min_index])
 
         self.max_energy, self.min_energy = max_energy, min_energy
-        print('Images hashed...')
+        print('Images hashed and processed...')
 
     def is_valid_structure(self, images):
         """Check if the data has a valid structure
