@@ -206,7 +206,7 @@ class NeuralNetwork(nn.Module):
 
             if self.convergence is None and epoch == self.epochs:
                 break
-            elif rmse < self.convergence['energy']:
+            elif self.convergence is not None and rmse < self.convergence['energy']:
                 break
 
         training_time = time.time() - initial_time

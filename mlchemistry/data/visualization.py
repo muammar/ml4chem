@@ -1,15 +1,13 @@
 import matplotlib.pyplot as plt
 
 def parity(predictions, true):
-    """A parity plot function
-    """
+    """A parity plot function"""
 
     min_val = min(true)
     max_val = max(true)
+    fig = plt.figure(figsize=(6., 6.))
+    ax = fig.add_subplot(111)
+    ax.plot(true, predictions,'r.')
+    ax.plot([min_val, max_val], [min_val, max_val], 'k-', lw=0.3,)
 
-    plt.plot(true, predictions,'r.')
-    plt.plot(true, true, 'k-')
-
-    plt.xlim(min_val, max_val)
-    plt.ylim(min_val, max_val)
     plt.show()
