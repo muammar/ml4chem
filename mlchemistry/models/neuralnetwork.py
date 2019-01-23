@@ -34,7 +34,7 @@ class NeuralNetwork(nn.Module):
 
     def __init__(self, hiddenlayers=(3, 3), epochs=100, convergence=None,
                  device='cpu', lr=0.001, optimizer=None,
-                 activation='relu', weight_decay=0., regularization=1e-6):
+                 activation='relu', weight_decay=0., regularization=0.):
         super(NeuralNetwork, self).__init__()
         self.epochs = epochs
         self.device = device.lower()    # This is to assure we are in lowercase
@@ -157,8 +157,8 @@ class NeuralNetwork(nn.Module):
         # layer.
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight)   # , mean=0, std=0.01)
-                # nn.init.xavier_uniform_(m.weight)
+                # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
+                nn.init.xavier_uniform_(m.weight)
 
         old_state_dict = {}
         for key in self.state_dict():
@@ -202,7 +202,7 @@ class NeuralNetwork(nn.Module):
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
                                                               '%H:%M:%S')
-            print('{:6d} {} {:8f} {:8f}' .format(epoch, ts, loss, rmse))
+            print('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
 
             if self.convergence is None and epoch == self.epochs:
                 break
@@ -266,8 +266,7 @@ class NeuralNetwork(nn.Module):
         outputs = self.backend.divide(outputs, atoms_per_image)
         targets = self.backend.divide(targets, atoms_per_image)
 
-        rmse = self.backend.sum((outputs - targets) ** 2)
-        rmse /= self.backend.from_numpy(list(targets.size())[0])
+        rmse = torch.sqrt(torch.mean((outputs - targets).pow(2)))
 
         loss = criterion(outputs, targets)
 
