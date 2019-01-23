@@ -49,10 +49,19 @@ class NeuralNetwork(nn.Module):
     def forward(self, symbol, X):
         """Forward propagation
 
+        This is forward propagation and it returns the atomic energy.
+
         Parameters
         ----------
-        X : dict
-            Dictionary with symbol keys and feature vector vector.
+        symbol : str
+            Chemical symbol.
+        X : list
+            List of features.
+
+        Returns
+        -------
+        atomic_energy : float
+            The atomic energy.
         """
 
         X = self.backend.from_numpy(X)
@@ -67,8 +76,8 @@ class NeuralNetwork(nn.Module):
             elif slope_name == name:
                 slope = param
 
-        X = (slope * X) + intercept
-        return X
+        atomic_energy = (slope * X) + intercept
+        return atomic_energy
 
     def train(self, feature_space, targets, data=None):
         """Train the model
@@ -137,9 +146,6 @@ class NeuralNetwork(nn.Module):
                     linears.append(_linear)
                     linears.append(activation[self.activation]())
 
-
-                #nn.init.xavier_uniform_(_linear.weight)
-
             # Stacking up the layers.
             linears = nn.Sequential(*linears)
             symbol_model_pair.append([symbol, linears])
@@ -147,6 +153,8 @@ class NeuralNetwork(nn.Module):
         self.linears = nn.ModuleDict(symbol_model_pair)
         print(self.linears)
 
+        # Iterate over all modules and just intialize those that are a linear
+        # layer.
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight)#, mean=0, std=0.01)
@@ -163,7 +171,6 @@ class NeuralNetwork(nn.Module):
         if self.optimizer is None:
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr,
                                               weight_decay=self.weight_decay)
-
 
         print()
         print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp', 'Loss'))
@@ -197,6 +204,7 @@ class NeuralNetwork(nn.Module):
 
         training_time = time.time() - initial_time
 
+        print('Training the model took {}...' .format(training_time))
         print('outputs')
         print(outputs)
         print('targets')
@@ -211,7 +219,7 @@ class NeuralNetwork(nn.Module):
             if not (old_state_dict[key] == new_state_dict[key]).all():
                 print('Diff in {}'.format(key))
             else:
-                print('They are the same shit')
+                print('They remained the same...')
 
         print()
         for symbol in unique_element_symbols:
@@ -244,12 +252,16 @@ class NeuralNetwork(nn.Module):
             Current value of loss function.
         """
         self.optimizer.zero_grad()  # clear previous gradients
+
         criterion = nn.MSELoss()
+
         atoms_per_image = self.backend.from_numpy(atoms_per_image)
         outputs = self.backend.divide(outputs, atoms_per_image)
         targets = self.backend.divide(targets, atoms_per_image)
 
-        loss = torch.sqrt(criterion(outputs, targets))
+        loss = criterion(outputs, targets)
+
+
 
         # L2 regularization does not seem to be the same as weight_decay.
         # See: https://arxiv.org/abs/1711.05101
@@ -260,9 +272,9 @@ class NeuralNetwork(nn.Module):
         #    for param in model.parameters():
         #        l2 += param.norm(2)
 
-        for name, W in self.named_parameters():
+        for name, parameters in self.named_parameters():
             if 'weight' in name:
-                l2 +=  W.norm(2)
+                l2 +=  parameters.norm(2)
 
         loss = loss + (l2 * self.regularization)
         loss.backward()
