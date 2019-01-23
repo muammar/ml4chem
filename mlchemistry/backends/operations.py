@@ -67,3 +67,8 @@ class BackendOperations(object):
         """Divide two vectors/tensors"""
         if self.name == 'torch':
             return self.backend.div(a, b)
+
+    def sum(self, a):
+        """Sum a list of values"""
+        if self.name == 'torch':
+            return self.backend.sum(a)

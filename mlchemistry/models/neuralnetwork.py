@@ -45,6 +45,7 @@ class NeuralNetwork(nn.Module):
         self.weight_decay = weight_decay
         self.backend = backend(torch)
         self.regularization = regularization
+        self.convergence = convergence
 
     def forward(self, symbol, X):
         """Forward propagation
@@ -103,7 +104,6 @@ class NeuralNetwork(nn.Module):
         layers = range(len(self.hiddenlayers) + 1)
         unique_element_symbols = data.unique_element_symbols['trainingset']
 
-
         symbol_model_pair = []
         self.output_layer_index = {}
 
@@ -157,8 +157,8 @@ class NeuralNetwork(nn.Module):
         # layer.
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight)#, mean=0, std=0.01)
-                #nn.init.xavier_uniform_(m.weight)
+                nn.init.normal_(m.weight)   # , mean=0, std=0.01)
+                # nn.init.xavier_uniform_(m.weight)
 
         old_state_dict = {}
         for key in self.state_dict():
@@ -179,7 +179,9 @@ class NeuralNetwork(nn.Module):
         initial_time = time.time()
 
         _loss = []
-        for epoch in range(self.epochs):
+        epoch = 0
+        while True:
+            epoch += 1
             outputs = []
 
             for hash, fs in feature_space.items():
@@ -194,13 +196,18 @@ class NeuralNetwork(nn.Module):
                 outputs.append(image_energy.item())
 
             outputs = self.backend.from_numpy(outputs)
-            loss = self.get_loss(outputs, targets, data.atoms_per_image)
+            loss, rmse = self.get_loss(outputs, targets, data.atoms_per_image)
             _loss.append(loss)
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
                                                               '%H:%M:%S')
-            print('{:6d} {} {:8f}' .format(epoch, ts, loss))
+            print('{:6d} {} {:8f} {:8f}' .format(epoch, ts, loss, rmse))
+
+            if self.convergence is None and epoch == self.epochs:
+                break
+            elif rmse < self.convergence['energy']:
+                break
 
         training_time = time.time() - initial_time
 
@@ -259,24 +266,25 @@ class NeuralNetwork(nn.Module):
         outputs = self.backend.divide(outputs, atoms_per_image)
         targets = self.backend.divide(targets, atoms_per_image)
 
+        rmse = self.backend.sum((outputs - targets) ** 2)
+        rmse /= self.backend.from_numpy(list(targets.size())[0])
+
         loss = criterion(outputs, targets)
-
-
 
         # L2 regularization does not seem to be the same as weight_decay.
         # See: https://arxiv.org/abs/1711.05101
         l2 = 0.
 
-        #for symbol in self.linears.keys():
+        # for symbol in self.linears.keys():
         #    model = self.linears[symbol]
         #    for param in model.parameters():
         #        l2 += param.norm(2)
 
         for name, parameters in self.named_parameters():
             if 'weight' in name:
-                l2 +=  parameters.norm(2)
+                l2 += parameters.norm(2)
 
         loss = loss + (l2 * self.regularization)
         loss.backward()
         self.optimizer.step()
-        return loss
+        return loss, rmse
