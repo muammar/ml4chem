@@ -238,7 +238,7 @@ class NeuralNetwork(nn.Module):
         parity(self.backend.to_numpy(outputs),
                self.backend.to_numpy(targets))
         import matplotlib.pyplot as plt
-        plt.plot(list(range(self.epochs)), _loss)
+        plt.plot(list(range(epoch)), _loss)
         plt.show()
 
     def get_loss(self, outputs, targets, atoms_per_image):
