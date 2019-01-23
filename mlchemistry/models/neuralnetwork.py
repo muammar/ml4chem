@@ -92,7 +92,7 @@ class NeuralNetwork(nn.Module):
         data : object
             DataSet object created from the handler.
         """
-        activation = {'tanh': nn.Tanh, 'relu': nn.ReLU}
+        activation = {'tanh': nn.Tanh, 'relu': nn.ReLU, 'celu': nn.CELU}
 
         print()
         print('Model Training')
@@ -206,7 +206,8 @@ class NeuralNetwork(nn.Module):
 
             if self.convergence is None and epoch == self.epochs:
                 break
-            elif self.convergence is not None and rmse < self.convergence['energy']:
+            elif (self.convergence is not None and
+                  rmse < self.convergence['energy']):
                 break
 
         training_time = time.time() - initial_time
