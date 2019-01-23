@@ -255,10 +255,14 @@ class NeuralNetwork(nn.Module):
         # See: https://arxiv.org/abs/1711.05101
         l2 = 0.
 
-        for symbol in self.linears.keys():
-            model = self.linears[symbol]
-            for param in model.parameters():
-                l2 += l2 + param.norm(2)
+        #for symbol in self.linears.keys():
+        #    model = self.linears[symbol]
+        #    for param in model.parameters():
+        #        l2 += param.norm(2)
+
+        for name, W in self.named_parameters():
+            if 'weight' in name:
+                l2 +=  W.norm(2)
 
         loss = loss + (l2 * self.regularization)
         loss.backward()

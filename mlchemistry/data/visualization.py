@@ -7,8 +7,8 @@ def parity(predictions, true):
     min_val = min(true)
     max_val = max(true)
 
-    plt.plot(true, predictions)
-    plt.plot(true, true,'k-')
+    plt.plot(true, predictions,'r.')
+    plt.plot(true, true, 'k-')
 
     plt.xlim(min_val, max_val)
     plt.ylim(min_val, max_val)
