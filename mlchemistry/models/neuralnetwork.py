@@ -179,6 +179,7 @@ class NeuralNetwork(nn.Module):
         initial_time = time.time()
 
         _loss = []
+        _rmse = []
         epoch = 0
         while True:
             epoch += 1
@@ -198,6 +199,7 @@ class NeuralNetwork(nn.Module):
             outputs = self.backend.from_numpy(outputs)
             loss, rmse = self.get_loss(outputs, targets, data.atoms_per_image)
             _loss.append(loss)
+            _rmse.append(rmse)
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
@@ -239,7 +241,9 @@ class NeuralNetwork(nn.Module):
         parity(self.backend.to_numpy(outputs),
                self.backend.to_numpy(targets))
         import matplotlib.pyplot as plt
-        plt.plot(list(range(epoch)), _loss)
+        plt.plot(list(range(epoch)), _loss, label='loss')
+        plt.plot(list(range(epoch)), _rmse, label='rmse/atom')
+        plt.legend(loc='upper left')
         plt.show()
 
     def get_loss(self, outputs, targets, atoms_per_image):
