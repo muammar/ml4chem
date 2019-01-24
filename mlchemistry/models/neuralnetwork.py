@@ -261,7 +261,6 @@ class NeuralNetwork(nn.Module):
         """
         self.optimizer.zero_grad()  # clear previous gradients
 
-        criterion = nn.MSELoss()
 
         atoms_per_image = self.backend.from_numpy(atoms_per_image)
         outputs = self.backend.divide(outputs, atoms_per_image)
@@ -269,7 +268,8 @@ class NeuralNetwork(nn.Module):
 
         rmse = torch.sqrt(torch.mean((outputs - targets).pow(2)))
 
-        loss = criterion(outputs, targets)
+        criterion = nn.MSELoss(reduction='sum')
+        loss = criterion(outputs, targets) / 2.
 
         # L2 regularization does not seem to be the same as weight_decay.
         # See: https://arxiv.org/abs/1711.05101
