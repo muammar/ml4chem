@@ -6,6 +6,7 @@ import torch.nn as nn
 from mlchemistry.backends.operations import BackendOperations as backend
 from mlchemistry.data.visualization import parity
 
+torch.set_printoptions(precision=10)
 
 class NeuralNetwork(nn.Module):
     """Neural Network Regression with Pytorch
@@ -43,7 +44,6 @@ class NeuralNetwork(nn.Module):
         self.activation = activation
         self.hiddenlayers = hiddenlayers
         self.weight_decay = weight_decay
-        self.backend = backend(torch)
         self.regularization = regularization
         self.convergence = convergence
 
@@ -65,7 +65,7 @@ class NeuralNetwork(nn.Module):
             The atomic energy.
         """
 
-        X = self.backend.from_numpy(X)
+        X = torch.tensor(X, requires_grad=False)
         X = self.linears[symbol](X)
 
         intercept_name = 'intercept_' + symbol
@@ -111,10 +111,10 @@ class NeuralNetwork(nn.Module):
             linears = []
 
             intercept = (data.max_energy + data.min_energy) / 2.
-            intercept = nn.Parameter(self.backend.from_numpy(intercept))
+            intercept = nn.Parameter(torch.tensor(intercept, requires_grad=True))
 
             slope = (data.max_energy - data.min_energy) / 2.
-            slope = nn.Parameter(self.backend.from_numpy(slope))
+            slope = nn.Parameter(torch.tensor(slope, requires_grad=True))
 
             print(intercept, slope)
             intercept_name = 'intercept_' + symbol
@@ -164,7 +164,7 @@ class NeuralNetwork(nn.Module):
         for key in self.state_dict():
             old_state_dict[key] = self.state_dict()[key].clone()
 
-        targets = self.backend.from_numpy(targets)
+        targets = torch.tensor(targets, requires_grad=False)
 
         # Define optimizer
 
@@ -194,9 +194,9 @@ class NeuralNetwork(nn.Module):
                         self.forward(symbol, feature_vector)
                     image_energy += atomic_energy
 
-                outputs.append(image_energy.item())
+                outputs.append(image_energy)
 
-            outputs = self.backend.from_numpy(outputs)
+            outputs = torch.cat(outputs)
             loss, rmse = self.get_loss(outputs, targets, data.atoms_per_image)
             _loss.append(loss)
             _rmse.append(rmse)
@@ -222,22 +222,29 @@ class NeuralNetwork(nn.Module):
 
         new_state_dict = {}
         for key in self.state_dict():
-            print(key)
             new_state_dict[key] = self.state_dict()[key].clone()
 
         for key in old_state_dict:
             if not (old_state_dict[key] == new_state_dict[key]).all():
                 print('Diff in {}'.format(key))
             else:
-                print('They remained the same...')
+                print('No diff in {}'.format(key))
 
         print()
+
         for symbol in unique_element_symbols:
             model = self.linears[symbol]
             print('Optimized parameters for {} symbol' .format(symbol))
-            for param in model.parameters():
-                print(param)
 
+            for index, param in enumerate(model.parameters()):
+                print('Index {}' .format(index))
+                print(param)
+                try:
+                    print('Gradient', param.grad.sum())
+                except AttributeError:
+                    print('No gradient?')
+
+                print()
         parity(self.backend.to_numpy(outputs),
                self.backend.to_numpy(targets))
         import matplotlib.pyplot as plt
@@ -266,14 +273,15 @@ class NeuralNetwork(nn.Module):
         self.optimizer.zero_grad()  # clear previous gradients
 
 
-        atoms_per_image = self.backend.from_numpy(atoms_per_image)
-        outputs = self.backend.divide(outputs, atoms_per_image)
-        targets = self.backend.divide(targets, atoms_per_image)
+        atoms_per_image = torch.tensor(atoms_per_image, requires_grad=False,
+                                       dtype=torch.float)
+        outputs_atom = torch.div(outputs, atoms_per_image)
+        targets_atom = torch.div(targets, atoms_per_image)
 
         rmse = torch.sqrt(torch.mean((outputs - targets).pow(2)))
 
         criterion = nn.MSELoss(reduction='sum')
-        loss = criterion(outputs, targets) / 2.
+        loss = criterion(outputs_atom, targets_atom) / 2.
 
         # L2 regularization does not seem to be the same as weight_decay.
         # See: https://arxiv.org/abs/1711.05101
