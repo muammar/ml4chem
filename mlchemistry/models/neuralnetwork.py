@@ -47,39 +47,45 @@ class NeuralNetwork(nn.Module):
         self.regularization = regularization
         self.convergence = convergence
 
-    def forward(self, symbol, X):
+    def forward(self, X):
         """Forward propagation
 
         This is forward propagation and it returns the atomic energy.
 
         Parameters
         ----------
-        symbol : str
-            Chemical symbol.
         X : list
             List of features.
 
         Returns
         -------
-        atomic_energy : float
-            The atomic energy.
+        image_energy : float
+            Energy of an image.
         """
 
-        X = torch.tensor(X, requires_grad=False)
-        X = X.unsqueeze(0)
-        X = self.linears[symbol](X)
+        atomic_energies = []
 
-        intercept_name = 'intercept_' + symbol
-        slope_name = 'slope_' + symbol
+        for symbol, x in X:
+            x = torch.tensor(x, requires_grad=False)
+            x = x.unsqueeze(0)
+            x = self.linears[symbol](x)
 
-        for name, param in self.named_parameters():
-            if intercept_name == name:
-                intercept = param
-            elif slope_name == name:
-                slope = param
+            intercept_name = 'intercept_' + symbol
+            slope_name = 'slope_' + symbol
 
-        atomic_energy = (slope * X) + intercept
-        return atomic_energy
+            for name, param in self.named_parameters():
+                if intercept_name == name:
+                    intercept = param
+                elif slope_name == name:
+                    slope = param
+
+            atomic_energy = (slope * x) + intercept
+            atomic_energies.append(atomic_energy)
+
+        atomic_energies = torch.cat(atomic_energies)
+
+        image_energy = torch.sum(atomic_energies)
+        return image_energy
 
     def train(self, feature_space, targets, data=None):
         """Train the model
@@ -165,11 +171,9 @@ class NeuralNetwork(nn.Module):
         for key in self.state_dict():
             old_state_dict[key] = self.state_dict()[key].clone()
 
-        targets = [[target] for target in targets]
         targets = torch.tensor(targets, requires_grad=False)
 
         # Define optimizer
-
         if self.optimizer is None:
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr,
                                               weight_decay=self.weight_decay)
@@ -188,17 +192,11 @@ class NeuralNetwork(nn.Module):
             outputs = []
 
             for hash, fs in feature_space.items():
-                image_energy = 0.
-                tensorial = []
 
-                for symbol, feature_vector in fs:
-                    atomic_energy = \
-                        self.forward(symbol, feature_vector)
-                    image_energy += atomic_energy
-
+                image_energy = self.forward(fs)
                 outputs.append(image_energy)
 
-            outputs = torch.cat(outputs)
+            outputs = torch.stack(outputs)
             loss, rmse = self.get_loss(outputs, targets, data.atoms_per_image)
             _loss.append(loss)
             _rmse.append(rmse)
@@ -275,16 +273,19 @@ class NeuralNetwork(nn.Module):
         self.optimizer.zero_grad()  # clear previous gradients
 
 
-        atoms_per_image = [[atoms] for atoms in atoms_per_image]
         atoms_per_image = torch.tensor(atoms_per_image, requires_grad=False,
                                        dtype=torch.float)
         outputs_atom = torch.div(outputs, atoms_per_image)
         targets_atom = torch.div(targets, atoms_per_image)
+        #print(outputs.shape)
+        #print(targets.shape)
+        #print(outputs_atom.shape)
+        #print(targets_atom.shape)
+        #print(atoms_per_image.shape)
 
-        rmse = torch.sqrt(torch.mean((outputs - targets).pow(2)))
-
+        rmse = torch.sqrt(torch.mean(torch.pow((outputs - targets), 2)))
         criterion = nn.MSELoss(reduction='sum')
-        loss = criterion(outputs, targets) / 2.
+        loss = criterion(outputs_atom, targets_atom) / 2.
 
         if self.regularization > 0:
             # L2 regularization does not seem to be the same as weight_decay.
