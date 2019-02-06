@@ -66,6 +66,7 @@ class NeuralNetwork(nn.Module):
         """
 
         X = torch.tensor(X, requires_grad=False)
+        X = X.unsqueeze(0)
         X = self.linears[symbol](X)
 
         intercept_name = 'intercept_' + symbol
@@ -164,6 +165,7 @@ class NeuralNetwork(nn.Module):
         for key in self.state_dict():
             old_state_dict[key] = self.state_dict()[key].clone()
 
+        targets = [[target] for target in targets]
         targets = torch.tensor(targets, requires_grad=False)
 
         # Define optimizer
@@ -273,6 +275,7 @@ class NeuralNetwork(nn.Module):
         self.optimizer.zero_grad()  # clear previous gradients
 
 
+        atoms_per_image = [[atoms] for atoms in atoms_per_image]
         atoms_per_image = torch.tensor(atoms_per_image, requires_grad=False,
                                        dtype=torch.float)
         outputs_atom = torch.div(outputs, atoms_per_image)
@@ -281,22 +284,19 @@ class NeuralNetwork(nn.Module):
         rmse = torch.sqrt(torch.mean((outputs - targets).pow(2)))
 
         criterion = nn.MSELoss(reduction='sum')
-        loss = criterion(outputs_atom, targets_atom) / 2.
+        loss = criterion(outputs, targets) / 2.
 
-        # L2 regularization does not seem to be the same as weight_decay.
-        # See: https://arxiv.org/abs/1711.05101
-        l2 = 0.
+        if self.regularization > 0:
+            # L2 regularization does not seem to be the same as weight_decay.
+            # See: https://arxiv.org/abs/1711.05101
+            l2 = 0.
 
-        # for symbol in self.linears.keys():
-        #    model = self.linears[symbol]
-        #    for param in model.parameters():
-        #        l2 += param.norm(2)
+            for name, parameters in self.named_parameters():
+                if 'weight' in name:
+                    l2 += parameters.norm(2)
 
-        for name, parameters in self.named_parameters():
-            if 'weight' in name:
-                l2 += parameters.norm(2)
+            loss = loss + (l2 * self.regularization)
 
-        loss = loss + (l2 * self.regularization)
         loss.backward()
         self.optimizer.step()
         return loss, rmse
