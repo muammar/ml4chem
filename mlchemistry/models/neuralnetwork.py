@@ -125,20 +125,18 @@ class NeuralNetwork(torch.nn.Module):
             image = X[hash]
             atomic_energies = []
             for symbol, x in image:
-                #x = torch.tensor(x, requires_grad=False)
-                #x = x.unsqueeze(0)
                 x = self.linears[symbol](x)
 
-                #intercept_name = 'intercept_' + symbol
-                #slope_name = 'slope_' + symbol
+                intercept_name = 'intercept_' + symbol
+                slope_name = 'slope_' + symbol
 
-                #for name, param in self.named_parameters():
-                #    if intercept_name == name:
-                #        intercept = param
-                #    elif slope_name == name:
-                #        slope = param
+                for name, param in self.named_parameters():
+                    if intercept_name == name:
+                        intercept = param
+                    elif slope_name == name:
+                        slope = param
 
-                #atomic_energy = (slope * x) + intercept
+                x = (slope * x) + intercept
                 atomic_energies.append(x)
 
             atomic_energies = torch.cat(atomic_energies)
@@ -204,14 +202,20 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
 
         optimizer.zero_grad()  # clear previous gradients
         criterion = torch.nn.MSELoss(reduction='sum')
+        atoms_per_image = torch.tensor(data.atoms_per_image,
+                                       requires_grad=False,
+                                       dtype=torch.float)
+        outputs_atom = torch.div(outputs, atoms_per_image)
+        targets_atom = torch.div(targets, atoms_per_image)
 
-        loss = criterion(outputs, targets)
+        loss = criterion(outputs_atom, targets_atom) * .5
         loss.backward()
         optimizer.step()
 
         rmse = torch.sqrt(loss).item()
 
         _loss.append(loss)
+        _rmse.append(rmse)
 
         ts = time.time()
         ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '

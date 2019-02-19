@@ -71,7 +71,7 @@ class Potentials(Calculator, object):
         from mlchemistry.models.neuralnetwork import train
         train(feature_space, targets, model=self.model, data=data_handler,
               optimizer=optimizer, lr=lr, weight_decay=weight_decay,
-              regularization=regularization, epochs=epochs)
+              regularization=regularization, epochs=epochs, convergence=convergence)
 
     def calculate(self):
         """docstring for calculate"""
