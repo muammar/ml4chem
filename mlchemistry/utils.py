@@ -1,6 +1,6 @@
 import hashlib
-from collections import OrderedDict
 from ase.neighborlist import NeighborList
+
 
 def get_hash(image):
     """Get the SHA1 hash of an image object
@@ -24,6 +24,7 @@ def get_hash(image):
     _hash = sha1.hexdigest()
 
     return _hash
+
 
 def get_neighborlist(image, cutoff):
     """Get the list of neighbors

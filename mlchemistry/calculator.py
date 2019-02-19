@@ -1,5 +1,4 @@
-from ase.calculators.calculator import Calculator, Parameters
-from ase.io import Trajectory
+from ase.calculators.calculator import Calculator
 
 from mlchemistry.data.handler import DataSet
 from mlchemistry.backends.available import available_backends
@@ -71,7 +70,8 @@ class Potentials(Calculator, object):
         from mlchemistry.models.neuralnetwork import train
         train(feature_space, targets, model=self.model, data=data_handler,
               optimizer=optimizer, lr=lr, weight_decay=weight_decay,
-              regularization=regularization, epochs=epochs, convergence=convergence)
+              regularization=regularization, epochs=epochs,
+              convergence=convergence)
 
     def calculate(self):
         """docstring for calculate"""

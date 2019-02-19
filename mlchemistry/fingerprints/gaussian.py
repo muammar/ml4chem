@@ -1,5 +1,4 @@
 from mlchemistry.utils import get_neighborlist
-from mlchemistry.data.handler import DataSet
 from mlchemistry.backends.operations import BackendOperations
 from .cutoff import Cosine
 from collections import OrderedDict
@@ -41,7 +40,6 @@ class Gaussian(object):
             self.cutofffxn = Cosine(cutoff=cutoff)
         else:
             self.cutofffxn = cutofffxn
-
 
     def calculate_features(self, images, defaults=True,
                            category='trainingset', data=None):
@@ -127,7 +125,8 @@ class Gaussian(object):
                 for atom in image:
                     symbol = atom.symbol
                     scaled = torch.tensor(scaled_feature_space[index],
-                                          requires_grad=True, dtype=torch.float)
+                                          requires_grad=True,
+                                          dtype=torch.float)
                     feature_space[key].append((symbol, scaled))
                     index += 1
 
@@ -341,6 +340,7 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
 
     return feature
 
+
 def calculate_G3(neighborsymbols, neighborpositions, G_elements, gamma, zeta,
                  eta, cutoff, cutofffxn, Ri, backend=None):
     """Calculate G3 symmetry function.
@@ -394,7 +394,7 @@ def calculate_G3(neighborsymbols, neighborpositions, G_elements, gamma, zeta,
             cos_theta_ijk = backend.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1. + gamma * cos_theta_ijk) ** zeta
             term *= backend.exp(-eta * (Rij ** 2. + Rik ** 2. + Rjk ** 2.) /
-                           (Rc ** 2.))
+                                (Rc ** 2.))
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
             term *= cutofffxn(Rjk)

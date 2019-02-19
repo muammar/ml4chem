@@ -7,6 +7,7 @@ from mlchemistry.data.visualization import parity
 
 torch.set_printoptions(precision=10)
 
+
 class NeuralNetwork(torch.nn.Module):
     """Neural Network Regression with Pytorch
 
@@ -22,7 +23,6 @@ class NeuralNetwork(torch.nn.Module):
         super(NeuralNetwork, self).__init__()
         self.hiddenlayers = hiddenlayers
         self.activation = activation
-
 
     def prepare_model(self, input_dimension, data=None):
         """Prepare the model
@@ -41,9 +41,8 @@ class NeuralNetwork(torch.nn.Module):
         print('Model Training')
         print('==============')
         print('Number of hidden-layers: {}' .format(len(self.hiddenlayers)))
-        print('Structure of Neural Net: {}' .format('(input, ' +
-                                                    str(self.hiddenlayers)[1:-1]
-                                                    + ', output)'))
+        print('Structure of Neural Net: {}' .
+              format('(input, ' + str(self.hiddenlayers)[1:-1] + ', output)'))
         layers = range(len(self.hiddenlayers) + 1)
         unique_element_symbols = data.unique_element_symbols['trainingset']
 
@@ -54,7 +53,8 @@ class NeuralNetwork(torch.nn.Module):
             linears = []
 
             intercept = (data.max_energy + data.min_energy) / 2.
-            intercept = torch.nn.Parameter(torch.tensor(intercept, requires_grad=True))
+            intercept = torch.nn.Parameter(torch.tensor(intercept,
+                                                        requires_grad=True))
 
             slope = (data.max_energy - data.min_energy) / 2.
             slope = torch.nn.Parameter(torch.tensor(slope, requires_grad=True))
@@ -269,31 +269,3 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     plt.plot(list(range(epoch)), _rmse, label='rmse/atom')
     plt.legend(loc='upper left')
     plt.show()
-
-
-    #atoms_per_image = torch.tensor(atoms_per_image, requires_grad=False,
-    #                               dtype=torch.float)
-    #outputs_atom = torch.div(outputs, atoms_per_image)
-    #targets_atom = torch.div(targets, atoms_per_image)
-    ##print(outputs.shape)
-    ##print(targets.shape)
-    ##print(outputs_atom.shape)
-    ##print(targets_atom.shape)
-    ##print(atoms_per_image.shape)
-
-    #rmse = torch.sqrt(torch.mean(torch.pow((outputs - targets), 2)))
-    #criterion = torch.nn.MSELoss(reduction='sum')
-    #loss = criterion(outputs_atom, targets_atom) / 2.
-
-    #if regularization > 0:
-    #    # L2 regularization does not seem to be the same as weight_decay.
-    #    # See: https://arxiv.org/abs/1711.05101
-    #    l2 = 0.
-
-    #    for name, parameters in self.named_parameters():
-    #        if 'weight' in name:
-    #            l2 += parameters.norm(2)
-
-    #    loss = loss + (l2 * regularization)
-
-    #return loss, rmse

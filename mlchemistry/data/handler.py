@@ -122,11 +122,14 @@ class DataSet(object):
             if category not in symbols.keys():
                 symbols[category] = {}
                 try:
-                    symbols[category] = sorted(list(set([atom.symbol for image in
-                                           images for atom in image])))
+                    symbols[category] = sorted(list(set([atom.symbol for image
+                                                         in images for atom in
+                                                         image])))
                 except AttributeError:
-                    symbols[category] = sorted(list(set([atom.symbol for key, image in
-                                           images.items() for atom in image])))
+                    symbols[category] = sorted(list(set([atom.symbol for
+                                                         key, image in
+                                                         images.items() for
+                                                         atom in image])))
 
             else:
                 print('what happens in the following case?')    # FIXME
@@ -146,7 +149,8 @@ class DataSet(object):
             The purpose of the data so that structure is prepared accordingly.
             Supported are: 'training', 'inference'
         model_name : str
-            The model that is going to be used. Supported models are 'NeuralNetwork'.
+            The model that is going to be used. Supported models are
+            'NeuralNetwork'.
         """
 
         if purpose == 'training':
