@@ -125,8 +125,8 @@ class NeuralNetwork(torch.nn.Module):
             image = X[hash]
             atomic_energies = []
             for symbol, x in image:
-                x = torch.tensor(x, requires_grad=False)
-                x = x.unsqueeze(0)
+                #x = torch.tensor(x, requires_grad=False)
+                #x = x.unsqueeze(0)
                 x = self.linears[symbol](x)
 
                 #intercept_name = 'intercept_' + symbol
@@ -258,7 +258,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
                 print('No gradient?')
 
             print()
-    parity(torch.to_numpy(outputs), torch.to_numpy(targets))
+    parity(outputs.detach().numpy(), targets.detach().numpy())
 
     import matplotlib.pyplot as plt
     plt.plot(list(range(epoch)), _loss, label='loss')

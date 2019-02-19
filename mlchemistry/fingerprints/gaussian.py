@@ -4,6 +4,7 @@ from mlchemistry.backends.operations import BackendOperations
 from .cutoff import Cosine
 from collections import OrderedDict
 import numpy
+import torch
 
 
 class Gaussian(object):
@@ -96,19 +97,13 @@ class Gaussian(object):
         for key, image in images.items():
             feature_space[key] = []
 
-            if self.backend.name == 'torch':
-                image_positions = self.backend.from_numpy(image.positions)
-            else:
-                image_positions = image.positions
+            image_positions = image.positions
 
             for atom in image:
                 index = atom.index
                 symbol = atom.symbol
                 nl = get_neighborlist(image, cutoff=self.cutoff)
                 n_indices, n_offsets = nl[atom.index]
-
-                if self.backend.name == 'torch':
-                    n_offsets = self.backend.from_numpy(n_offsets)
 
                 n_symbols = [image[i].symbol for i in n_indices]
                 neighborpositions = [image_positions[neighbor] +
@@ -131,8 +126,9 @@ class Gaussian(object):
             for key, image in images.items():
                 for atom in image:
                     symbol = atom.symbol
-                    feature_space[key].append((symbol,
-                        scaled_feature_space[index]))
+                    scaled = torch.tensor(scaled_feature_space[index],
+                                          requires_grad=True, dtype=torch.float)
+                    feature_space[key].append((symbol, scaled))
                     index += 1
 
         return feature_space
