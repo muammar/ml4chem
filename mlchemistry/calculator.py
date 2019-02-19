@@ -29,14 +29,31 @@ class Potentials(Calculator, object):
         """docstring for load"""
         pass
 
-    def train(self, training_set):
+    def train(self, training_set, epochs=100, lr=0.001, convergence=None,
+              device='cpu',  optimizer=None, weight_decay=0.,
+              regularization=0.):
         """Method to train models
 
         Parameters
         ----------
         training_set : object, list
             List containing the training set.
+        epochs : int
+            Number of full training cycles.
+        lr : float
+            Learning rate.
+        convergence : dict
+            Instead of using epochs, users can set a convergence criterion.
+        device : str
+            Calculation can be run in the cpu or gpu.
+        optimizer : object
+            An optimizer class.
+        weight_decay : float
+            Weight decay passed to the optimizer. Default is 0.
+        regularization : float
+            This is the L2 regularization. It is not the same as weight decay.
         """
+
         data_handler = DataSet(training_set, self.model, purpose='training')
 
         # Raw input and targets aka X, y
@@ -47,7 +64,14 @@ class Potentials(Calculator, object):
                                                              data=data_handler)
 
         # Now let's train
-        self.model.train(feature_space, targets, data=data_handler)
+        # Fixed fingerprint dimension
+        input_dimension = len(list(feature_space.values())[0][0][-1])
+        self.model.prepare_model(input_dimension, data=data_handler)
+
+        from mlchemistry.models.neuralnetwork import train
+        train(feature_space, targets, model=self.model, data=data_handler,
+              optimizer=optimizer, lr=lr, weight_decay=weight_decay,
+              regularization=regularization, epochs=epochs)
 
     def calculate(self):
         """docstring for calculate"""
