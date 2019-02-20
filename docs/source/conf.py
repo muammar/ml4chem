@@ -14,9 +14,10 @@
 #
 import os
 import sys
+from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath('../../'))
 
-class Mock:
+class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
