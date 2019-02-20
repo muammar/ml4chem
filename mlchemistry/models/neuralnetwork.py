@@ -146,61 +146,152 @@ class NeuralNetwork(torch.nn.Module):
         return outputs
 
 
-def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
-          weight_decay=None, regularization=None, epochs=100,
-          convergence=None):
-    """Train the model
+    def train(self, inputs, targets, model=None, data=None, optimizer=None,
+              lr=None, weight_decay=None, regularization=None, epochs=100,
+              convergence=None, lossfxn=None):
+        """Train the model
 
-    Parameters
-    ----------
-    inputs : dict
-        Dictionary with hashed feature space.
-    epochs : int
-        Number of full training cycles.
-    targets : list
-        The expected values that the model has to learn aka y.
-    model : object
-        The NeuralNetwork class.
-    data : object
-        DataSet object created from the handler.
-    lr : float
-        Learning rate.
-    weight_decay : float
-        Weight decay passed to the optimizer. Default is 0.
-    regularization : float
-        This is the L2 regularization. It is not the same as weight decay.
-    convergence : dict
-        Instead of using epochs, users can set a convergence criterion.
-    """
+        Parameters
+        ----------
+        inputs : dict
+            Dictionary with hashed feature space.
+        epochs : int
+            Number of full training cycles.
+        targets : list
+            The expected values that the model has to learn aka y.
+        model : object
+            The NeuralNetwork class.
+        data : object
+            DataSet object created from the handler.
+        lr : float
+            Learning rate.
+        weight_decay : float
+            Weight decay passed to the optimizer. Default is 0.
+        regularization : float
+            This is the L2 regularization. It is not the same as weight decay.
+        convergence : dict
+            Instead of using epochs, users can set a convergence criterion.
+        lossfxn : obj
+            A loss function object.
+        """
 
-    #old_state_dict = {}
+        #old_state_dict = {}
 
-    #for key in model.state_dict():
-    #    old_state_dict[key] = model.state_dict()[key].clone()
+        #for key in model.state_dict():
+        #    old_state_dict[key] = model.state_dict()[key].clone()
 
-    targets = torch.tensor(targets, requires_grad=False)
+        targets = torch.tensor(targets, requires_grad=False)
 
-    # Define optimizer
-    if optimizer is None:
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr,
-                                     weight_decay=weight_decay)
+        # Define optimizer
+        if optimizer is None:
+            optimizer = torch.optim.Adam(model.parameters(), lr=lr,
+                                         weight_decay=weight_decay)
 
-    print()
-    print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp', 'Loss'))
-    print('{:6s} {:19s} {:8s}'.format('------',
-                                      '-------------------', '---------'))
-    initial_time = time.time()
+        print()
+        print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp', 'Loss'))
+        print('{:6s} {:19s} {:8s}'.format('------',
+                                          '-------------------', '---------'))
+        initial_time = time.time()
 
-    _loss = []
-    _rmse = []
-    epoch = 0
+        _loss = []
+        _rmse = []
+        epoch = 0
 
-    while True:
-        epoch += 1
+        while True:
+            epoch += 1
 
-        outputs = model(inputs)
+            outputs = model(inputs)
+
+            if lossfxn is None:
+                loss, rmse = self.loss_function(outputs, targets, optimizer, data)
+            else:
+                raise('I do not know what to do')
+
+            _loss.append(loss)
+            _rmse.append(rmse)
+
+            ts = time.time()
+            ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
+                                                              '%H:%M:%S')
+            print('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
+
+            if convergence is None and epoch == epochs:
+                break
+            elif (convergence is not None and rmse < convergence['energy']):
+                break
+
+        training_time = time.time() - initial_time
+
+        print('Training the model took {}...' .format(training_time))
+        print('outputs')
+        print(outputs)
+        print('targets')
+        print(targets)
+
+        import matplotlib.pyplot as plt
+        plt.plot(list(range(epoch)), _loss, label='loss')
+        plt.plot(list(range(epoch)), _rmse, label='rmse/atom')
+        plt.legend(loc='upper left')
+        plt.show()
+
+        parity(outputs.detach().numpy(), targets.detach().numpy())
+
+        #new_state_dict = {}
+
+        #for key in model.state_dict():
+        #    new_state_dict[key] = model.state_dict()[key].clone()
+
+        #for key in old_state_dict:
+        #    if not (old_state_dict[key] == new_state_dict[key]).all():
+        #        print('Diff in {}'.format(key))
+        #    else:
+        #        print('No diff in {}'.format(key))
+
+        #print()
+
+        #for symbol in data.unique_element_symbols['trainingset']:
+        #    model = model.linears[symbol]
+
+        #    print('Optimized parameters for {} symbol' .format(symbol))
+
+        #    for index, param in enumerate(model.parameters()):
+        #        print('Index {}' .format(index))
+        #        print(param)
+        #        try:
+        #            print('Gradient', param.grad.sum())
+        #        except AttributeError:
+        #            print('No gradient?')
+
+        #        print()
+
+
+    def loss_function(self, outputs, targets, optimizer, data):
+        """Default loss function
+
+        If user does not input loss function we provide mean-squared error loss
+        function.
+
+        Parameters
+        ----------
+        outputs : tensor
+            Outputs of the model.
+        targets : tensor
+            Expected value of outputs.
+        optimizer : obj
+            An optimizer object to minimize the loss function error.
+        data : obj
+            A data object from mlchem.
+
+        Returns
+        -------
+        loss : tensor
+            The value of the loss function.
+        rmse : float
+            Value of the root-mean squared error per atom.
+        """
 
         optimizer.zero_grad()  # clear previous gradients
+
         criterion = torch.nn.MSELoss(reduction='sum')
         atoms_per_image = torch.tensor(data.atoms_per_image,
                                        requires_grad=False,
@@ -214,59 +305,4 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
 
         rmse = torch.sqrt(loss).item()
 
-        _loss.append(loss)
-        _rmse.append(rmse)
-
-        ts = time.time()
-        ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
-                                                          '%H:%M:%S')
-        print('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
-
-        if convergence is None and epoch == epochs:
-            break
-        elif (convergence is not None and rmse < convergence['energy']):
-            break
-
-    training_time = time.time() - initial_time
-
-    print('Training the model took {}...' .format(training_time))
-    print('outputs')
-    print(outputs)
-    print('targets')
-    print(targets)
-
-    import matplotlib.pyplot as plt
-    plt.plot(list(range(epoch)), _loss, label='loss')
-    plt.plot(list(range(epoch)), _rmse, label='rmse/atom')
-    plt.legend(loc='upper left')
-    plt.show()
-
-    parity(outputs.detach().numpy(), targets.detach().numpy())
-
-    #new_state_dict = {}
-
-    #for key in model.state_dict():
-    #    new_state_dict[key] = model.state_dict()[key].clone()
-
-    #for key in old_state_dict:
-    #    if not (old_state_dict[key] == new_state_dict[key]).all():
-    #        print('Diff in {}'.format(key))
-    #    else:
-    #        print('No diff in {}'.format(key))
-
-    #print()
-
-    #for symbol in data.unique_element_symbols['trainingset']:
-    #    model = model.linears[symbol]
-
-    #    print('Optimized parameters for {} symbol' .format(symbol))
-
-    #    for index, param in enumerate(model.parameters()):
-    #        print('Index {}' .format(index))
-    #        print(param)
-    #        try:
-    #            print('Gradient', param.grad.sum())
-    #        except AttributeError:
-    #            print('No gradient?')
-
-    #        print()
+        return loss, rmse

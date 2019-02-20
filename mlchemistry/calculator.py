@@ -29,7 +29,7 @@ class Potentials(Calculator, object):
         pass
 
     def train(self, training_set, epochs=100, lr=0.001, convergence=None,
-              device='cpu',  optimizer=None, weight_decay=0.,
+              device='cpu',  optimizer=None, lossfxn=None, weight_decay=0.,
               regularization=0.):
         """Method to train models
 
@@ -47,6 +47,8 @@ class Potentials(Calculator, object):
             Calculation can be run in the cpu or gpu.
         optimizer : object
             An optimizer class.
+        lossfxn : object
+            A loss function object.
         weight_decay : float
             Weight decay passed to the optimizer. Default is 0.
         regularization : float
@@ -67,11 +69,11 @@ class Potentials(Calculator, object):
         input_dimension = len(list(feature_space.values())[0][0][-1])
         self.model.prepare_model(input_dimension, data=data_handler)
 
-        from mlchemistry.models.neuralnetwork import train
-        train(feature_space, targets, model=self.model, data=data_handler,
-              optimizer=optimizer, lr=lr, weight_decay=weight_decay,
-              regularization=regularization, epochs=epochs,
-              convergence=convergence)
+        self.model.train(feature_space, targets, model=self.model,
+                         data=data_handler, optimizer=optimizer, lr=lr,
+                         weight_decay=weight_decay,
+                         regularization=regularization, epochs=epochs,
+                         convergence=convergence, lossfxn=lossfxn)
 
     def calculate(self):
         """docstring for calculate"""
