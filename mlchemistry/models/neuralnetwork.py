@@ -173,10 +173,10 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         Instead of using epochs, users can set a convergence criterion.
     """
 
-    old_state_dict = {}
+    #old_state_dict = {}
 
-    for key in model.state_dict():
-        old_state_dict[key] = model.state_dict()[key].clone()
+    #for key in model.state_dict():
+    #    old_state_dict[key] = model.state_dict()[key].clone()
 
     targets = torch.tensor(targets, requires_grad=False)
 
@@ -235,37 +235,38 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     print('targets')
     print(targets)
 
-    new_state_dict = {}
-
-    for key in model.state_dict():
-        new_state_dict[key] = model.state_dict()[key].clone()
-
-    for key in old_state_dict:
-        if not (old_state_dict[key] == new_state_dict[key]).all():
-            print('Diff in {}'.format(key))
-        else:
-            print('No diff in {}'.format(key))
-
-    print()
-
-    for symbol in data.unique_element_symbols['trainingset']:
-        model = model.linears[symbol]
-
-        print('Optimized parameters for {} symbol' .format(symbol))
-
-        for index, param in enumerate(model.parameters()):
-            print('Index {}' .format(index))
-            print(param)
-            try:
-                print('Gradient', param.grad.sum())
-            except AttributeError:
-                print('No gradient?')
-
-            print()
-    parity(outputs.detach().numpy(), targets.detach().numpy())
-
     import matplotlib.pyplot as plt
     plt.plot(list(range(epoch)), _loss, label='loss')
     plt.plot(list(range(epoch)), _rmse, label='rmse/atom')
     plt.legend(loc='upper left')
     plt.show()
+
+    parity(outputs.detach().numpy(), targets.detach().numpy())
+
+    #new_state_dict = {}
+
+    #for key in model.state_dict():
+    #    new_state_dict[key] = model.state_dict()[key].clone()
+
+    #for key in old_state_dict:
+    #    if not (old_state_dict[key] == new_state_dict[key]).all():
+    #        print('Diff in {}'.format(key))
+    #    else:
+    #        print('No diff in {}'.format(key))
+
+    #print()
+
+    #for symbol in data.unique_element_symbols['trainingset']:
+    #    model = model.linears[symbol]
+
+    #    print('Optimized parameters for {} symbol' .format(symbol))
+
+    #    for index, param in enumerate(model.parameters()):
+    #        print('Index {}' .format(index))
+    #        print(param)
+    #        try:
+    #            print('Gradient', param.grad.sum())
+    #        except AttributeError:
+    #            print('No gradient?')
+
+    #        print()
