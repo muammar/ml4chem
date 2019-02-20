@@ -19,6 +19,14 @@ class NeuralNetwork(torch.nn.Module):
         The activation function.
     """
 
+    NAME = 'PytorchPotentials'
+
+    @classmethod
+    def name(cls):
+        """Returns name of class"""
+
+        return cls.NAME
+
     def __init__(self, hiddenlayers=(3, 3), activation='relu'):
         super(NeuralNetwork, self).__init__()
         self.hiddenlayers = hiddenlayers

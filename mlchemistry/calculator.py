@@ -24,9 +24,43 @@ class Potentials(Calculator, object):
 
         self.model = model
 
-    def load(self):
-        """docstring for load"""
-        pass
+    @classmethod
+    def load(self, path, backend=None):
+        """Load a model
+        Parameters
+        ----------
+        path : str
+            The path to load the model for inference.
+        backed : str
+            Backend used for building the model 'pytorch'.
+        """
+        backend = backend.lower()
+
+        #if backend == 'pytorch':
+        #    import torch
+        #    from mlchemistry.models.neuralnetwork import NeuralNetwork
+        #    model.load_state_dict(torch.load(path))
+
+
+    def save(self, model, path=None):
+        """Save a model
+
+        Parameters
+        ----------
+        model : obj
+            The model to be saved.
+        path : str
+            The path where to save the model.
+        """
+
+        model_name = model.name()
+
+        if path is None:
+            path = 'model.mlchemistry'
+
+        if model_name == 'PytorchPotentials':
+            import torch
+            torch.save(model.state_dict(), path)
 
     def train(self, training_set, epochs=100, lr=0.001, convergence=None,
               device='cpu',  optimizer=None, lossfxn=None, weight_decay=0.,
@@ -74,6 +108,8 @@ class Potentials(Calculator, object):
                          weight_decay=weight_decay,
                          regularization=regularization, epochs=epochs,
                          convergence=convergence, lossfxn=lossfxn)
+
+        self.save(self.model)
 
     def calculate(self):
         """docstring for calculate"""
