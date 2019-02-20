@@ -7,6 +7,9 @@ from mlchem.backends.available import available_backends
 class Potentials(Calculator, object):
     """Machine-Learning for Chemistry
 
+    This class is highly inspired on the Atomistic Machine-Learning package
+    (Amp).
+
     Parameters
     ----------
     fingerprints : object

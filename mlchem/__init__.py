@@ -1,4 +1,4 @@
-from mlchem.calculator import Potentials
+from mlchem.potentials import Potentials
 
 __all__ = ['Potentials']
 

@@ -10,5 +10,5 @@ This package is written in Python, and features:
 - ASE interface.
 - Completely modular. You can use any part in your project.
 - Free software <3. No secrets!
-- Good documentation.
+- Good documentation (I hope!).
 - Explicit and idiomatic: `mlchem.get_me_a_coffee()`
