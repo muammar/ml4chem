@@ -111,7 +111,8 @@ class Gaussian(object):
 
                 feature_vector = self.get_atomic_fingerprint(atom, index,
                                                              symbol, n_symbols,
-                                                             neighborpositions)
+                                                             neighborpositions,
+                                                             self.scaler)
                 if self.scaler is not None:
                     stack_features.append(feature_vector[1])
                 else:
@@ -133,7 +134,7 @@ class Gaussian(object):
         return feature_space
 
     def get_atomic_fingerprint(self, atom, index, symbol, n_symbols,
-                               neighborpositions):
+                               neighborpositions, scaler):
         """Class method to compute atomic fingerprints
 
 
@@ -145,6 +146,8 @@ class Gaussian(object):
             Index of atom in atoms object.
         symbol : str
             Chemical symbol of atom in atoms object.
+        scaler : str
+            Feature scaler.
         """
 
         num_symmetries = len(self.GP[symbol])
@@ -175,6 +178,10 @@ class Gaussian(object):
             else:
                 print('not implemented')
             fingerprint[count] = feature
+
+        if scaler is None:
+            fingerprint = torch.tensor(fingerprint, requires_grad=True,
+                                       dtype=torch.float)
 
         return symbol, fingerprint
 
