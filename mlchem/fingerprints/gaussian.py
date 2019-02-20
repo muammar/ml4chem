@@ -1,5 +1,5 @@
-from mlchemistry.utils import get_neighborlist
-from mlchemistry.backends.operations import BackendOperations
+from mlchem.utils import get_neighborlist
+from mlchem.backends.operations import BackendOperations
 from .cutoff import Cosine
 from collections import OrderedDict
 import numpy

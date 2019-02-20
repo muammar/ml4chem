@@ -1,7 +1,7 @@
 from ase.calculators.calculator import Calculator
 
-from mlchemistry.data.handler import DataSet
-from mlchemistry.backends.available import available_backends
+from mlchem.data.handler import DataSet
+from mlchem.backends.available import available_backends
 
 
 class Potentials(Calculator, object):
@@ -38,7 +38,7 @@ class Potentials(Calculator, object):
 
         #if backend == 'pytorch':
         #    import torch
-        #    from mlchemistry.models.neuralnetwork import NeuralNetwork
+        #    from mlchem.models.neuralnetwork import NeuralNetwork
         #    model.load_state_dict(torch.load(path))
 
 
@@ -56,7 +56,7 @@ class Potentials(Calculator, object):
         model_name = model.name()
 
         if path is None:
-            path = 'model.mlchemistry'
+            path = 'model.mlchem'
 
         if model_name == 'PytorchPotentials':
             import torch

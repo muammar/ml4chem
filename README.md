@@ -1,7 +1,7 @@
-MLChemistry
+MLChem
 ===========
 
-**MLChemistry** is machine-learning for chemistry.
+**MLChem** is machine-learning for chemistry.
 
 This package is written in Python, and features:
 
@@ -11,4 +11,4 @@ This package is written in Python, and features:
 - Completely modular. You can use any part in your project.
 - Free software <3. No secrets!
 - Good documentation.
-- Explicit and idiomatic: `mlchemistry.get_me_a_coffee()`
+- Explicit and idiomatic: `mlchem.get_me_a_coffee()`

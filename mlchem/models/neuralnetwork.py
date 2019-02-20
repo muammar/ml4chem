@@ -2,8 +2,8 @@ import time
 import datetime
 import torch
 
-from mlchemistry.backends.operations import BackendOperations as backend
-from mlchemistry.data.visualization import parity
+from mlchem.backends.operations import BackendOperations as backend
+from mlchem.data.visualization import parity
 
 torch.set_printoptions(precision=10)
 

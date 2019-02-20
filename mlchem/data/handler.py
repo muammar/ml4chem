@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from mlchemistry.utils import get_hash
+from mlchem.utils import get_hash
 
 
 class DataSet(object):
@@ -32,7 +32,7 @@ class DataSet(object):
             self.prepare_images(images, purpose=purpose)
 
     def prepare_images(self, images, purpose=None):
-        """Function to prepare images to operate with mlchemistry
+        """Function to prepare images to operate with mlchem
 
         Parameters
         ----------
