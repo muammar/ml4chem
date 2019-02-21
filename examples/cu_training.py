@@ -14,7 +14,7 @@ normalized = True
 
 # Arguments for building the model
 n = 10
-activation ='relu'
+activation = 'relu'
 
 # Arguments for training the potential
 convergence = {'energy': 5e-3}
