@@ -13,6 +13,7 @@ MLChem is machine learning for chemistry.
    :caption: Contents:
 
    license
+   docs
 
 
 Indices and tables

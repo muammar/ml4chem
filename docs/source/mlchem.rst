@@ -14,10 +14,10 @@ Subpackages
 Submodules
 ----------
 
-mlchem.calculator module
+mlchem.potentials module
 ------------------------
 
-.. automodule:: mlchem.calculator
+.. automodule:: mlchem.potentials
     :members:
     :undoc-members:
     :show-inheritance:

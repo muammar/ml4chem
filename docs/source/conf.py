@@ -17,15 +17,15 @@ import sys
 from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath('../../'))
 
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return MagicMock()
-
-MOCK_MODULES = ['ase', 'ase.calculators', 'ase.calculators.calculator',
-                'torch']
-
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+#class Mock(MagicMock):
+#    @classmethod
+#    def __getattr__(cls, name):
+#        return MagicMock()
+#
+#MOCK_MODULES = ['ase', 'ase.calculators', 'ase.calculators.calculator',
+#                'ase.neighborlist' 'torch']
+#
+#sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
 # -- Project information -----------------------------------------------------
@@ -59,6 +59,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
+    'recommonmark'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -68,7 +69,9 @@ templates_path = ['_templates']
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = {'.rst': 'restructuredtext',
+                 '.txt': 'markdown',
+                 '.md': 'markdown'}
 
 # The master toctree document.
 master_doc = 'index'
