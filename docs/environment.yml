@@ -1,0 +1,17 @@
+name: mlchem
+
+channels:
+    - anaconda
+
+dependencies:
+    - python==3.7
+    - torch
+    - torchvision
+    - pip:
+        - pyyaml
+        - sphinx-gallery
+        - sphinxcontrib-napoleon
+        - sphinxcontrib-bibtex
+        - sphinxcontrib-inlinesyntaxhighlight
+        - ase
+        - matplotlib
