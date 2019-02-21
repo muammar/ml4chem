@@ -6,7 +6,7 @@
 MLChem
 ==================================
 
-MLChem is machine learning for chemistry.
+.. include:: ../../README.md
 
 .. toctree::
    :maxdepth: 2
