@@ -1,4 +1,5 @@
 from ase.calculators.calculator import Calculator
+import codecs
 import json
 
 from mlchem.data.handler import DataSet
@@ -17,16 +18,24 @@ class Potentials(Calculator, object):
         Local chemical environments to build the feature space.
     model : object
         Machine-learning model to perform training.
+    path : str
+        PATH where to save files.
+    label : str
+        Name for files. Default mlchem.
     """
     # This is needed by ASE
     implemented_properties = ['energy', 'forces']
 
-    def __init__(self, fingerprints=None, model=None):
+    def __init__(self, fingerprints=None, model=None, path=None,
+                 label='mlchem'):
         self.fingerprints = fingerprints
         self.available_backends = available_backends()
+        self.path = path
+        self.label = label
+        self.model = model
+
         print('Available backends', self.available_backends)
 
-        self.model = model
 
     @classmethod
     def load(self, path, backend=None):
@@ -46,7 +55,7 @@ class Potentials(Calculator, object):
         #    model.load_state_dict(torch.load(path))
 
 
-    def save(self, model, path=None):
+    def save(self, model, path=None, label=None):
         """Save a model
 
         Parameters
@@ -55,12 +64,18 @@ class Potentials(Calculator, object):
             The model to be saved.
         path : str
             The path where to save the model.
+        label : str
+            Name for files. Default mlchem.
         """
 
         model_name = model.name()
 
-        if path is None:
+        if path is None and label is None:
             path = 'model'
+        elif path is None and label is not None:
+            path = label
+        else:
+            path += label
 
         if model_name == 'PytorchPotentials':
             import torch
@@ -69,8 +84,10 @@ class Potentials(Calculator, object):
                     'layers': model.hiddenlayers,
                     'activation' : model.activation
                     }
-            json_file = open(path + '.params', 'w')
-            json.dump(params, json_file)
+
+            with open(path + '.params', 'wb') as json_file:
+                json.dump(params, codecs.getwriter('utf-8')(json_file),
+                          ensure_ascii=False, indent=4)
 
             torch.save(model.state_dict(), path + '.mlchem')
 
@@ -121,7 +138,7 @@ class Potentials(Calculator, object):
                          regularization=regularization, epochs=epochs,
                          convergence=convergence, lossfxn=lossfxn)
 
-        self.save(self.model)
+        self.save(self.model, path=self.path, label=self.label)
 
     def calculate(self):
         """docstring for calculate"""

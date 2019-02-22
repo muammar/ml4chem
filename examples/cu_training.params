@@ -1,1 +1,8 @@
-{"name": "PytorchPotentials", "layers": [10, 10], "activation": "relu"}
+{
+    "name": "PytorchPotentials",
+    "layers": [
+        10,
+        10
+    ],
+    "activation": "relu"
+}
