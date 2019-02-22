@@ -1,4 +1,5 @@
 from ase.calculators.calculator import Calculator
+import json
 
 from mlchem.data.handler import DataSet
 from mlchem.backends.available import available_backends
@@ -59,11 +60,19 @@ class Potentials(Calculator, object):
         model_name = model.name()
 
         if path is None:
-            path = 'model.mlchem'
+            path = 'model'
 
         if model_name == 'PytorchPotentials':
             import torch
-            torch.save(model.state_dict(), path)
+            params = {
+                    'name': model_name,
+                    'layers': model.hiddenlayers,
+                    'activation' : model.activation
+                    }
+            json_file = open(path + '.params', 'w')
+            json.dump(params, json_file)
+
+            torch.save(model.state_dict(), path + '.mlchem')
 
     def train(self, training_set, epochs=100, lr=0.001, convergence=None,
               device='cpu',  optimizer=None, lossfxn=None, weight_decay=0.,
