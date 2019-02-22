@@ -1,6 +1,6 @@
-matplotlib==3.0.2
 numpy==1.16.1
-setuptools==40.8.0
+matplotlib==3.0.2
 torch==1.0.1
+setuptools==40.8.0
 ase==3.17.0
 scikit_learn==0.20.2

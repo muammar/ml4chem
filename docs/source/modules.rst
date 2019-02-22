@@ -5,3 +5,4 @@ mlchem
    :maxdepth: 4
 
    mlchem
+   setup
