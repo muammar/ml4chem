@@ -36,7 +36,7 @@ def get_neighborlist(image, cutoff):
 
     Returns
     -------
-    A list of neighbors with offset distances.
+        A list of neighbors with offset distances.
     """
     cutoffs = [cutoff / 2.] * len(image)
     nlist = NeighborList(cutoffs=cutoffs, self_interaction=False,
