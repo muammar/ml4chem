@@ -27,30 +27,53 @@ class Gaussian(object):
         A backend object.
     scaler : str
         Use some scaling method to preprocess the data.
+    defaults : bool
+        Are we creating default symmetry functions?
     """
+    NAME = 'Gaussian'
+
+    @classmethod
+    def name(cls):
+        """Returns name of class"""
+
+        return cls.NAME
+
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
-                 backend=None, scaler=None):
+                 backend=None, scaler=None, defaults=None):
 
         self.cutoff = cutoff
         self.backend = backend
         self.normalized = normalized
         self.scaler = scaler
 
+        # Let's add parameters that are going to be stored in the .params json
+        # file.
+        self.params = OrderedDict()
+        self.params['name'] = self.name()
+
+        _params = vars()
+
+        del _params['self']
+
+        for k, v in _params.items():
+            if v is not None:
+                self.params[k] = v
+
+        if defaults is None:
+            self.defaults = True
+
         if cutofffxn is None:
             self.cutofffxn = Cosine(cutoff=cutoff)
         else:
             self.cutofffxn = cutofffxn
 
-    def calculate_features(self, images, defaults=True,
-                           category='trainingset', data=None):
+    def calculate_features(self, images, category='trainingset', data=None):
         """Calculate the features per atom in an atoms objects
 
         Parameters
         ----------
         image : ase object, list
             A list of atoms.
-        defaults : bool
-            Are we creating default symmetry functions?
         category : str
             The supported categories are: 'trainingset', 'testset'.
         data : obj
@@ -83,7 +106,7 @@ class Gaussian(object):
 
             print('Unique elements: {}' .format(unique_element_symbols))
 
-        if defaults:
+        if self.defaults:
             self.GP = self.make_symmetry_functions(unique_element_symbols,
                                                    defaults=True)
 

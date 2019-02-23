@@ -36,3 +36,7 @@ calc.train(training_set=images, epochs=epochs, lr=lr,
 
 
 loaded_calc = Potentials.load('cu_training.mlchem', 'cu_training.params')
+
+for atoms in images:
+    energy = loaded_calc.get_potential_energy(atoms)
+    print(energy)

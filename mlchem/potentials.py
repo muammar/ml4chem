@@ -1,4 +1,4 @@
-from ase.calculators.calculator import Calculator
+from ase.calculators.calculator import Calculator, Parameters
 import codecs
 import json
 
@@ -27,7 +27,9 @@ class Potentials(Calculator, object):
     implemented_properties = ['energy', 'forces']
 
     def __init__(self, fingerprints=None, model=None, path=None,
-                 label='mlchem'):
+                 label='mlchem', atoms=None):
+
+        Calculator.__init__(self, label=label, atoms=atoms)
         self.fingerprints = fingerprints
         self.available_backends = available_backends()
         self.path = path
@@ -36,27 +38,36 @@ class Potentials(Calculator, object):
 
         print('Available backends', self.available_backends)
 
-
     @classmethod
-    def load(self, mlchem, params):
+    def load(Cls, mlchem, params, **kwargs):
         """Load a model
         Parameters
         ----------
         path : str
             The path to load .mlchem file for inference.
         params : srt
-            The path to load .params file for inference
+            The path to load .params file with users' inputs.
         """
         with open(params) as mlchem_params:
             import torch
             mlchem_params = json.load(mlchem_params)
-            del mlchem_params['name']   # delete unneeded key, value
-            from mlchem.models.neuralnetwork import NeuralNetwork
-            model = NeuralNetwork(**mlchem_params)
-            model.load_state_dict(torch.load(mlchem), strict=False)
-            #model.eval()
 
-        return model
+            # Instantiate the model class
+            model_params = mlchem_params['model']
+            del model_params['name']   # delete unneeded key, value
+            from mlchem.models.neuralnetwork import NeuralNetwork
+            model = NeuralNetwork(**model_params)
+            model = model.load_state_dict(torch.load(mlchem), strict=False)
+
+            # Instatiation of fingerprint class
+            from mlchem.fingerprints import Gaussian
+            fingerprint_params = mlchem_params['fingerprints']
+            del fingerprint_params['name']
+            fingerprints = Gaussian(**fingerprint_params)
+
+            calc = Cls(fingerprints=fingerprints, model=model, **kwargs)
+
+        return calc
 
     def save(self, model, path=None, label=None):
         """Save a model
@@ -80,13 +91,16 @@ class Potentials(Calculator, object):
         else:
             path += label
 
+        fingerprints = {'fingerprints': self.fingerprints.params}
+
         if model_name == 'PytorchPotentials':
             import torch
-            params = {
-                    'name': model_name,
-                    'hiddenlayers': model.hiddenlayers,
-                    'activation' : model.activation
-                    }
+
+            params = {'model': {'name': model_name,
+                                'hiddenlayers': model.hiddenlayers,
+                                'activation': model.activation}}
+
+            params.update(fingerprints)
 
             with open(path + '.params', 'wb') as json_file:
                 json.dump(params, codecs.getwriter('utf-8')(json_file),
@@ -143,6 +157,8 @@ class Potentials(Calculator, object):
 
         self.save(self.model, path=self.path, label=self.label)
 
-    def calculate(self):
+    def calculate(self, atoms, properties, system_changes):
         """docstring for calculate"""
-        pass
+        Calculator.calculate(self, atoms, properties, system_changes)
+
+        print(atoms)

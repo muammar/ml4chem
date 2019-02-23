@@ -1,8 +1,16 @@
 {
-    "name": "PytorchPotentials",
-    "hiddenlayers": [
-        10,
-        10
-    ],
-    "activation": "relu"
+    "model": {
+        "name": "PytorchPotentials",
+        "hiddenlayers": [
+            10,
+            10
+        ],
+        "activation": "relu"
+    },
+    "fingerprints": {
+        "name": "Gaussian",
+        "cutoff": 6.5,
+        "normalized": true,
+        "scaler": "minmax"
+    }
 }
