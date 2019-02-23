@@ -33,3 +33,6 @@ calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
 calc.train(training_set=images, epochs=epochs, lr=lr,
            weight_decay=weight_decay, regularization=regularization,
            convergence=convergence)
+
+
+loaded_calc = Potentials.load('cu_training.mlchem', 'cu_training.params')

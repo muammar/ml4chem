@@ -1,6 +1,6 @@
 {
     "name": "PytorchPotentials",
-    "layers": [
+    "hiddenlayers": [
         10,
         10
     ],

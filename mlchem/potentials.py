@@ -38,22 +38,25 @@ class Potentials(Calculator, object):
 
 
     @classmethod
-    def load(self, path, backend=None):
+    def load(self, mlchem, params):
         """Load a model
         Parameters
         ----------
         path : str
-            The path to load the model for inference.
-        backed : str
-            Backend used for building the model 'pytorch'.
+            The path to load .mlchem file for inference.
+        params : srt
+            The path to load .params file for inference
         """
-        backend = backend.lower()
+        with open(params) as mlchem_params:
+            import torch
+            mlchem_params = json.load(mlchem_params)
+            del mlchem_params['name']   # delete unneeded key, value
+            from mlchem.models.neuralnetwork import NeuralNetwork
+            model = NeuralNetwork(**mlchem_params)
+            model.load_state_dict(torch.load(mlchem), strict=False)
+            #model.eval()
 
-        #if backend == 'pytorch':
-        #    import torch
-        #    from mlchem.models.neuralnetwork import NeuralNetwork
-        #    model.load_state_dict(torch.load(path))
-
+        return model
 
     def save(self, model, path=None, label=None):
         """Save a model
@@ -81,7 +84,7 @@ class Potentials(Calculator, object):
             import torch
             params = {
                     'name': model_name,
-                    'layers': model.hiddenlayers,
+                    'hiddenlayers': model.hiddenlayers,
                     'activation' : model.activation
                     }
 
@@ -132,11 +135,11 @@ class Potentials(Calculator, object):
         input_dimension = len(list(feature_space.values())[0][0][-1])
         self.model.prepare_model(input_dimension, data=data_handler)
 
-        self.model.train(feature_space, targets, model=self.model,
-                         data=data_handler, optimizer=optimizer, lr=lr,
-                         weight_decay=weight_decay,
-                         regularization=regularization, epochs=epochs,
-                         convergence=convergence, lossfxn=lossfxn)
+        from mlchem.models.neuralnetwork import train
+        train(feature_space, targets, model=self.model, data=data_handler,
+              optimizer=optimizer, lr=lr, weight_decay=weight_decay,
+              regularization=regularization, epochs=epochs,
+              convergence=convergence, lossfxn=lossfxn)
 
         self.save(self.model, path=self.path, label=self.label)
 
