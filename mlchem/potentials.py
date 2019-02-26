@@ -1,6 +1,8 @@
 from ase.calculators.calculator import Calculator, Parameters
 import codecs
+import copy
 import json
+import torch
 
 from mlchem.data.handler import DataSet
 from mlchem.backends.available import available_backends
@@ -27,7 +29,7 @@ class Potentials(Calculator, object):
     implemented_properties = ['energy', 'forces']
 
     def __init__(self, fingerprints=None, model=None, path=None,
-                 label='mlchem', atoms=None):
+                 label='mlchem', atoms=None, mlchem_path=None):
 
         Calculator.__init__(self, label=label, atoms=atoms)
         self.fingerprints = fingerprints
@@ -35,6 +37,7 @@ class Potentials(Calculator, object):
         self.path = path
         self.label = label
         self.model = model
+        self.mlchem_path = mlchem_path
 
         print('Available backends', self.available_backends)
 
@@ -43,11 +46,12 @@ class Potentials(Calculator, object):
         """Load a model
         Parameters
         ----------
-        path : str
+        mlchem : str
             The path to load .mlchem file for inference.
         params : srt
             The path to load .params file with users' inputs.
         """
+        kwargs['mlchem_path'] = mlchem
         with open(params) as mlchem_params:
             import torch
             mlchem_params = json.load(mlchem_params)
@@ -57,7 +61,6 @@ class Potentials(Calculator, object):
             del model_params['name']   # delete unneeded key, value
             from mlchem.models.neuralnetwork import NeuralNetwork
             model = NeuralNetwork(**model_params)
-            model = model.load_state_dict(torch.load(mlchem), strict=False)
 
             # Instatiation of fingerprint class
             from mlchem.fingerprints import Gaussian
@@ -157,8 +160,37 @@ class Potentials(Calculator, object):
 
         self.save(self.model, path=self.path, label=self.label)
 
+        self.data_handler = data_handler
+
     def calculate(self, atoms, properties, system_changes):
-        """docstring for calculate"""
+        """Calculate things
+
+        Parameters
+        ----------
+        atoms : object, list
+            List if images in ASE format.
+        properties :
+        """
         Calculator.calculate(self, atoms, properties, system_changes)
 
-        print(atoms)
+        # We convert the atoms in atomic fingerprints
+        data_handler = DataSet([atoms], self.model, purpose='training')
+        atoms, targets = data_handler.get_images(purpose='training')
+
+        # We copy the loaded fingerprint class
+        fingerprints = copy.deepcopy(self.fingerprints)
+        fingerprints = fingerprints.calculate_features(atoms,
+                                                       data=data_handler)
+
+        if 'energy' in properties:
+            print('Calculating energy')
+            input_dimension = len(list(fingerprints.values())[0][0][-1])
+            self.model.prepare_model(input_dimension, data=data_handler,
+                                     purpose='inference')
+            self.model.load_state_dict(torch.load(self.mlchem_path),
+                                       strict=True)
+            self.model.eval()
+            energy = self.model(fingerprints)
+
+            # Populate ASE's self.results dict
+            self.results['energy'] = energy.item()

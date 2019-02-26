@@ -32,7 +32,7 @@ class NeuralNetwork(torch.nn.Module):
         self.hiddenlayers = hiddenlayers
         self.activation = activation
 
-    def prepare_model(self, input_dimension, data=None):
+    def prepare_model(self, input_dimension, data=None, purpose='training'):
         """Prepare the model
 
         Parameters
@@ -41,16 +41,19 @@ class NeuralNetwork(torch.nn.Module):
             Input's dimension.
         data : object
             DataSet object created from the handler.
+        purpose : str
+            Purpose of this model: 'training', 'inference'.
         """
         activation = {'tanh': torch.nn.Tanh, 'relu': torch.nn.ReLU,
                       'celu': torch.nn.CELU}
 
-        print()
-        print('Model Training')
-        print('==============')
-        print('Number of hidden-layers: {}' .format(len(self.hiddenlayers)))
-        print('Structure of Neural Net: {}' .
-              format('(input, ' + str(self.hiddenlayers)[1:-1] + ', output)'))
+        if purpose == 'training':
+            print()
+            print('Model Training')
+            print('==============')
+            print('Number of hidden-layers: {}' .format(len(self.hiddenlayers)))
+            print('Structure of Neural Net: {}' .
+                  format('(input, ' + str(self.hiddenlayers)[1:-1] + ', output)'))
         layers = range(len(self.hiddenlayers) + 1)
         unique_element_symbols = data.unique_element_symbols['trainingset']
 
@@ -60,19 +63,20 @@ class NeuralNetwork(torch.nn.Module):
         for symbol in unique_element_symbols:
             linears = []
 
-            intercept = (data.max_energy + data.min_energy) / 2.
-            intercept = torch.nn.Parameter(torch.tensor(intercept,
-                                                        requires_grad=True))
+            if purpose == 'training':
+                intercept = (data.max_energy + data.min_energy) / 2.
+                intercept = torch.nn.Parameter(torch.tensor(intercept,
+                                                            requires_grad=True))
 
-            slope = (data.max_energy - data.min_energy) / 2.
-            slope = torch.nn.Parameter(torch.tensor(slope, requires_grad=True))
+                slope = (data.max_energy - data.min_energy) / 2.
+                slope = torch.nn.Parameter(torch.tensor(slope, requires_grad=True))
 
-            print(intercept, slope)
-            intercept_name = 'intercept_' + symbol
-            slope_name = 'slope_' + symbol
+                print(intercept, slope)
+                intercept_name = 'intercept_' + symbol
+                slope_name = 'slope_' + symbol
 
-            self.register_parameter(intercept_name, intercept)
-            self.register_parameter(slope_name, slope)
+                self.register_parameter(intercept_name, intercept)
+                self.register_parameter(slope_name, slope)
 
             for index in layers:
                 # This is the input layer
@@ -102,14 +106,15 @@ class NeuralNetwork(torch.nn.Module):
             symbol_model_pair.append([symbol, linears])
 
         self.linears = torch.nn.ModuleDict(symbol_model_pair)
-        print(self.linears)
 
-        # Iterate over all modules and just intialize those that are a linear
-        # layer.
-        for m in self.modules():
-            if isinstance(m, torch.nn.Linear):
-                # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
-                torch.nn.init.xavier_uniform_(m.weight)
+        if purpose == 'training':
+            print(self.linears)
+            # Iterate over all modules and just intialize those that are a linear
+            # layer.
+            for m in self.modules():
+                if isinstance(m, torch.nn.Linear):
+                    # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
+                    torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, X):
         """Forward propagation
