@@ -63,6 +63,9 @@ class NeuralNetwork(torch.nn.Module):
         for symbol in unique_element_symbols:
             linears = []
 
+            intercept_name = 'intercept_' + symbol
+            slope_name = 'slope_' + symbol
+
             if purpose == 'training':
                 intercept = (data.max_energy + data.min_energy) / 2.
                 intercept = torch.nn.Parameter(torch.tensor(intercept,
@@ -72,9 +75,12 @@ class NeuralNetwork(torch.nn.Module):
                 slope = torch.nn.Parameter(torch.tensor(slope, requires_grad=True))
 
                 print(intercept, slope)
-                intercept_name = 'intercept_' + symbol
-                slope_name = 'slope_' + symbol
 
+                self.register_parameter(intercept_name, intercept)
+                self.register_parameter(slope_name, slope)
+            elif purpose == 'inference':
+                intercept = torch.nn.Parameter(torch.tensor(0.))
+                slope = torch.nn.Parameter(torch.tensor(0.))
                 self.register_parameter(intercept_name, intercept)
                 self.register_parameter(slope_name, slope)
 
