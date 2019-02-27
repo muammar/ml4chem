@@ -185,12 +185,13 @@ class Potentials(Calculator, object):
         if 'energy' in properties:
             print('Calculating energy')
             input_dimension = len(list(fingerprints.values())[0][0][-1])
-            self.model.prepare_model(input_dimension, data=data_handler,
-                                     purpose='inference')
-            self.model.load_state_dict(torch.load(self.mlchem_path),
-                                       strict=True)
-            self.model.eval()
-            energy = self.model(fingerprints)
+            model = copy.deepcopy(self.model)
+            model.prepare_model(input_dimension, data=data_handler,
+                                purpose='inference')
+            model.load_state_dict(torch.load(self.mlchem_path),
+                                  strict=True)
+            model.eval()
+            energy = model(fingerprints)
 
             # Populate ASE's self.results dict
             self.results['energy'] = energy.item()
