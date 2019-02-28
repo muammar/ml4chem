@@ -11,6 +11,6 @@
         "name": "Gaussian",
         "cutoff": 6.5,
         "normalized": true,
-        "scaler": "minmax"
+        "scaler": "MinMaxScaler"
     }
 }

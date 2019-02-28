@@ -9,7 +9,6 @@ from mlchem.models.neuralnetwork import NeuralNetwork
 images = Trajectory('cu_training.traj')
 
 # Arguments for fingerprinting the images
-scaler = 'minmax'
 normalized = True
 
 # Arguments for building the model
@@ -23,8 +22,7 @@ lr = 1e-4
 weight_decay = 0.
 regularization = 0.
 
-calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
-                                        scaler=scaler),
+calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized),
                   model=NeuralNetwork(hiddenlayers=(n, n),
                                       activation=activation),
                   label='cu_training'
@@ -39,4 +37,4 @@ loaded_calc = Potentials.load('cu_training.mlchem', 'cu_training.params')
 
 for atoms in images:
     energy = loaded_calc.get_potential_energy(atoms)
-    print(energy)
+    print('mlchem predicted energy = {}' .format(energy))

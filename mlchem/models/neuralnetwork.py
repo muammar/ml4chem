@@ -143,17 +143,14 @@ class NeuralNetwork(torch.nn.Module):
         for hash in X:
             image = X[hash]
             atomic_energies = []
+
             for symbol, x in image:
                 x = self.linears[symbol](x)
 
                 intercept_name = 'intercept_' + symbol
                 slope_name = 'slope_' + symbol
-
-                for name, param in self.named_parameters():
-                    if intercept_name == name:
-                        intercept = param
-                    elif slope_name == name:
-                        slope = param
+                slope = getattr(self, slope_name)
+                intercept = getattr(self, intercept_name)
 
                 x = (slope * x) + intercept
                 atomic_energies.append(x)
@@ -165,9 +162,9 @@ class NeuralNetwork(torch.nn.Module):
         return outputs
 
 
-def train(inputs, targets, model=None, data=None, optimizer=None,
-          lr=None, weight_decay=None, regularization=None, epochs=100,
-          convergence=None, lossfxn=None):
+def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
+          weight_decay=None, regularization=None, epochs=100, convergence=None,
+          lossfxn=None):
     """Train the model
 
     Parameters
@@ -254,34 +251,6 @@ def train(inputs, targets, model=None, data=None, optimizer=None,
     plt.show()
 
     parity(outputs.detach().numpy(), targets.detach().numpy())
-
-    #new_state_dict = {}
-
-    #for key in model.state_dict():
-    #    new_state_dict[key] = model.state_dict()[key].clone()
-
-    #for key in old_state_dict:
-    #    if not (old_state_dict[key] == new_state_dict[key]).all():
-    #        print('Diff in {}'.format(key))
-    #    else:
-    #        print('No diff in {}'.format(key))
-
-    #print()
-
-    #for symbol in data.unique_element_symbols['trainingset']:
-    #    model = model.linears[symbol]
-
-    #    print('Optimized parameters for {} symbol' .format(symbol))
-
-    #    for index, param in enumerate(model.parameters()):
-    #        print('Index {}' .format(index))
-    #        print(param)
-    #        try:
-    #            print('Gradient', param.grad.sum())
-    #        except AttributeError:
-    #            print('No gradient?')
-
-    #        print()
 
 
 def loss_function(outputs, targets, optimizer, data):

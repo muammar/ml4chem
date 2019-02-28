@@ -26,7 +26,7 @@ class Gaussian(object):
     backend : object
         A backend object.
     scaler : str
-        Use some scaling method to preprocess the data.
+        Use some scaling method to preprocess the data. Default MinMaxScaler.
     defaults : bool
         Are we creating default symmetry functions?
     """
@@ -39,7 +39,7 @@ class Gaussian(object):
         return cls.NAME
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
-                 backend=None, scaler=None, defaults=None):
+                 backend=None, scaler='MinMaxScaler', defaults=None):
 
         self.cutoff = cutoff
         self.backend = backend
