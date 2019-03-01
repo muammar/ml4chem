@@ -11,6 +11,7 @@
         "name": "Gaussian",
         "cutoff": 6.5,
         "normalized": true,
-        "scaler": "MinMaxScaler"
+        "scaler": "MinMaxScaler",
+        "save_scaler": "cu_training"
     }
 }

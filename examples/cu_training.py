@@ -22,7 +22,8 @@ lr = 1e-4
 weight_decay = 0.
 regularization = 0.
 
-calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized),
+calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
+                                        save_scaler='cu_training'),
                   model=NeuralNetwork(hiddenlayers=(n, n),
                                       activation=activation),
                   label='cu_training'
@@ -31,10 +32,3 @@ calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized),
 calc.train(training_set=images, epochs=epochs, lr=lr,
            weight_decay=weight_decay, regularization=regularization,
            convergence=convergence)
-
-
-loaded_calc = Potentials.load('cu_training.mlchem', 'cu_training.params')
-
-for atoms in images:
-    energy = loaded_calc.get_potential_energy(atoms)
-    print('mlchem predicted energy = {}' .format(energy))

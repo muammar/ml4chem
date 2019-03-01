@@ -55,7 +55,7 @@ class NeuralNetwork(torch.nn.Module):
             print('Structure of Neural Net: {}' .
                   format('(input, ' + str(self.hiddenlayers)[1:-1] + ', output)'))
         layers = range(len(self.hiddenlayers) + 1)
-        unique_element_symbols = data.unique_element_symbols['trainingset']
+        unique_element_symbols = data.unique_element_symbols[purpose]
 
         symbol_model_pair = []
         self.output_layer_index = {}

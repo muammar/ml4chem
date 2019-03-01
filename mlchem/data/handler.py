@@ -71,15 +71,16 @@ class DataSet(object):
                     self.targets.append(image.get_potential_energy())
                     self.atoms_per_image.append(len(image))
 
-        max_energy = max(self.targets)
-        max_index = self.targets.index(max_energy)
-        min_energy = min(self.targets)
-        min_index = self.targets.index(min_energy)
+        if purpose == 'training':
+            max_energy = max(self.targets)
+            max_index = self.targets.index(max_energy)
+            min_energy = min(self.targets)
+            min_index = self.targets.index(min_energy)
 
-        max_energy = max_energy / len(images[max_index])
-        min_energy = min_energy / len(images[min_index])
+            max_energy = max_energy / len(images[max_index])
+            min_energy = min_energy / len(images[min_index])
 
-        self.max_energy, self.min_energy = max_energy, min_energy
+            self.max_energy, self.min_energy = max_energy, min_energy
         print('Images hashed and processed...')
 
     def is_valid_structure(self, images):
@@ -102,7 +103,7 @@ class DataSet(object):
 
         return valid
 
-    def get_unique_element_symbols(self, images, category=None):
+    def get_unique_element_symbols(self, images, purpose=None):
         """Unique element symbol in data set
 
 
@@ -110,23 +111,23 @@ class DataSet(object):
         ----------
         images : list of images.
             ASE object.
-        category : str
-            The supported categories are: 'trainingset', 'testset'.
+        purpose : str
+            The supported categories are: 'training', 'inference'.
         """
 
-        supported_categories = ['trainingset', 'testset']
+        supported_categories = ['training', 'inference']
 
         symbols = {}
 
-        if category in supported_categories:
-            if category not in symbols.keys():
-                symbols[category] = {}
+        if purpose in supported_categories:
+            if purpose not in symbols.keys():
+                symbols[purpose] = {}
                 try:
-                    symbols[category] = sorted(list(set([atom.symbol for image
+                    symbols[purpose] = sorted(list(set([atom.symbol for image
                                                          in images for atom in
                                                          image])))
                 except AttributeError:
-                    symbols[category] = sorted(list(set([atom.symbol for
+                    symbols[purpose] = sorted(list(set([atom.symbol for
                                                          key, image in
                                                          images.items() for
                                                          atom in image])))
@@ -134,7 +135,7 @@ class DataSet(object):
             else:
                 print('what happens in the following case?')    # FIXME
         else:
-            print('The requested category is not supported...')
+            print('The requested purpose is not supported...')
             symbols = None
 
         self.unique_element_symbols = symbols
@@ -155,3 +156,5 @@ class DataSet(object):
 
         if purpose == 'training':
             return self.images, self.targets
+        else:
+            return self.images

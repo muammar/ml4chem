@@ -1,9 +1,10 @@
-from mlchem.utils import get_neighborlist
-from mlchem.backends.operations import BackendOperations
-from .cutoff import Cosine
-from collections import OrderedDict
 import numpy
 import torch
+from mlchem.utils import get_neighborlist
+from mlchem.backends.operations import BackendOperations
+from sklearn.externals import joblib
+from .cutoff import Cosine
+from collections import OrderedDict
 
 
 class Gaussian(object):
@@ -29,6 +30,8 @@ class Gaussian(object):
         Use some scaling method to preprocess the data. Default MinMaxScaler.
     defaults : bool
         Are we creating default symmetry functions?
+    save_scaler : str
+        Save scaler with name save_scaler.
     """
     NAME = 'Gaussian'
 
@@ -39,12 +42,14 @@ class Gaussian(object):
         return cls.NAME
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
-                 backend=None, scaler='MinMaxScaler', defaults=None):
+                 backend=None, scaler='MinMaxScaler', defaults=None,
+                 save_scaler='mlchem'):
 
         self.cutoff = cutoff
         self.backend = backend
         self.normalized = normalized
-        self.scaler = scaler
+        self.scaler = scaler.lower()
+        self.save_scaler = save_scaler
 
         # Let's add parameters that are going to be stored in the .params json
         # file.
@@ -67,15 +72,15 @@ class Gaussian(object):
         else:
             self.cutofffxn = cutofffxn
 
-    def calculate_features(self, images, category='trainingset', data=None):
+    def calculate_features(self, images, purpose='training', data=None):
         """Calculate the features per atom in an atoms objects
 
         Parameters
         ----------
         image : ase object, list
             A list of atoms.
-        category : str
-            The supported categories are: 'trainingset', 'testset'.
+        purpose : str
+            The supported purposes are: 'training', 'inference'.
         data : obj
             data object
 
@@ -99,10 +104,10 @@ class Gaussian(object):
             self.backend = BackendOperations(backend)
 
         if data.unique_element_symbols is None:
-            print('Getting unique element symbols for {}' .format(category))
+            print('Getting unique element symbols for {}' .format(purpose))
             unique_element_symbols = \
-                data.get_unique_element_symbols(images, category=category)
-            unique_element_symbols = unique_element_symbols[category]
+                data.get_unique_element_symbols(images, purpose=purpose)
+            unique_element_symbols = unique_element_symbols[purpose]
 
             print('Unique elements: {}' .format(unique_element_symbols))
 
@@ -110,10 +115,16 @@ class Gaussian(object):
             self.GP = self.make_symmetry_functions(unique_element_symbols,
                                                    defaults=True)
 
-        if self.scaler is not None:
+        if self.scaler == 'minmaxscaler' and purpose == 'training':
             from sklearn.preprocessing import MinMaxScaler
             stack_features = []
             scaler = MinMaxScaler(feature_range=(-1, 1))
+        elif purpose == 'inference':
+            stack_features = []
+            scaler = joblib.load(self.scaler)
+        else:
+            print('{} is not supported.' .format(self.scaler))
+            self.scaler = None
 
         for key, image in images.items():
             feature_space[key] = []
@@ -141,7 +152,7 @@ class Gaussian(object):
                 else:
                     feature_space[key].append(feature_vector)
 
-        if self.scaler is not None:
+        if self.scaler == 'minmaxscaler' and purpose == 'training':
             scaler.fit(stack_features)
             scaled_feature_space = scaler.transform(stack_features)
             index = 0
@@ -153,6 +164,20 @@ class Gaussian(object):
                                           dtype=torch.float)
                     feature_space[key].append((symbol, scaled))
                     index += 1
+        elif purpose == 'inference':
+            scaled_feature_space = scaler.transform(stack_features)
+            index = 0
+            for key, image in images.items():
+                for atom in image:
+                    symbol = atom.symbol
+                    scaled = torch.tensor(scaled_feature_space[index],
+                                          requires_grad=True,
+                                          dtype=torch.float)
+                    feature_space[key].append((symbol, scaled))
+                    index += 1
+
+        if purpose == 'training':
+            save_scaler_to_file(scaler, self.save_scaler)
 
         return feature_space
 
@@ -431,3 +456,9 @@ def calculate_G3(neighborsymbols, neighborpositions, G_elements, gamma, zeta,
             feature += term
     feature *= 2. ** (1. - zeta)
     return feature
+
+def save_scaler_to_file(scaler, path):
+    """Save the scaler object to file"""
+    path += '.scaler'
+
+    joblib.dump(scaler, path)

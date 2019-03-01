@@ -29,7 +29,7 @@ class Potentials(Calculator, object):
     implemented_properties = ['energy', 'forces']
 
     def __init__(self, fingerprints=None, model=None, path=None,
-                 label='mlchem', atoms=None, mlchem_path=None):
+                 label='mlchem', atoms=None, mlchem_path=None, scaler=None):
 
         Calculator.__init__(self, label=label, atoms=atoms)
         self.fingerprints = fingerprints
@@ -38,20 +38,25 @@ class Potentials(Calculator, object):
         self.label = label
         self.model = model
         self.mlchem_path = mlchem_path
+        self.scaler = scaler
 
         print('Available backends', self.available_backends)
 
     @classmethod
-    def load(Cls, mlchem, params, **kwargs):
+    def load(Cls, model=None, params=None, scaler=None, **kwargs):
         """Load a model
         Parameters
         ----------
-        mlchem : str
-            The path to load .mlchem file for inference.
+        model : str
+            The path to load the model from the .mlchem file for inference.
         params : srt
             The path to load .params file with users' inputs.
+        scaler : str
+            The path to load the .scaler file with the sklearn scaler object.
         """
-        kwargs['mlchem_path'] = mlchem
+        kwargs['mlchem_path'] = model
+        kwargs['scaler'] = scaler
+
         with open(params) as mlchem_params:
             import torch
             mlchem_params = json.load(mlchem_params)
@@ -145,7 +150,8 @@ class Potentials(Calculator, object):
 
         # Mapping raw positions into a feature space aka X
         feature_space = self.fingerprints.calculate_features(training_set,
-                                                             data=data_handler)
+                                                             data=data_handler,
+                                                             purpose='training')
 
         # Now let's train
         # Fixed fingerprint dimension
@@ -174,13 +180,15 @@ class Potentials(Calculator, object):
         Calculator.calculate(self, atoms, properties, system_changes)
 
         # We convert the atoms in atomic fingerprints
-        data_handler = DataSet([atoms], self.model, purpose='training')
-        atoms, targets = data_handler.get_images(purpose='training')
+        data_handler = DataSet([atoms], self.model, purpose='inference')
+        atoms = data_handler.get_images(purpose='inference')
 
         # We copy the loaded fingerprint class
         fingerprints = copy.deepcopy(self.fingerprints)
+        fingerprints.scaler = self.scaler
         fingerprints = fingerprints.calculate_features(atoms,
-                                                       data=data_handler)
+                                                       data=data_handler,
+                                                       purpose='inference')
 
         if 'energy' in properties:
             print('Calculating energy')
