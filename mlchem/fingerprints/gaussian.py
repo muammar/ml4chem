@@ -5,6 +5,8 @@ from mlchem.backends.operations import BackendOperations
 from sklearn.externals import joblib
 from .cutoff import Cosine
 from collections import OrderedDict
+import dask
+import dask.multiprocessing
 
 
 class Gaussian(object):
@@ -48,7 +50,11 @@ class Gaussian(object):
         self.cutoff = cutoff
         self.backend = backend
         self.normalized = normalized
-        self.scaler = scaler.lower()
+        if scaler is None:
+            self.scaler = scaler
+        else:
+            self.scaler = scaler.lower()
+
         self.save_scaler = save_scaler
 
         # Let's add parameters that are going to be stored in the .params json
@@ -91,8 +97,6 @@ class Gaussian(object):
             structure: {'hash': [('H', [vector]]}
         """
 
-        feature_space = OrderedDict()
-
         print()
         print('Fingerprinting')
         print('==============')
@@ -117,46 +121,35 @@ class Gaussian(object):
 
         if self.scaler == 'minmaxscaler' and purpose == 'training':
             from sklearn.preprocessing import MinMaxScaler
-            stack_features = []
             scaler = MinMaxScaler(feature_range=(-1, 1))
         elif purpose == 'inference':
-            stack_features = []
             scaler = joblib.load(self.scaler)
         else:
             print('{} is not supported.' .format(self.scaler))
             self.scaler = None
 
-        for key, image in images.items():
-            feature_space[key] = []
+        computations = []
+        for image in images.items():
+            computations.append(self.fingerprints_per_image(image))
 
-            image_positions = image.positions
 
-            for atom in image:
-                index = atom.index
-                symbol = atom.symbol
-                nl = get_neighborlist(image, cutoff=self.cutoff)
-                n_indices, n_offsets = nl[atom.index]
-
-                n_symbols = [image[i].symbol for i in n_indices]
-                neighborpositions = [image_positions[neighbor] +
-                                     self.backend.dot(offset, image.cell)
-                                     for (neighbor, offset) in
-                                     zip(n_indices, n_offsets)]
-
-                feature_vector = self.get_atomic_fingerprint(atom, index,
-                                                             symbol, n_symbols,
-                                                             neighborpositions,
-                                                             self.scaler)
-                if self.scaler is not None:
-                    stack_features.append(feature_vector[1])
-                else:
-                    feature_space[key].append(feature_vector)
+        if self.scaler is None:
+            feature_space = dask.compute(*computations, scheduler='processes')
+            feature_space = OrderedDict(feature_space)
+        else:
+            stacked_features = dask.compute(*computations, scheduler='processes')
+            stacked_features = numpy.array(stacked_features)
+            d1, d2, d3 = stacked_features.shape
+            stacked_features = stacked_features.reshape(d1 * d2, d3)
+            feature_space = OrderedDict()
 
         if self.scaler == 'minmaxscaler' and purpose == 'training':
-            scaler.fit(stack_features)
-            scaled_feature_space = scaler.transform(stack_features)
+            scaler.fit(stacked_features)
+            scaled_feature_space = scaler.transform(stacked_features)
             index = 0
             for key, image in images.items():
+                if key not in feature_space.keys():
+                    feature_space[key] = []
                 for atom in image:
                     symbol = atom.symbol
                     scaled = torch.tensor(scaled_feature_space[index],
@@ -165,9 +158,11 @@ class Gaussian(object):
                     feature_space[key].append((symbol, scaled))
                     index += 1
         elif purpose == 'inference':
-            scaled_feature_space = scaler.transform(stack_features)
+            scaled_feature_space = scaler.transform(stacked_features)
             index = 0
             for key, image in images.items():
+                if key not in feature_space.keys():
+                    feature_space[key] = []
                 for atom in image:
                     symbol = atom.symbol
                     scaled = torch.tensor(scaled_feature_space[index],
@@ -176,10 +171,47 @@ class Gaussian(object):
                     feature_space[key].append((symbol, scaled))
                     index += 1
 
-        if purpose == 'training':
+        if purpose == 'training' and self.scaler is not None:
             save_scaler_to_file(scaler, self.save_scaler)
 
         return feature_space
+
+    @dask.delayed
+    def fingerprints_per_image(self, image):
+        """A function that allows the use of dask"""
+
+        key, image = image
+        image_positions = image.positions
+
+        feature_space = []
+
+        for atom in image:
+            index = atom.index
+            symbol = atom.symbol
+            nl = get_neighborlist(image, cutoff=self.cutoff)
+            n_indices, n_offsets = nl[atom.index]
+
+            n_symbols = [image[i].symbol for i in n_indices]
+            neighborpositions = [image_positions[neighbor] +
+                                 self.backend.dot(offset, image.cell)
+                                 for (neighbor, offset) in
+                                 zip(n_indices, n_offsets)]
+
+            feature_vector = self.get_atomic_fingerprint(atom, index,
+                                                         symbol, n_symbols,
+                                                         neighborpositions,
+                                                         self.scaler)
+
+            if self.scaler is not None:
+                feature_space.append(feature_vector[1])
+            else:
+                feature_space.append(feature_vector)
+
+        if self.scaler is not None:
+            return feature_space
+        else:
+            return key, feature_space
+
 
     def get_atomic_fingerprint(self, atom, index, symbol, n_symbols,
                                neighborpositions, scaler):

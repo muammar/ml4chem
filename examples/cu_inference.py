@@ -15,3 +15,4 @@ calc = Potentials.load(model='cu_training.mlchem', params='cu_training.params',
 for atoms in images:
     energy = calc.get_potential_energy(atoms)
     print('mlchem predicted energy = {}' .format(energy))
+    print('             DFT energy = {}' .format(atoms.get_potential_energy()))
