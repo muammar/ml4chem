@@ -21,9 +21,11 @@ epochs = 100
 lr = 1e-4
 weight_decay = 0.
 regularization = 0.
+cores = 4
 
 calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
-                                        save_scaler='cu_training'),
+                                        save_scaler='cu_training',
+                                        cores=cores),
                   model=NeuralNetwork(hiddenlayers=(n, n),
                                       activation=activation),
                   label='cu_training'

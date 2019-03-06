@@ -7,6 +7,7 @@ from .cutoff import Cosine
 from collections import OrderedDict
 import dask
 import dask.multiprocessing
+import time
 
 
 class Gaussian(object):
@@ -34,6 +35,9 @@ class Gaussian(object):
         Are we creating default symmetry functions?
     save_scaler : str
         Save scaler with name save_scaler.
+    cores : int
+        Number of cores (aka workers) to be used in the computation. Default
+        is 1.
     """
     NAME = 'Gaussian'
 
@@ -45,11 +49,12 @@ class Gaussian(object):
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
                  backend=None, scaler='MinMaxScaler', defaults=None,
-                 save_scaler='mlchem'):
+                 save_scaler='mlchem', cores=1):
 
         self.cutoff = cutoff
         self.backend = backend
         self.normalized = normalized
+        self.cores = cores
         if scaler is None:
             self.scaler = scaler
         else:
@@ -64,7 +69,9 @@ class Gaussian(object):
 
         _params = vars()
 
+        # Delete useless variables
         del _params['self']
+        del _params['cores']
 
         for k, v in _params.items():
             if v is not None:
@@ -101,6 +108,8 @@ class Gaussian(object):
         print('Fingerprinting')
         print('==============')
 
+        initial_time = time.time()
+
         if self.backend is None:
             print('No backend provided')
             self.backend = BackendOperations(numpy)
@@ -132,12 +141,15 @@ class Gaussian(object):
         for image in images.items():
             computations.append(self.fingerprints_per_image(image))
 
-
         if self.scaler is None:
-            feature_space = dask.compute(*computations, scheduler='processes')
+            feature_space = dask.compute(*computations, scheduler='processes',
+                                         num_workers=self.cores)
             feature_space = OrderedDict(feature_space)
         else:
-            stacked_features = dask.compute(*computations, scheduler='processes')
+            stacked_features = dask.compute(*computations,
+                                            scheduler='processes',
+                                            num_workers=self.cores)
+
             stacked_features = numpy.array(stacked_features)
             d1, d2, d3 = stacked_features.shape
             stacked_features = stacked_features.reshape(d1 * d2, d3)
@@ -174,6 +186,9 @@ class Gaussian(object):
         if purpose == 'training' and self.scaler is not None:
             save_scaler_to_file(scaler, self.save_scaler)
 
+        fp_time = time.time() - initial_time
+
+        print('Fingerprinting finished in {}...' .format(fp_time))
         return feature_space
 
     @dask.delayed
@@ -211,7 +226,6 @@ class Gaussian(object):
             return feature_space
         else:
             return key, feature_space
-
 
     def get_atomic_fingerprint(self, atom, index, symbol, n_symbols,
                                neighborpositions, scaler):
@@ -488,6 +502,7 @@ def calculate_G3(neighborsymbols, neighborpositions, G_elements, gamma, zeta,
             feature += term
     feature *= 2. ** (1. - zeta)
     return feature
+
 
 def save_scaler_to_file(scaler, path):
     """Save the scaler object to file"""
