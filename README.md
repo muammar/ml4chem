@@ -1,6 +1,10 @@
 MLChem
 ===========
+
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mlchem.svg)
 [![Build Status](https://travis-ci.com/muammar/mlchem.svg?branch=master)](https://travis-ci.com/muammar/mlchem)
+
+
 
 **MLChem** is machine-learning for chemistry.
 
