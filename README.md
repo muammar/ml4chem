@@ -1,5 +1,6 @@
 MLChem
 ===========
+[![Build Status](https://travis-ci.com/muammar/mlchem.svg?branch=master)](https://travis-ci.com/muammar/mlchem)
 
 **MLChem** is machine-learning for chemistry.
 
