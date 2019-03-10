@@ -6,7 +6,7 @@ from sklearn.externals import joblib
 from .cutoff import Cosine
 from collections import OrderedDict
 import dask
-import dask.multiprocessing
+from dask.distributed import progress
 import time
 
 
@@ -142,12 +142,12 @@ class Gaussian(object):
             computations.append(self.fingerprints_per_image(image))
 
         if self.scaler is None:
-            feature_space = dask.compute(*computations, scheduler='processes',
+            feature_space = dask.compute(*computations, scheduler='distributed',
                                          num_workers=self.cores)
             feature_space = OrderedDict(feature_space)
         else:
             stacked_features = dask.compute(*computations,
-                                            scheduler='processes',
+                                            scheduler='distributed',
                                             num_workers=self.cores)
 
             stacked_features = numpy.array(stacked_features)
