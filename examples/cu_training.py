@@ -1,10 +1,11 @@
+from ase.io import Trajectory
+from dask.distributed import Client, LocalCluster
 import sys
 sys.path.append('../')
-from ase.io import Trajectory
 from mlchem import Potentials
 from mlchem.fingerprints import Gaussian
 from mlchem.models.neuralnetwork import NeuralNetwork
-from dask.distributed import Client, LocalCluster
+
 
 def train():
     # Load the images with ASE
@@ -28,14 +29,14 @@ def train():
     calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
                                             save_scaler='cu_training',
                                             cores=cores),
-                          model=NeuralNetwork(hiddenlayers=(n, n),
-                                              activation=activation),
-                          label='cu_training'
-                          )
+                      model=NeuralNetwork(hiddenlayers=(n, n),
+                                          activation=activation),
+                      label='cu_training')
 
     calc.train(training_set=images, epochs=epochs, lr=lr,
                weight_decay=weight_decay, regularization=regularization,
                convergence=convergence)
+
 
 if __name__ == '__main__':
     cluster = LocalCluster()

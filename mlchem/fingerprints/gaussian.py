@@ -6,7 +6,7 @@ from sklearn.externals import joblib
 from .cutoff import Cosine
 from collections import OrderedDict
 import dask
-from dask.distributed import progress
+import dask.array as da
 import time
 
 
@@ -85,7 +85,8 @@ class Gaussian(object):
         else:
             self.cutofffxn = cutofffxn
 
-    def calculate_features(self, images, purpose='training', data=None):
+    def calculate_features(self, images, purpose='training', data=None,
+                           scheduler='distributed'):
         """Calculate the features per atom in an atoms objects
 
         Parameters
@@ -96,6 +97,8 @@ class Gaussian(object):
             The supported purposes are: 'training', 'inference'.
         data : obj
             data object
+        scheduler : str
+            The schudler to be used with the dask backend.
 
         Returns
         -------
@@ -129,7 +132,7 @@ class Gaussian(object):
                                                    defaults=True)
 
         if self.scaler == 'minmaxscaler' and purpose == 'training':
-            from sklearn.preprocessing import MinMaxScaler
+            from dask_ml.preprocessing import MinMaxScaler
             scaler = MinMaxScaler(feature_range=(-1, 1))
         elif purpose == 'inference':
             scaler = joblib.load(self.scaler)
@@ -142,33 +145,38 @@ class Gaussian(object):
             computations.append(self.fingerprints_per_image(image))
 
         if self.scaler is None:
-            feature_space = dask.compute(*computations, scheduler='distributed',
+            feature_space = dask.compute(*computations, scheduler=scheduler,
                                          num_workers=self.cores)
             feature_space = OrderedDict(feature_space)
         else:
             stacked_features = dask.compute(*computations,
-                                            scheduler='distributed',
+                                            scheduler=scheduler,
                                             num_workers=self.cores)
 
             stacked_features = numpy.array(stacked_features)
             d1, d2, d3 = stacked_features.shape
             stacked_features = stacked_features.reshape(d1 * d2, d3)
-            feature_space = OrderedDict()
 
         if self.scaler == 'minmaxscaler' and purpose == 'training':
-            scaler.fit(stacked_features)
-            scaled_feature_space = scaler.transform(stacked_features)
-            index = 0
-            for key, image in images.items():
-                if key not in feature_space.keys():
-                    feature_space[key] = []
-                for atom in image:
-                    symbol = atom.symbol
-                    scaled = torch.tensor(scaled_feature_space[index],
-                                          requires_grad=True,
-                                          dtype=torch.float)
-                    feature_space[key].append((symbol, scaled))
-                    index += 1
+            print('Preprocessing data...')
+            stacked_features = da.from_array(stacked_features,
+                                             chunks=(d1 * d2, d3))
+            scaler.fit(stacked_features.compute(scheduler=scheduler,
+                                                num_workers=self.cores))
+            scaled_feature_space \
+                = scaler.transform(stacked_features.compute(
+                    scheduler=scheduler,
+                    num_workers=self.cores))
+            scaled_feature_space = scaled_feature_space.reshape(d1, d2, d3)
+
+            computations = []
+            for index, image in enumerate(images.items()):
+                computations.append(self.restack_image(index, image,
+                                                       scaled_feature_space))
+
+            feature_space = dask.compute(*computations, scheduler=scheduler,
+                                         num_workers=self.cores)
+            feature_space = OrderedDict(feature_space)
         elif purpose == 'inference':
             scaled_feature_space = scaler.transform(stacked_features)
             index = 0
@@ -190,6 +198,35 @@ class Gaussian(object):
 
         print('Fingerprinting finished in {}...' .format(fp_time))
         return feature_space
+
+    @dask.delayed
+    def restack_image(self, index, image, scaled_feature_space):
+        """Restack images in the correct dictionary to train
+
+        Parameters
+        ----------
+        index : int
+            Index of original hashed image.
+        image : obj
+            An ASE image object.
+        scaled_feature_space : np.array
+            A numpy array with the scaled features
+
+        Returns
+        -------
+        key, features : tuple
+            The hashed key image and its corresponding features.
+        """
+        key, image = image
+        features = []
+        for j, atom in enumerate(image):
+            symbol = atom.symbol
+            scaled = torch.tensor(scaled_feature_space[index][j],
+                                  requires_grad=True,
+                                  dtype=torch.float)
+            features.append((symbol, scaled))
+
+        return key, features
 
     @dask.delayed
     def fingerprints_per_image(self, image):
