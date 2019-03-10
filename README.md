@@ -17,3 +17,4 @@ This package is written in Python, and features:
 - Free software <3. No secrets! Pull requests and additions more than welcome!
 - Good documentation (I hope!).
 - Explicit and idiomatic: `mlchem.get_me_a_coffee()`
+- Parallelization powered by dask <3.

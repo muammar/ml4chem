@@ -4,6 +4,7 @@ from ase.io import Trajectory
 from mlchem import Potentials
 from mlchem.fingerprints import Gaussian
 from mlchem.models.neuralnetwork import NeuralNetwork
+from dask.distributed import Client, LocalCluster
 
 def train():
     # Load the images with ASE
@@ -25,18 +26,18 @@ def train():
     cores = 4
 
     calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
-                                                save_scaler='cu_training',
-                                                cores=cores),
+                                            save_scaler='cu_training',
+                                            cores=cores),
                           model=NeuralNetwork(hiddenlayers=(n, n),
                                               activation=activation),
                           label='cu_training'
                           )
 
     calc.train(training_set=images, epochs=epochs, lr=lr,
-                   weight_decay=weight_decay, regularization=regularization,
-                       convergence=convergence)
+               weight_decay=weight_decay, regularization=regularization,
+               convergence=convergence)
 
 if __name__ == '__main__':
-    from dask.distributed import Client
-    client = Client()
+    cluster = LocalCluster()
+    client = Client(cluster)
     train()
