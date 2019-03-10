@@ -18,3 +18,5 @@ This package is written in Python, and features:
 - Good documentation (I hope!).
 - Explicit and idiomatic: `mlchem.get_me_a_coffee()`
 - Parallelization powered by dask <3.
+
+![](https://raw.githubusercontent.com/muammar/mlchem/master/docs/source/_static/dask_dashboard.png)
