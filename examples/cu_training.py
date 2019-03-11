@@ -40,5 +40,5 @@ def train():
 
 if __name__ == '__main__':
     cluster = LocalCluster()
-    client = Client(cluster)
+    client = Client(cluster, asyncronous=True)
     train()

@@ -3,5 +3,6 @@ torch==1.0.1.post2
 numpy==1.16.1
 matplotlib==3.0.2
 dask_ml==0.12.0
+dask[complete]
 ase==3.17.0
 scikit_learn==0.20.3
