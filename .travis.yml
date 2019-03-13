@@ -6,6 +6,7 @@ install:
     - pip install sphinx sphinx-gallery sphinxcontrib-napoleon sphinxcontrib-bibtex sphinxcontrib-inlinesyntaxhighlight recommonmark sphinx_rtd_theme
 script:
      - echo "skipping tests"
+     - echo "Building documentation"
      - cd docs/
      - make html
 deploy:
