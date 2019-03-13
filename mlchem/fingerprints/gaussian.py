@@ -1,7 +1,6 @@
-import numpy
+import numpy as np
 import torch
 from mlchem.utils import get_neighborlist
-from mlchem.backends.operations import BackendOperations
 from sklearn.externals import joblib
 from .cutoff import Cosine
 from collections import OrderedDict
@@ -27,8 +26,6 @@ class Gaussian(object):
     normalized : bool
         Set it to true if the features are being normalized with respect to the
         cutoff radius.
-    backend : object
-        A backend object.
     scaler : str
         Use some scaling method to preprocess the data. Default MinMaxScaler.
     defaults : bool
@@ -48,11 +45,10 @@ class Gaussian(object):
         return cls.NAME
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
-                 backend=None, scaler='MinMaxScaler', defaults=None,
-                 save_scaler='mlchem', cores=1):
+                 scaler='MinMaxScaler', defaults=None, save_scaler='mlchem',
+                 cores=1):
 
         self.cutoff = cutoff
-        self.backend = backend
         self.normalized = normalized
         self.cores = cores
         if scaler is None:
@@ -113,12 +109,6 @@ class Gaussian(object):
 
         initial_time = time.time()
 
-        if self.backend is None:
-            print('No backend provided')
-            self.backend = BackendOperations(numpy)
-        else:
-            self.backend = BackendOperations(backend)
-
         if data.unique_element_symbols is None:
             print('Getting unique element symbols for {}' .format(purpose))
             unique_element_symbols = \
@@ -153,7 +143,7 @@ class Gaussian(object):
                                             scheduler=scheduler,
                                             num_workers=self.cores)
 
-            stacked_features = numpy.array(stacked_features)
+            stacked_features = np.array(stacked_features)
             d1, d2, d3 = stacked_features.shape
             stacked_features = stacked_features.reshape(d1 * d2, d3)
 
@@ -245,7 +235,7 @@ class Gaussian(object):
 
             n_symbols = [image[i].symbol for i in n_indices]
             neighborpositions = [image_positions[neighbor] +
-                                 self.backend.dot(offset, image.cell)
+                                 np.dot(offset, image.cell)
                                  for (neighbor, offset) in
                                  zip(n_indices, n_offsets)]
 
@@ -292,20 +282,17 @@ class Gaussian(object):
                 feature = calculate_G2(n_symbols, neighborpositions,
                                        GP['symbol'], GP['eta'],
                                        self.cutoff, self.cutofffxn, Ri,
-                                       normalized=self.normalized,
-                                       backend=self.backend)
+                                       normalized=self.normalized)
             elif GP['type'] == 'G3':
                 feature = calculate_G3(n_symbols, neighborpositions,
                                        GP['symbols'], GP['gamma'],
                                        GP['zeta'], GP['eta'], self.cutoff,
-                                       self.cutofffxn, Ri,
-                                       backend=self.backend)
+                                       self.cutofffxn, Ri)
             elif GP['type'] == 'G4':
                 feature = calculate_G4(n_symbols, neighborpositions,
                                        GP['symbols'], GP['gamma'],
                                        GP['zeta'], GP['eta'], self.cutoff,
-                                       self.cutofffxn, Ri,
-                                       backend=self.backend)
+                                       self.cutofffxn, Ri)
             else:
                 print('not implemented')
             fingerprint[count] = feature
@@ -354,10 +341,8 @@ class Gaussian(object):
             print('Making default symmetry functions')
             for symbol in symbols:
                 # Radial
-                etas = self.backend.logspace(self.backend.log10(0.05),
-                                             self.backend.log10(5.), num=4)
-                _GP = self.get_symmetry_functions(type='G2', etas=etas,
-                                                  symbols=symbols)
+                etas = np.logspace(np.log10(0.05), np.log10(5.), num=4)
+                _GP = self.get_symmetry_functions(type='G2', etas=etas, symbols=symbols)
 
                 # Angular
                 etas = [0.005]
@@ -418,7 +403,7 @@ class Gaussian(object):
 
 
 def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
-                 cutoff, cutofffxn, Ri, normalized=True, backend=None):
+                 cutoff, cutofffxn, Ri, normalized=True):
     """Calculate G2 symmetry function.
 
     Parameters
@@ -439,8 +424,6 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
         Position of the center atom. Should be fed as a list of three floats.
     normalized : bool
         Whether or not the symmetry function is normalized.
-    backed : object
-        A backend.
 
     Returns
     -------
@@ -465,22 +448,17 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
         symbol = neighborsymbols[count]
         Rj = neighborpositions[count]
 
-        # Backend checks
-        if backend.name == 'torch':
-            Ri = backend.from_numpy(Ri)
-            Rc = backend.from_numpy(Rc)
-
         if symbol == center_symbol:
-            Rij = backend.norm(Rj - Ri)
+            Rij = np.linalg.norm(Rj - Ri)
 
-            feature += (backend.exp(-eta * (Rij ** 2.) / (Rc ** 2.)) *
+            feature += (np.exp(-eta * (Rij ** 2.) / (Rc ** 2.)) *
                         cutofffxn(Rij))
 
     return feature
 
 
 def calculate_G3(neighborsymbols, neighborpositions, G_elements, gamma, zeta,
-                 eta, cutoff, cutofffxn, Ri, backend=None):
+                 eta, cutoff, cutofffxn, Ri):
     """Calculate G3 symmetry function.
 
     Parameters
@@ -504,8 +482,6 @@ def calculate_G3(neighborsymbols, neighborpositions, G_elements, gamma, zeta,
         Cutoff function.
     Ri : list
         Position of the center atom. Should be fed as a list of three floats.
-    backend : object
-        A backend object.
 
     Returns
     -------
@@ -521,17 +497,15 @@ def calculate_G3(neighborsymbols, neighborpositions, G_elements, gamma, zeta,
             if els != G_elements:
                 continue
 
-            if backend.name == 'torch':
-                Ri = backend.from_numpy(Ri)
             Rij_vector = neighborpositions[j] - Ri
-            Rij = backend.norm(Rij_vector)
+            Rij = np.linalg.norm(Rij_vector)
             Rik_vector = neighborpositions[k] - Ri
-            Rik = backend.norm(Rik_vector)
+            Rik = np.linalg.norm(Rik_vector)
             Rjk_vector = neighborpositions[k] - neighborpositions[j]
-            Rjk = backend.norm(Rjk_vector)
-            cos_theta_ijk = backend.dot(Rij_vector, Rik_vector) / Rij / Rik
+            Rjk = np.linalg.norm(Rjk_vector)
+            cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1. + gamma * cos_theta_ijk) ** zeta
-            term *= backend.exp(-eta * (Rij ** 2. + Rik ** 2. + Rjk ** 2.) /
+            term *= np.exp(-eta * (Rij ** 2. + Rik ** 2. + Rjk ** 2.) /
                                 (Rc ** 2.))
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
