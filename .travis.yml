@@ -8,7 +8,6 @@ script:
      - echo "skipping tests"
      - cd docs/
      - make html
-     - touch build/html/.nojekyll
 deploy:
   provider: pages
   skip-cleanup: true
