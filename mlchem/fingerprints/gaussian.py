@@ -7,6 +7,7 @@ from collections import OrderedDict
 import dask
 import dask.array as da
 import time
+from ase.data import atomic_numbers
 
 
 class Gaussian(object):
@@ -131,8 +132,27 @@ class Gaussian(object):
             self.scaler = None
 
         computations = []
+
         for image in images.items():
-            computations.append(self.fingerprints_per_image(image))
+            key, image = image
+            feature_vectors = []
+            computations.append(feature_vectors)
+
+            for atom in image:
+                index = atom.index
+                symbol = atom.symbol
+                nl = get_neighborlist(image, cutoff=self.cutoff)
+                n_indices, n_offsets = nl[atom.index]
+
+                n_symbols = np.array(image.get_chemical_symbols())[n_indices]
+                neighborpositions = image.positions[n_indices] + \
+                    np.dot(n_offsets, image.get_cell())
+
+                afp = self.get_atomic_fingerprint(atom, index,
+                                                  symbol, n_symbols,
+                                                  neighborpositions,
+                                                  self.scaler)
+                feature_vectors.append(afp)
 
         if self.scaler is None:
             feature_space = dask.compute(*computations, scheduler=scheduler,
@@ -220,7 +240,7 @@ class Gaussian(object):
 
     @dask.delayed
     def fingerprints_per_image(self, image):
-        """A function that allows the use of dask"""
+        """A function that allows the use of dask to parallelize per image"""
 
         key, image = image
         image_positions = image.positions
@@ -254,6 +274,7 @@ class Gaussian(object):
         else:
             return key, feature_space
 
+    @dask.delayed
     def get_atomic_fingerprint(self, atom, index, symbol, n_symbols,
                                neighborpositions, scaler):
         """Class method to compute atomic fingerprints
@@ -269,27 +290,33 @@ class Gaussian(object):
             Chemical symbol of atom in atoms object.
         scaler : str
             Feature scaler.
+        n_symbols : ndarray of str
+            Array of neighbors' symbols.
+        neighborpositions : ndarray of float
+            Array of Cartesian atomic positions.
         """
 
         num_symmetries = len(self.GP[symbol])
         Ri = atom.position
         fingerprint = [None] * num_symmetries
 
+        n_numbers = [atomic_numbers[symbol] for symbol in n_symbols]
+
         for count in range(num_symmetries):
             GP = self.GP[symbol][count]
 
             if GP['type'] == 'G2':
-                feature = calculate_G2(n_symbols, neighborpositions,
+                feature = calculate_G2(n_numbers, n_symbols, neighborpositions,
                                        GP['symbol'], GP['eta'],
                                        self.cutoff, self.cutofffxn, Ri,
                                        normalized=self.normalized)
             elif GP['type'] == 'G3':
-                feature = calculate_G3(n_symbols, neighborpositions,
+                feature = calculate_G3(n_numbers, n_symbols, neighborpositions,
                                        GP['symbols'], GP['gamma'],
                                        GP['zeta'], GP['eta'], self.cutoff,
                                        self.cutofffxn, Ri)
             elif GP['type'] == 'G4':
-                feature = calculate_G4(n_symbols, neighborpositions,
+                feature = calculate_G4(n_numbers, n_symbols, neighborpositions,
                                        GP['symbols'], GP['gamma'],
                                        GP['zeta'], GP['eta'], self.cutoff,
                                        self.cutofffxn, Ri)
@@ -301,7 +328,10 @@ class Gaussian(object):
             fingerprint = torch.tensor(fingerprint, requires_grad=True,
                                        dtype=torch.float)
 
-        return symbol, fingerprint
+        if scaler is None:
+            return symbol, fingerprint
+        else:
+            return fingerprint
 
     def make_symmetry_functions(self, symbols, defaults=True, type=None,
                                 etas=None, zetas=None, gammas=None):
@@ -342,7 +372,8 @@ class Gaussian(object):
             for symbol in symbols:
                 # Radial
                 etas = np.logspace(np.log10(0.05), np.log10(5.), num=4)
-                _GP = self.get_symmetry_functions(type='G2', etas=etas, symbols=symbols)
+                _GP = self.get_symmetry_functions(type='G2', etas=etas,
+                                                  symbols=symbols)
 
                 # Angular
                 etas = [0.005]
@@ -402,12 +433,14 @@ class Gaussian(object):
                   ' supported.')
 
 
-def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
-                 cutoff, cutofffxn, Ri, normalized=True):
+def calculate_G2(n_numbers, neighborsymbols, neighborpositions, center_symbol,
+                 eta, cutoff, cutofffxn, Ri, normalized=True):
     """Calculate G2 symmetry function.
 
     Parameters
     ----------
+    n_symbols : list of int
+        List of neighbors' chemical numbers.
     neighborsymbols : list of str
         List of symbols of all neighbor atoms.
     neighborpositions : list of list of floats
@@ -457,12 +490,14 @@ def calculate_G2(neighborsymbols, neighborpositions, center_symbol, eta,
     return feature
 
 
-def calculate_G3(neighborsymbols, neighborpositions, G_elements, gamma, zeta,
-                 eta, cutoff, cutofffxn, Ri):
+def calculate_G3(n_numbers, neighborsymbols, neighborpositions, G_elements,
+                 gamma, zeta, eta, cutoff, cutofffxn, Ri):
     """Calculate G3 symmetry function.
 
     Parameters
     ----------
+    n_symbols : list of int
+        List of neighbors' chemical numbers.
     neighborsymbols : list of str
         List of symbols of neighboring atoms.
     neighborpositions : list of list of floats
@@ -506,7 +541,7 @@ def calculate_G3(neighborsymbols, neighborpositions, G_elements, gamma, zeta,
             cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1. + gamma * cos_theta_ijk) ** zeta
             term *= np.exp(-eta * (Rij ** 2. + Rik ** 2. + Rjk ** 2.) /
-                                (Rc ** 2.))
+                           (Rc ** 2.))
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
             term *= cutofffxn(Rjk)
