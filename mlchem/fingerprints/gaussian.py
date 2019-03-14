@@ -5,7 +5,6 @@ from sklearn.externals import joblib
 from .cutoff import Cosine
 from collections import OrderedDict
 import dask
-import dask.array as da
 import time
 from ase.data import atomic_numbers
 
@@ -64,6 +63,7 @@ class Gaussian(object):
         self.params = OrderedDict()
         self.params['name'] = self.name()
 
+        # This is a very general way of not forgetting save variables
         _params = vars()
 
         # Delete useless variables
@@ -110,6 +110,7 @@ class Gaussian(object):
 
         initial_time = time.time()
 
+        # Verify that we know the unique element symbols
         if data.unique_element_symbols is None:
             print('Getting unique element symbols for {}' .format(purpose))
             unique_element_symbols = \
@@ -118,6 +119,7 @@ class Gaussian(object):
 
             print('Unique elements: {}' .format(unique_element_symbols))
 
+        # If self.defaults is True we create default symmetry functions.
         if self.defaults:
             self.GP = self.make_symmetry_functions(unique_element_symbols,
                                                    defaults=True)
@@ -131,8 +133,9 @@ class Gaussian(object):
             print('{} is not supported.' .format(self.scaler))
             self.scaler = None
 
+        # We start populating computations with delayed functions to operate
+        # with dask's scheduler
         computations = []
-
         for image in images.items():
             key, image = image
             feature_vectors = []
@@ -154,6 +157,7 @@ class Gaussian(object):
                                                   self.scaler)
                 feature_vectors.append(afp)
 
+        # In this block we compute the delayed functions in computations.
         if self.scaler is None:
             feature_space = dask.compute(*computations, scheduler=scheduler,
                                          num_workers=self.cores)
@@ -169,7 +173,9 @@ class Gaussian(object):
 
         if self.scaler == 'minmaxscaler' and purpose == 'training':
             print('Preprocessing data...')
-            stacked_features = da.from_array(stacked_features,
+            # To take advantage of dask_ml we need to convert our numpy array
+            # into a dask array.
+            stacked_features = dask.array.from_array(stacked_features,
                                              chunks=(d1 * d2, d3))
             scaler.fit(stacked_features.compute(scheduler=scheduler,
                                                 num_workers=self.cores))
@@ -179,6 +185,7 @@ class Gaussian(object):
                     num_workers=self.cores))
             scaled_feature_space = scaled_feature_space.reshape(d1, d2, d3)
 
+            # Populate computations list with delayed functions
             computations = []
             for index, image in enumerate(images.items()):
                 computations.append(self.restack_image(index, image,
@@ -187,9 +194,11 @@ class Gaussian(object):
             feature_space = dask.compute(*computations, scheduler=scheduler,
                                          num_workers=self.cores)
             feature_space = OrderedDict(feature_space)
+
         elif purpose == 'inference':
             scaled_feature_space = scaler.transform(stacked_features)
             index = 0
+            #TODO this has to be parallelized.
             for key, image in images.items():
                 if key not in feature_space.keys():
                     feature_space[key] = []
@@ -211,7 +220,7 @@ class Gaussian(object):
 
     @dask.delayed
     def restack_image(self, index, image, scaled_feature_space):
-        """Restack images in the correct dictionary to train
+        """Restack images to correct dictionary's structure to train
 
         Parameters
         ----------
@@ -240,7 +249,17 @@ class Gaussian(object):
 
     @dask.delayed
     def fingerprints_per_image(self, image):
-        """A function that allows the use of dask to parallelize per image"""
+        """A delayed function to parallelize fingerprints per image
+
+        Parameters
+        ----------
+        image : obj
+            An ASE image object.
+
+        Notes
+        -----
+            This function is not being currently used.
+        """
 
         key, image = image
         image_positions = image.positions
@@ -277,7 +296,7 @@ class Gaussian(object):
     @dask.delayed
     def get_atomic_fingerprint(self, atom, index, symbol, n_symbols,
                                neighborpositions, scaler):
-        """Class method to compute atomic fingerprints
+        """Delayed class method to compute atomic fingerprints
 
 
         Parameters
@@ -551,7 +570,13 @@ def calculate_G3(n_numbers, neighborsymbols, neighborpositions, G_elements,
 
 
 def save_scaler_to_file(scaler, path):
-    """Save the scaler object to file"""
+    """Save the scaler object to file
+
+    Parameter
+    ---------
+    path : str
+        Path to save .scaler file.
+    """
     path += '.scaler'
 
     joblib.dump(scaler, path)
