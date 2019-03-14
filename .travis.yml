@@ -3,17 +3,17 @@ language: python
 python: 3.7
 install:
     - pip install -r requirements.txt --progress-bar off
-    - pip install sphinx sphinx-gallery sphinxcontrib-napoleon sphinxcontrib-bibtex sphinxcontrib-inlinesyntaxhighlight recommonmark sphinx_rtd_theme
+      #- pip install sphinx sphinx-gallery sphinxcontrib-napoleon sphinxcontrib-bibtex sphinxcontrib-inlinesyntaxhighlight recommonmark sphinx_rtd_theme
 script:
      - echo "skipping tests"
-     - echo "Building documentation"
-     - cd docs/
-     - make html
-deploy:
-  provider: pages
-  skip-cleanup: true
-  github-token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
-  keep-history: true
-  on:
-    branch: master
-  local_dir: build/html/
+       #- echo "Building documentation"
+       #- cd docs/
+       #- make html
+       #deploy:
+       #  provider: pages
+       #  skip-cleanup: true
+       #  github-token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
+       #  keep-history: true
+       #  on:
+       #    branch: master
+       #  local_dir: build/html/
