@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from mlchem.utils import get_hash
+import dask
 
 
 class DataSet(object):

@@ -238,7 +238,9 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
 
     training_time = time.time() - initial_time
 
-    print('Training the model took {}...' .format(training_time))
+    h, m, s = convert_elapsed_time(training_time)
+    print('Training finished in {} hours {} minutes {:.2f} seconds.'
+          .format(h, m, s))
     print('outputs')
     print(outputs)
     print('targets')

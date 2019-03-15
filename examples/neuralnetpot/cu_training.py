@@ -1,7 +1,7 @@
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
 import sys
-sys.path.append('../')
+sys.path.append('../../')
 from mlchem import Potentials
 from mlchem.fingerprints import Gaussian
 from mlchem.models.neuralnetwork import NeuralNetwork

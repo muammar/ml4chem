@@ -148,21 +148,29 @@ class Potentials(Calculator, object):
         # Raw input and targets aka X, y
         training_set, targets = data_handler.get_images(purpose='training')
 
-        # Mapping raw positions into a feature space aka X
-        feature_space = self.fingerprints.calculate_features(training_set,
-                                                             data=data_handler,
-                                                             purpose='training')
-
         # Now let's train
-        # Fixed fingerprint dimension
-        input_dimension = len(list(feature_space.values())[0][0][-1])
-        self.model.prepare_model(input_dimension, data=data_handler)
+        if self.model.name() != 'KernelRidge':
+            # Mapping raw positions into a feature space aka X
+            feature_space = self.fingerprints.calculate_features(training_set,
+                                                                 data=data_handler,
+                                                                 purpose='training',
+                                                                 svm=False)
 
-        from mlchem.models.neuralnetwork import train
-        train(feature_space, targets, model=self.model, data=data_handler,
-              optimizer=optimizer, lr=lr, weight_decay=weight_decay,
-              regularization=regularization, epochs=epochs,
-              convergence=convergence, lossfxn=lossfxn)
+            # Fixed fingerprint dimension
+            input_dimension = len(list(feature_space.values())[0][0][-1])
+            self.model.prepare_model(input_dimension, data=data_handler)
+
+            from mlchem.models.neuralnetwork import train
+            train(feature_space, targets, model=self.model, data=data_handler,
+                  optimizer=optimizer, lr=lr, weight_decay=weight_decay,
+                  regularization=regularization, epochs=epochs,
+                  convergence=convergence, lossfxn=lossfxn)
+        else:
+            # Mapping raw positions into a feature space aka X
+            feature_space, raveled = \
+                    self.fingerprints.calculate_features(training_set, data=data_handler,
+                                                         purpose='training', svm=True)
+            #self.model.prepare_model(input_dimension, data=data_handler)
 
         self.save(self.model, path=self.path, label=self.label)
 

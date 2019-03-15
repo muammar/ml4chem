@@ -43,3 +43,12 @@ def get_neighborlist(image, cutoff):
                          bothways=True, skin=0.)
     nlist.update(image)
     return [nlist.get_neighbors(index) for index in range(len(image))]
+
+
+def convert_elapsed_time(seconds):
+    """Convert elapsed time in seconds to HH:MM:SS format """
+
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+
+    return int(hours), int(minutes), seconds

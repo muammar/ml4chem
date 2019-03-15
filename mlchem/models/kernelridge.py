@@ -1,5 +1,7 @@
 import time
 import datetime
+import dask
+import numpy as np
 
 
 class KernelRidge(object):
@@ -223,3 +225,164 @@ class KernelRidge(object):
 
         parity(outputs.detach().numpy(), targets.detach().numpy())
         """
+
+"""
+Auxiliary functions to compute kernels
+"""
+
+@dask.delayed
+def linear(feature_i, feature_j, i_symbol=None, j_symbol=None):
+    """ Compute a linear kernel
+
+    Parameters
+    ----------
+    feature_i : np.array
+        Atomic fingerprint for central atom.
+    feature_j : np.array
+        Atomic fingerprint for j atom.
+    i_symbol : str
+        Chemical symbol for central atom.
+    j_symbol : str
+        Chemical symbol for j atom.
+
+    Returns
+    -------
+    linear :float
+        Linear kernel.
+    """
+
+    if i_symbol != j_symbol:
+        return 0.
+    else:
+        linear = np.dot(feature_i, feature_j)
+        return linear
+
+
+@dask.delayed
+def rbf(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.):
+    """ Compute the rbf (AKA Gaussian) kernel.
+
+    Parameters
+    ----------
+    feature_i : np.array
+        Atomic fingerprint for central atom.
+    feature_j : np.array
+        Atomic fingerprint for j atom.
+    i_symbol : str
+        Chemical symbol for central atom.
+    j_symbol : str
+        Chemical symbol for j atom.
+    sigma : float, or list.
+        Gaussian width. If passed as a list or np.darray, kernel can become
+        anisotropic.
+
+    Returns
+    -------
+    rbf :float
+        RBF kernel.
+    """
+
+    if i_symbol != j_symbol:
+        return 0.
+    else:
+        if isinstance(sigma, list) or isinstance(sigma, np.ndarray):
+            assert(len(sigma) == len(feature_i) and
+                   len(sigma) == len(feature_j)), "Length of sigma does not " \
+                                                  "match atomic fingerprint " \
+                                                  "length."
+            sigma = np.array(sigma)
+            anisotropic_rbf = np.exp(-(np.sum(np.divide(np.square(
+                              np.subtract(feature_i, feature_j)),
+                                          (2. * np.square(sigma))))))
+            return anisotropic_rbf
+        else:
+            rbf = np.exp(-(np.linalg.norm(feature_i - feature_j) ** 2.) /
+                         (2. * sigma ** 2.))
+            return rbf
+
+
+@dask.delayed
+def exponential(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.):
+    """ Compute the exponential kernel
+
+    Parameters
+    ----------
+    feature_i : np.array
+        Atomic fingerprint for central atom.
+    feature_j : np.array
+        Atomic fingerprint for j atom.
+    i_symbol : str
+        Chemical symbol for central atom.
+    j_symbol : str
+        Chemical symbol for j atom.
+    sigma : float, or list.
+        Gaussian width.
+
+    Returns
+    -------
+    exponential : float
+        Exponential kernel.
+    """
+
+    if i_symbol != j_symbol:
+        return 0.
+    else:
+        if isinstance(sigma, list) or isinstance(sigma, np.ndarray):
+            assert(len(sigma) == len(feature_i) and
+                   len(sigma) == len(feature_j)), "Length of sigma does not " \
+                                                  "match atomic fingerprint " \
+                                                  "length."
+            sigma = np.array(sigma)
+            anisotropic_exp = np.exp(-(np.sqrt(np.sum(np.square(
+                          np.divide(np.subtract(feature_i, feature_j),
+                                               (2. * np.square(sigma))))))))
+            return anisotropic_exp
+        else:
+            exponential = np.exp(-(np.linalg.norm(feature_i - feature_j)) /
+                                 (2. * sigma ** 2))
+            return exponential
+
+
+@dask.delayed
+def laplacian(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.):
+    """ Compute the laplacian kernel
+
+    Parameters
+    ----------
+    feature_i : np.array
+        Atomic fingerprint for central atom.
+    feature_j : np.array
+        Atomic fingerprint for j atom.
+    i_symbol : str
+        Chemical symbol for central atom.
+    j_symbol : str
+        Chemical symbol for j atom.
+    sigma : float
+        Gaussian width.
+
+    Returns
+    -------
+    laplacian : float
+        Laplacian kernel.
+    """
+
+    if i_symbol != j_symbol:
+        return 0.
+    else:
+        if isinstance(sigma, list) or isinstance(sigma, np.ndarray):
+            assert(len(sigma) == len(feature_i) and
+                   len(sigma) == len(feature_j)), "Length of sigma does not " \
+                                                  "match atomic fingerprint " \
+                                                  "length."
+            sigma = np.array(sigma)
+
+            sum_ij = np.sum(np.square(np.divide(np.subtract(feature_i,
+                                                            feature_j),
+                                                sigma)))
+
+            anisotropic_lap = np.exp(-(np.sqrt(sum_ij)))
+            return anisotropic_lap
+        else:
+            laplacian = np.exp(-(np.linalg.norm(feature_i - feature_j)) /
+                               sigma)
+        return laplacian

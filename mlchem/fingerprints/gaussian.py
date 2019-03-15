@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from mlchem.utils import get_neighborlist
+from mlchem.utils import get_neighborlist, convert_elapsed_time
 from sklearn.externals import joblib
 from .cutoff import Cosine
 from collections import OrderedDict
@@ -83,7 +83,7 @@ class Gaussian(object):
             self.cutofffxn = cutofffxn
 
     def calculate_features(self, images, purpose='training', data=None,
-                           scheduler='distributed'):
+                           scheduler='distributed', svm=False):
         """Calculate the features per atom in an atoms objects
 
         Parameters
@@ -96,6 +96,9 @@ class Gaussian(object):
             data object
         scheduler : str
             The schudler to be used with the dask backend.
+        svm : bool
+            Whether or not these features are going to be used for kernel
+            methods.
 
         Returns
         -------
@@ -176,24 +179,45 @@ class Gaussian(object):
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
             stacked_features = dask.array.from_array(stacked_features,
-                                             chunks=(d1 * d2, d3))
+                                                     chunks=(d1 * d2, d3))
             scaler.fit(stacked_features.compute(scheduler=scheduler,
                                                 num_workers=self.cores))
-            scaled_feature_space \
+            stacked_features \
                 = scaler.transform(stacked_features.compute(
-                    scheduler=scheduler,
-                    num_workers=self.cores))
-            scaled_feature_space = scaled_feature_space.reshape(d1, d2, d3)
+                    scheduler=scheduler, num_workers=self.cores))
+
+            scaled_feature_space = stacked_features.reshape(d1, d2, d3)
 
             # Populate computations list with delayed functions
+
             computations = []
-            for index, image in enumerate(images.items()):
-                computations.append(self.restack_image(index, image,
-                                                       scaled_feature_space))
+            if svm:
+                reference_space = []
+
+                for i, image in enumerate(images.items()):
+                    computations.append(self.restack_image(i, image,
+                                                           scaled_feature_space,
+                                                           svm=svm))
+                    hash, image = image
+
+                    for atom in image:
+                        reference_space.append(self.restack_atom(i, atom,
+                                                                 scaled_feature_space))
+
+                reference_space = dask.compute(*reference_space, scheduler=scheduler,
+                                                num_workers=self.cores)
+            else:
+
+                for i, image in enumerate(images.items()):
+                    computations.append(self.restack_image(i, image,
+                                                           scaled_feature_space,
+                                                           svm=svm))
 
             feature_space = dask.compute(*computations, scheduler=scheduler,
                                          num_workers=self.cores)
             feature_space = OrderedDict(feature_space)
+
+
 
         elif purpose == 'inference':
             scaled_feature_space = scaler.transform(stacked_features)
@@ -215,11 +239,41 @@ class Gaussian(object):
 
         fp_time = time.time() - initial_time
 
-        print('Fingerprinting finished in {}...' .format(fp_time))
-        return feature_space
+        h, m, s = convert_elapsed_time(fp_time)
+        print('Fingerprinting finished in {} hours {} minutes {:.2f} '
+              'seconds.' .format(h, m, s))
+
+        if svm:
+            return feature_space, reference_space
+        else:
+            return feature_space
 
     @dask.delayed
-    def restack_image(self, index, image, scaled_feature_space):
+    def restack_atom(self, image_index, atom, scaled_feature_space):
+        """Restack atoms to a raveled list to use with SVM
+
+        Parameters
+        ----------
+        image_index : int
+            Index of original hashed image.
+        atom : object
+            An atom object.
+        scaled_feature_space : np.array
+            A numpy array with the scaled features
+
+        Returns
+        -------
+        symbol, features : tuple
+            The hashed key image and its corresponding features.
+        """
+
+        symbol = atom.symbol
+        features = scaled_feature_space[image_index][atom.index]
+
+        return symbol, features
+
+    @dask.delayed
+    def restack_image(self, index, image, scaled_feature_space, svm=False):
         """Restack images to correct dictionary's structure to train
 
         Parameters
@@ -240,9 +294,12 @@ class Gaussian(object):
         features = []
         for j, atom in enumerate(image):
             symbol = atom.symbol
-            scaled = torch.tensor(scaled_feature_space[index][j],
-                                  requires_grad=True,
-                                  dtype=torch.float)
+            if svm:
+                scaled = scaled_feature_space[index][j]
+            else:
+                scaled = torch.tensor(scaled_feature_space[index][j],
+                                      requires_grad=True,
+                                      dtype=torch.float)
             features.append((symbol, scaled))
 
         return key, features
