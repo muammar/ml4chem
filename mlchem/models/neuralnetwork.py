@@ -4,6 +4,7 @@ import torch
 
 from mlchem.backends.operations import BackendOperations as backend
 from mlchem.data.visualization import parity
+from mlchem.utils import convert_elapsed_time
 
 torch.set_printoptions(precision=10)
 
