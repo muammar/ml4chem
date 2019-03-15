@@ -167,10 +167,11 @@ class Potentials(Calculator, object):
                   convergence=convergence, lossfxn=lossfxn)
         else:
             # Mapping raw positions into a feature space aka X
-            feature_space, raveled = \
+            feature_space, reference_features = \
                     self.fingerprints.calculate_features(training_set, data=data_handler,
                                                          purpose='training', svm=True)
-            #self.model.prepare_model(input_dimension, data=data_handler)
+            self.model.prepare_model(feature_space, reference_features,
+                                     data=data_handler)
 
         self.save(self.model, path=self.path, label=self.label)
 

@@ -2,6 +2,7 @@ import time
 import datetime
 import dask
 import numpy as np
+from collections import OrderedDict
 
 
 class KernelRidge(object):
@@ -116,22 +117,60 @@ class KernelRidge(object):
 
         return cls.NAME
 
-    def __init__(self, sigma=1., kernel='rbf', lamda=1e-5, weights=None,
-                 regressor=None, mode=None, trainingimages=None, version=None,
-                 fortran=False, checkpoints=None, lossfunction=None,
-                 cholesky=True, weights_independent=True,
-                 randomize_weights=False, forcetraining=False,
-                 preprocessing=False, nnpartition=None, sum_rule=True):
+    def __init__(self, sigma=1., kernel='rbf', scheduler='distributed',
+                 lamda=1e-5, weights=None, regressor=None, mode=None,
+                 trainingimages=None, version=None, fortran=False,
+                 checkpoints=None, lossfunction=None, cholesky=True,
+                 weights_independent=True, randomize_weights=False,
+                 forcetraining=False, preprocessing=False, nnpartition=None,
+                 sum_rule=True):
 
         np.set_printoptions(precision=30, threshold=999999999)
+        self.kernel = kernel
+        self.sigma = sigma
+        self.scheduler = scheduler
 
-    def prepare_model(self, input_dimension, data=None, purpose='training'):
+    def prepare_model(self, feature_space, reference_features, data=None,
+                      purpose='training'):
         """Prepare the model
 
         Parameters
         ----------
+        feature_space : dict
+            A dictionary with hash, fingerprint structure.
+        reference_features : dict
+            A dictionary with raveled tuples of symbol, atomic fingerprint.
+        data : object
+            DataSet object created from the handler.
+        purpose : str
+            Purpose of this model: 'training', 'inference'.
         """
-        pass
+        unique_element_symbols = data.unique_element_symbols[purpose]
+        dim = len(reference_features)
+
+        call = {'exponential': exponential, 'laplacian': laplacian, 'rbf': rbf}
+
+        atomic_kernel_matrices = []
+
+        for symbol in unique_element_symbols:
+            # We start populating computations with delayed functions to operate
+            # with dask's scheduler
+            computations = []
+            for hash, feature_space in feature_space.items():
+                for i_symbol, i_afp in feature_space:
+                    for j_symbol, j_afp in reference_features:
+                        kernel = call[self.kernel](i_afp, j_afp, i_symbol=i_symbol,
+                                      j_symbol=j_symbol, sigma=self.sigma)
+                        computations.append(kernel)
+
+            # We compute the calculations with dask and the result is converted
+            # to numpy array.
+            kernel_matrix = np.array((dask.compute(*computations,
+                                      scheduler=self.scheduler)))
+            kernel_matrix = kernel_matrix.reshape(dim, dim)
+            atomic_kernel_matrices.append((symbol, kernel_matrix))
+
+        self.atomic_kernel_matrices = OrderedDict(atomic_kernel_matrices)
 
     def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
               weight_decay=None, regularization=None, epochs=100, convergence=None,
