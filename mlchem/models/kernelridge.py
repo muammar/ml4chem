@@ -145,6 +145,8 @@ class KernelRidge(object):
         purpose : str
             Purpose of this model: 'training', 'inference'.
         """
+        self.fingerprint_map = []
+
         unique_element_symbols = data.unique_element_symbols[purpose]
         dim = len(reference_features)
 
@@ -153,15 +155,20 @@ class KernelRidge(object):
         atomic_kernel_matrices = []
 
         for symbol in unique_element_symbols:
-            # We start populating computations with delayed functions to operate
-            # with dask's scheduler
+            # We start populating computations with delayed functions to
+            # operate with dask's scheduler
             computations = []
-            for hash, feature_space in feature_space.items():
-                for i_symbol, i_afp in feature_space:
+            for hash, _feature_space in feature_space.items():
+                f_map = []
+                for i_symbol, i_afp in _feature_space:
+                    f_map.append(1)
                     for j_symbol, j_afp in reference_features:
-                        kernel = call[self.kernel](i_afp, j_afp, i_symbol=i_symbol,
-                                      j_symbol=j_symbol, sigma=self.sigma)
+                        kernel = call[self.kernel](i_afp, j_afp,
+                                                   i_symbol=i_symbol,
+                                                   j_symbol=j_symbol,
+                                                   sigma=self.sigma)
                         computations.append(kernel)
+                self.fingerprint_map.append(f_map)
 
             # We compute the calculations with dask and the result is converted
             # to numpy array.
@@ -172,9 +179,41 @@ class KernelRidge(object):
 
         self.atomic_kernel_matrices = OrderedDict(atomic_kernel_matrices)
 
+        # We build the LT matrix needed for ADA
+        computations = []
+        for index, feature_space in enumerate(feature_space.items()):
+            computations.append(self.get_lt(index))
+
+        self.LT = list(dask.compute(*computations, scheduler=self.scheduler))
+
+    @dask.delayed
+    def get_lt(self, index):
+        """Return LT vectors
+
+        Parameters
+        ----------
+        index : int
+            Index of image.
+
+        Returns
+        -------
+        _LT : list
+            Returns a list that maps atomic fingerprints in the images.
+        """
+        _LT = []
+
+        for i, group in enumerate(self.fingerprint_map):
+            if i == index:
+                for _ in group:
+                    _LT.append(1.)
+            else:
+                for _ in group:
+                    _LT.append(0.)
+        return _LT
+
     def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
-              weight_decay=None, regularization=None, epochs=100, convergence=None,
-              lossfxn=None):
+              weight_decay=None, regularization=None, epochs=100,
+              convergence=None, lossfxn=None):
         """Train the model
 
         Parameters
@@ -265,10 +304,10 @@ class KernelRidge(object):
         parity(outputs.detach().numpy(), targets.detach().numpy())
         """
 
+
 """
 Auxiliary functions to compute kernels
 """
-
 @dask.delayed
 def linear(feature_i, feature_j, i_symbol=None, j_symbol=None):
     """ Compute a linear kernel
