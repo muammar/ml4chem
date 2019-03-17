@@ -3,6 +3,7 @@ import datetime
 import dask
 import numpy as np
 from collections import OrderedDict
+from scipy.linalg import cholesky
 
 
 class KernelRidge(object):
@@ -129,6 +130,7 @@ class KernelRidge(object):
         self.kernel = kernel
         self.sigma = sigma
         self.scheduler = scheduler
+        self.lamda = lamda
 
     def prepare_model(self, feature_space, reference_features, data=None,
                       purpose='training'):
@@ -144,17 +146,26 @@ class KernelRidge(object):
             DataSet object created from the handler.
         purpose : str
             Purpose of this model: 'training', 'inference'.
+
+
+        Notes
+        -----
+        This method builds the atomic kernel matrices and the LT vectors needed
+        to apply the atomic decomposition Ansatz.
         """
         self.fingerprint_map = []
 
-        unique_element_symbols = data.unique_element_symbols[purpose]
+        self.unique_element_symbols = data.unique_element_symbols[purpose]
         dim = len(reference_features)
 
         call = {'exponential': exponential, 'laplacian': laplacian, 'rbf': rbf}
 
+        """
+        Atomic kernel matrices
+        """
         atomic_kernel_matrices = []
 
-        for symbol in unique_element_symbols:
+        for symbol in self.unique_element_symbols:
             # We start populating computations with delayed functions to
             # operate with dask's scheduler
             computations = []
@@ -179,12 +190,58 @@ class KernelRidge(object):
 
         self.atomic_kernel_matrices = OrderedDict(atomic_kernel_matrices)
 
+        """
+        LT Vectors
+        """
         # We build the LT matrix needed for ADA
         computations = []
         for index, feature_space in enumerate(feature_space.items()):
             computations.append(self.get_lt(index))
 
-        self.LT = list(dask.compute(*computations, scheduler=self.scheduler))
+        self.LT = np.array((dask.compute(*computations,
+                                         scheduler=self.scheduler)))
+
+    def train(self, inputs, targets, model=None, data=None, optimizer=None,
+              lr=None, weight_decay=None, regularization=None, epochs=100,
+              convergence=None, lossfxn=None):
+        """Train the model
+
+        Parameters
+        ----------
+        inputs : dict
+            Dictionary with hashed feature space.
+        epochs : int
+            Number of full training cycles.
+        targets : list
+            The expected values that the model has to learn aka y.
+        model : object
+            The KernelRidge class.
+        data : object
+            DataSet object created from the handler.
+        lr : float
+            Learning rate.
+        weight_decay : float
+            Weight decay passed to the optimizer. Default is 0.
+        regularization : float
+            This is the L2 regularization. It is not the same as weight decay.
+        convergence : dict
+            Instead of using epochs, users can set a convergence criterion.
+        lossfxn : obj
+            A loss function object.
+        """
+        for symbol in self.unique_element_symbols:
+            if isinstance(self.lamda, dict):
+                lamda = self.lamda['energy']
+            else:
+                lamda = self.lamda
+            size = len(targets)
+            I_e = np.identity(size)
+            K = self.atomic_kernel_matrices[symbol]
+            K = self.LT.dot(K).dot(self.LT.T)
+            cholesky_U = cholesky((K + lamda * I_e))
+            betas = np.linalg.solve(cholesky_U.T, targets)
+            _weights = np.linalg.solve(cholesky_U, betas)
+            print(_weights)
 
     @dask.delayed
     def get_lt(self, index):
@@ -210,99 +267,6 @@ class KernelRidge(object):
                 for _ in group:
                     _LT.append(0.)
         return _LT
-
-    def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
-              weight_decay=None, regularization=None, epochs=100,
-              convergence=None, lossfxn=None):
-        """Train the model
-
-        Parameters
-        ----------
-        inputs : dict
-            Dictionary with hashed feature space.
-        epochs : int
-            Number of full training cycles.
-        targets : list
-            The expected values that the model has to learn aka y.
-        model : object
-            The NeuralNetwork class.
-        data : object
-            DataSet object created from the handler.
-        lr : float
-            Learning rate.
-        weight_decay : float
-            Weight decay passed to the optimizer. Default is 0.
-        regularization : float
-            This is the L2 regularization. It is not the same as weight decay.
-        convergence : dict
-            Instead of using epochs, users can set a convergence criterion.
-        lossfxn : obj
-            A loss function object.
-        """
-        pass
-
-        """
-        #old_state_dict = {}
-
-        #for key in model.state_dict():
-        #    old_state_dict[key] = model.state_dict()[key].clone()
-
-        targets = torch.tensor(targets, requires_grad=False)
-
-        # Define optimizer
-        if optimizer is None:
-            optimizer = torch.optim.Adam(model.parameters(), lr=lr,
-                                         weight_decay=weight_decay)
-
-        print()
-        print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp', 'Loss'))
-        print('{:6s} {:19s} {:8s}'.format('------',
-                                          '-------------------', '---------'))
-        initial_time = time.time()
-
-        _loss = []
-        _rmse = []
-        epoch = 0
-
-        while True:
-            epoch += 1
-
-            outputs = model(inputs)
-
-            if lossfxn is None:
-                loss, rmse = loss_function(outputs, targets, optimizer, data)
-            else:
-                raise('I do not know what to do')
-
-            _loss.append(loss)
-            _rmse.append(rmse)
-
-            ts = time.time()
-            ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
-                                                              '%H:%M:%S')
-            print('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
-
-            if convergence is None and epoch == epochs:
-                break
-            elif (convergence is not None and rmse < convergence['energy']):
-                break
-
-        training_time = time.time() - initial_time
-
-        print('Training the model took {}...' .format(training_time))
-        print('outputs')
-        print(outputs)
-        print('targets')
-        print(targets)
-
-        import matplotlib.pyplot as plt
-        plt.plot(list(range(epoch)), _loss, label='loss')
-        plt.plot(list(range(epoch)), _rmse, label='rmse/atom')
-        plt.legend(loc='upper left')
-        plt.show()
-
-        parity(outputs.detach().numpy(), targets.detach().numpy())
-        """
 
 
 """

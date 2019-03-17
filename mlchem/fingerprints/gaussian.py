@@ -195,34 +195,31 @@ class Gaussian(object):
                 reference_space = []
 
                 for i, image in enumerate(images.items()):
-                    computations.append(self.restack_image(i, image,
-                                                           scaled_feature_space,
-                                                           svm=svm))
+                    computations.append(self.restack_image(
+                        i, image, scaled_feature_space, svm=svm))
                     hash, image = image
 
                     for atom in image:
-                        reference_space.append(self.restack_atom(i, atom,
-                                                                 scaled_feature_space))
+                        reference_space.append(self.restack_atom(
+                            i, atom, scaled_feature_space))
 
-                reference_space = dask.compute(*reference_space, scheduler=scheduler,
-                                                num_workers=self.cores)
+                reference_space = dask.compute(*reference_space,
+                                               scheduler=scheduler,
+                                               num_workers=self.cores)
             else:
 
                 for i, image in enumerate(images.items()):
-                    computations.append(self.restack_image(i, image,
-                                                           scaled_feature_space,
-                                                           svm=svm))
+                    computations.append(self.restack_image(
+                        i, image, scaled_feature_space, svm=svm))
 
             feature_space = dask.compute(*computations, scheduler=scheduler,
                                          num_workers=self.cores)
             feature_space = OrderedDict(feature_space)
 
-
-
         elif purpose == 'inference':
             scaled_feature_space = scaler.transform(stacked_features)
             index = 0
-            #TODO this has to be parallelized.
+            # TODO this has to be parallelized.
             for key, image in images.items():
                 if key not in feature_space.keys():
                     feature_space[key] = []

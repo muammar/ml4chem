@@ -48,13 +48,15 @@ class NeuralNetwork(torch.nn.Module):
         activation = {'tanh': torch.nn.Tanh, 'relu': torch.nn.ReLU,
                       'celu': torch.nn.CELU}
 
+        hl = len(self.hiddenlayers)
         if purpose == 'training':
             print()
             print('Model Training')
             print('==============')
-            print('Number of hidden-layers: {}' .format(len(self.hiddenlayers)))
-            print('Structure of Neural Net: {}' .
-                  format('(input, ' + str(self.hiddenlayers)[1:-1] + ', output)'))
+            print('Number of hidden-layers: {}' .format(hl))
+            print('Structure of Neural Net: {}'
+                  .format('(input, ' + str(self.hiddenlayers)[1:-1] +
+                          ', output)'))
         layers = range(len(self.hiddenlayers) + 1)
         unique_element_symbols = data.unique_element_symbols[purpose]
 
@@ -73,7 +75,8 @@ class NeuralNetwork(torch.nn.Module):
                                                             requires_grad=True))
 
                 slope = (data.max_energy - data.min_energy) / 2.
-                slope = torch.nn.Parameter(torch.tensor(slope, requires_grad=True))
+                slope = torch.nn.Parameter(torch.tensor(slope,
+                                                        requires_grad=True))
 
                 print(intercept, slope)
 
@@ -116,8 +119,8 @@ class NeuralNetwork(torch.nn.Module):
 
         if purpose == 'training':
             print(self.linears)
-            # Iterate over all modules and just intialize those that are a linear
-            # layer.
+            # Iterate over all modules and just intialize those that are
+            # a linear layer.
             for m in self.modules():
                 if isinstance(m, torch.nn.Linear):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
@@ -192,10 +195,10 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         A loss function object.
     """
 
-    #old_state_dict = {}
+    # old_state_dict = {}
 
-    #for key in model.state_dict():
-    #    old_state_dict[key] = model.state_dict()[key].clone()
+    # for key in model.state_dict():
+    #     old_state_dict[key] = model.state_dict()[key].clone()
 
     targets = torch.tensor(targets, requires_grad=False)
 

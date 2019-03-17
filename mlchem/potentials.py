@@ -1,4 +1,4 @@
-from ase.calculators.calculator import Calculator, Parameters
+from ase.calculators.calculator import Calculator
 import codecs
 import copy
 import json
@@ -58,7 +58,6 @@ class Potentials(Calculator, object):
         kwargs['scaler'] = scaler
 
         with open(params) as mlchem_params:
-            import torch
             mlchem_params = json.load(mlchem_params)
 
             # Instantiate the model class
@@ -102,7 +101,6 @@ class Potentials(Calculator, object):
         fingerprints = {'fingerprints': self.fingerprints.params}
 
         if model_name == 'PytorchPotentials':
-            import torch
 
             params = {'model': {'name': model_name,
                                 'hiddenlayers': model.hiddenlayers,
@@ -151,15 +149,17 @@ class Potentials(Calculator, object):
         # Now let's train
         if self.model.name() != 'KernelRidge':
             # Mapping raw positions into a feature space aka X
-            feature_space = self.fingerprints.calculate_features(training_set,
-                                                                 data=data_handler,
-                                                                 purpose='training',
-                                                                 svm=False)
+            feature_space = self.fingerprints.calculate_features(
+                    training_set,
+                    data=data_handler,
+                    purpose='training',
+                    svm=False)
 
             # Fixed fingerprint dimension
             input_dimension = len(list(feature_space.values())[0][0][-1])
             self.model.prepare_model(input_dimension, data=data_handler)
 
+            # This is something specific of pytorch.
             from mlchem.models.neuralnetwork import train
             train(feature_space, targets, model=self.model, data=data_handler,
                   optimizer=optimizer, lr=lr, weight_decay=weight_decay,
@@ -168,10 +168,14 @@ class Potentials(Calculator, object):
         else:
             # Mapping raw positions into a feature space aka X
             feature_space, reference_features = \
-                    self.fingerprints.calculate_features(training_set, data=data_handler,
-                                                         purpose='training', svm=True)
+                    self.fingerprints.calculate_features(training_set,
+                                                         data=data_handler,
+                                                         purpose='training',
+                                                         svm=True)
             self.model.prepare_model(feature_space, reference_features,
                                      data=data_handler)
+
+            self.model.train(feature_space, targets)
 
         self.save(self.model, path=self.path, label=self.label)
 
