@@ -34,25 +34,9 @@ class KernelRidge(object):
             >>> lamda = {'energy': value, 'forces': value}
 
         Dictionaries are only used when performing Cholesky factorization.
-    weights : dict
-        Dictionary of weights.
-    regressor : object
-        Regressor class to be used.
-    mode : str
-        Atom- or image-centered mode.
     trainingimages : str
         Path to Trajectory file containing the images in the training set. This
         is useful for predicting new structures.
-    version : str
-        Version.
-    fortran : bool
-        Use fortran code.
-    checkpoints : int
-        Frequency with which to save parameter checkpoints upon training. E.g.,
-        100 saves a checkpoint on each 100th training set.  Specify None for
-        no checkpoints. Default is None.
-    lossfunction : object
-        Loss function object.
     cholesky : bool
         Whether or not we are using Cholesky decomposition to determine the
         weights. This method returns an unique set of regression coefficients.
@@ -67,8 +51,8 @@ class KernelRidge(object):
         Use per-atom energy partition from a neural network calculator.
         You have to set the path to .amp file. Useful for energy training with
         Cholesky factorization. Default is set to None.
-    preprocessing : bool
-        Preprocess training data.
+    scheduler : str
+        The schedudler to be used with the dask backend.
     sum_rule : bool
         Whether or not we sum of fingerprintprime elements over a given axis.
         This applies np.sum(fingerprint_list, axis=0).
@@ -101,13 +85,6 @@ class KernelRidge(object):
         rely on the method in the algorithm shown in Rupp, M. (2015).  Machine
         learning for quantum mechanics in a nutshell. International Journal of
         Quantum Chemistry, 115(16), 1058-1073.
-
-    Parameters
-    ----------
-    hiddenlayers : tuple
-        Structure of hidden layers in the neural network.
-    activation : str
-        The activation function.
     """
 
     NAME = 'KernelRidge'
@@ -119,11 +96,9 @@ class KernelRidge(object):
         return cls.NAME
 
     def __init__(self, sigma=1., kernel='rbf', scheduler='distributed',
-                 lamda=1e-5, weights=None, regressor=None, mode=None,
-                 trainingimages=None, version=None, fortran=False,
-                 checkpoints=None, lossfunction=None, cholesky=True,
-                 weights_independent=True, randomize_weights=False,
-                 forcetraining=False, preprocessing=False, nnpartition=None,
+                 lamda=1e-5, trainingimages=None, version=None,
+                 checkpoints=None, cholesky=True, weights_independent=True,
+                 randomize_weights=False, forcetraining=False, nnpartition=None,
                  sum_rule=True):
 
         np.set_printoptions(precision=30, threshold=999999999)

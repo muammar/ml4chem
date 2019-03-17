@@ -95,7 +95,7 @@ class Gaussian(object):
         data : obj
             data object
         scheduler : str
-            The schudler to be used with the dask backend.
+            The schedudler to be used with the dask backend.
         svm : bool
             Whether or not these features are going to be used for kernel
             methods.
