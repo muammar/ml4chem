@@ -1,8 +1,7 @@
 import time
-import datetime
 import dask
 import numpy as np
-from collections import OrderedDict
+from mlchem.utils import convert_elapsed_time
 from scipy.linalg import cholesky
 
 
@@ -128,42 +127,46 @@ class KernelRidge(object):
         This method builds the atomic kernel matrices and the LT vectors needed
         to apply the atomic decomposition Ansatz.
         """
+        if purpose == 'training':
+            print()
+            print('Model Training')
+            print('==============')
+            print('Model name: {}.'.format(self.name()))
+            print('Kernel Parameters:')
+            print('    - Sigma: {}.' .format(self.sigma))
+            print('    - Lamda: {}.' .format(self.lamda))
+
         self.fingerprint_map = []
-
-        self.unique_element_symbols = data.unique_element_symbols[purpose]
         dim = len(reference_features)
-
         call = {'exponential': exponential, 'laplacian': laplacian, 'rbf': rbf}
 
         """
         Atomic kernel matrices
         """
-        atomic_kernel_matrices = []
 
-        for symbol in self.unique_element_symbols:
-            # We start populating computations with delayed functions to
-            # operate with dask's scheduler
-            computations = []
-            for hash, _feature_space in feature_space.items():
-                f_map = []
-                for i_symbol, i_afp in _feature_space:
-                    f_map.append(1)
-                    for j_symbol, j_afp in reference_features:
-                        kernel = call[self.kernel](i_afp, j_afp,
-                                                   i_symbol=i_symbol,
-                                                   j_symbol=j_symbol,
-                                                   sigma=self.sigma)
-                        computations.append(kernel)
-                self.fingerprint_map.append(f_map)
+        initial_time = time.time()
 
-            # We compute the calculations with dask and the result is converted
-            # to numpy array.
-            kernel_matrix = np.array((dask.compute(*computations,
-                                      scheduler=self.scheduler)))
-            kernel_matrix = kernel_matrix.reshape(dim, dim)
-            atomic_kernel_matrices.append((symbol, kernel_matrix))
+        print('Computing Kernel Matrix...')
+        # We start populating computations with delayed functions to
+        # operate with dask's scheduler
+        computations = []
+        for hash, _feature_space in feature_space.items():
+            f_map = []
+            for i_symbol, i_afp in _feature_space:
+                f_map.append(1)
+                for j_symbol, j_afp in reference_features:
+                    kernel = call[self.kernel](i_afp, j_afp,
+                                               i_symbol=i_symbol,
+                                               j_symbol=j_symbol,
+                                               sigma=self.sigma)
+                    computations.append(kernel)
+            self.fingerprint_map.append(f_map)
 
-        self.atomic_kernel_matrices = OrderedDict(atomic_kernel_matrices)
+        # We compute the calculations with dask and the result is converted
+        # to numpy array.
+        kernel_matrix = np.array((dask.compute(*computations,
+                                  scheduler=self.scheduler)))
+        self.K = kernel_matrix.reshape(dim, dim)
 
         """
         LT Vectors
@@ -175,6 +178,12 @@ class KernelRidge(object):
 
         self.LT = np.array((dask.compute(*computations,
                                          scheduler=self.scheduler)))
+
+        build_time = time.time() - initial_time
+
+        h, m, s = convert_elapsed_time(build_time)
+        print('Kernel matrix built in {} hours {} minutes {:.2f} seconds.'
+               .format(h, m, s))
 
     def train(self, inputs, targets, model=None, data=None, optimizer=None,
               lr=None, weight_decay=None, regularization=None, epochs=100,
@@ -204,19 +213,20 @@ class KernelRidge(object):
         lossfxn : obj
             A loss function object.
         """
-        for symbol in self.unique_element_symbols:
-            if isinstance(self.lamda, dict):
-                lamda = self.lamda['energy']
-            else:
-                lamda = self.lamda
-            size = len(targets)
-            I_e = np.identity(size)
-            K = self.atomic_kernel_matrices[symbol]
-            K = self.LT.dot(K).dot(self.LT.T)
-            cholesky_U = cholesky((K + lamda * I_e))
-            betas = np.linalg.solve(cholesky_U.T, targets)
-            _weights = np.linalg.solve(cholesky_U, betas)
-            print(_weights)
+        if isinstance(self.lamda, dict):
+            lamda = self.lamda['energy']
+        else:
+            lamda = self.lamda
+        size = len(targets)
+        I_e = np.identity(size)
+        K = self.LT.dot(self.K).dot(self.LT.T)
+        print('Size of the Kernel matrix is {}.' .format(K.shape))
+        cholesky_U = cholesky((K + lamda * I_e))
+        betas = np.linalg.solve(cholesky_U.T, targets)
+        _weights = np.linalg.solve(cholesky_U, betas)
+        weights = [w * g for index, w in enumerate(_weights) for
+                   g in self.fingerprint_map[index]]
+        print(weights)
 
     @dask.delayed
     def get_lt(self, index):

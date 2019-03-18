@@ -45,6 +45,7 @@ class Potentials(Calculator, object):
     @classmethod
     def load(Cls, model=None, params=None, scaler=None, **kwargs):
         """Load a model
+
         Parameters
         ----------
         model : str

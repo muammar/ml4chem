@@ -53,6 +53,7 @@ class NeuralNetwork(torch.nn.Module):
             print()
             print('Model Training')
             print('==============')
+            print('Model name: {}.'.format(self.name()))
             print('Number of hidden-layers: {}' .format(hl))
             print('Structure of Neural Net: {}'
                   .format('(input, ' + str(self.hiddenlayers)[1:-1] +
