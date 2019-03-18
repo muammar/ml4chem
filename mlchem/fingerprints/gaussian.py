@@ -32,9 +32,6 @@ class Gaussian(object):
         Are we creating default symmetry functions?
     save_scaler : str
         Save scaler with name save_scaler.
-    cores : int
-        Number of cores (aka workers) to be used in the computation. Default
-        is 1.
     """
     NAME = 'Gaussian'
 
@@ -45,12 +42,10 @@ class Gaussian(object):
         return cls.NAME
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
-                 scaler='MinMaxScaler', defaults=None, save_scaler='mlchem',
-                 cores=1):
+                 scaler='MinMaxScaler', defaults=None, save_scaler='mlchem'):
 
         self.cutoff = cutoff
         self.normalized = normalized
-        self.cores = cores
         if scaler is None:
             self.scaler = scaler
         else:
@@ -68,7 +63,6 @@ class Gaussian(object):
 
         # Delete useless variables
         del _params['self']
-        del _params['cores']
 
         for k, v in _params.items():
             if v is not None:
@@ -162,13 +156,10 @@ class Gaussian(object):
 
         # In this block we compute the delayed functions in computations.
         if self.scaler is None:
-            feature_space = dask.compute(*computations, scheduler=scheduler,
-                                         num_workers=self.cores)
+            feature_space = dask.compute(*computations)
             feature_space = OrderedDict(feature_space)
         else:
-            stacked_features = dask.compute(*computations,
-                                            scheduler=scheduler,
-                                            num_workers=self.cores)
+            stacked_features = dask.compute(*computations)
 
             stacked_features = np.array(stacked_features)
             d1, d2, d3 = stacked_features.shape
@@ -180,11 +171,9 @@ class Gaussian(object):
             # into a dask array.
             stacked_features = dask.array.from_array(stacked_features,
                                                      chunks=(d1 * d2, d3))
-            scaler.fit(stacked_features.compute(scheduler=scheduler,
-                                                num_workers=self.cores))
+            scaler.fit(stacked_features.compute(scheduler=scheduler))
             stacked_features \
-                = scaler.transform(stacked_features.compute(
-                    scheduler=scheduler, num_workers=self.cores))
+                = scaler.transform(stacked_features.compute())
 
             scaled_feature_space = stacked_features.reshape(d1, d2, d3)
 
@@ -203,17 +192,14 @@ class Gaussian(object):
                         reference_space.append(self.restack_atom(
                             i, atom, scaled_feature_space))
 
-                reference_space = dask.compute(*reference_space,
-                                               scheduler=scheduler,
-                                               num_workers=self.cores)
+                reference_space = dask.compute(*reference_space)
             else:
 
                 for i, image in enumerate(images.items()):
                     computations.append(self.restack_image(
                         i, image, scaled_feature_space, svm=svm))
 
-            feature_space = dask.compute(*computations, scheduler=scheduler,
-                                         num_workers=self.cores)
+            feature_space = dask.compute(*computations)
             feature_space = OrderedDict(feature_space)
 
         elif purpose == 'inference':

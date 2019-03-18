@@ -24,11 +24,9 @@ def train():
     lr = 1e-4
     weight_decay = 0.
     regularization = 0.
-    cores = 4
 
     calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
-                                            save_scaler='cu_training',
-                                            cores=cores),
+                                            save_scaler='cu_training'),
                       model=KernelRidge(),
                       label='cu_training')
 
@@ -39,5 +37,6 @@ def train():
 
 if __name__ == '__main__':
     cluster = LocalCluster()
-    client = Client(cluster, asyncronous=True)
+    client = Client(cluster, asyncronous=True, n_workers=4,
+                    threads_per_worker=8)
     train()

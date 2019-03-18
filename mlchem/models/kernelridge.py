@@ -164,8 +164,7 @@ class KernelRidge(object):
 
         # We compute the calculations with dask and the result is converted
         # to numpy array.
-        kernel_matrix = np.array((dask.compute(*computations,
-                                  scheduler=self.scheduler)))
+        kernel_matrix = np.array((dask.compute(*computations)))
         self.K = kernel_matrix.reshape(dim, dim)
 
         """
@@ -176,8 +175,7 @@ class KernelRidge(object):
         for index, feature_space in enumerate(feature_space.items()):
             computations.append(self.get_lt(index))
 
-        self.LT = np.array((dask.compute(*computations,
-                                         scheduler=self.scheduler)))
+        self.LT = np.array((dask.compute(*computations)))
 
         build_time = time.time() - initial_time
 
