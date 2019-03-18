@@ -51,7 +51,7 @@ class KernelRidge(object):
         You have to set the path to .amp file. Useful for energy training with
         Cholesky factorization. Default is set to None.
     scheduler : str
-        The schedudler to be used with the dask backend.
+        The scheduler to be used with the dask backend.
     sum_rule : bool
         Whether or not we sum of fingerprintprime elements over a given axis.
         This applies np.sum(fingerprint_list, axis=0).
@@ -164,7 +164,8 @@ class KernelRidge(object):
 
         # We compute the calculations with dask and the result is converted
         # to numpy array.
-        kernel_matrix = np.array((dask.compute(*computations)))
+        kernel_matrix = np.array((dask.compute(*computations,
+                                                scheduler=self.scheduler)))
         self.K = kernel_matrix.reshape(dim, dim)
 
         """
@@ -175,7 +176,8 @@ class KernelRidge(object):
         for index, feature_space in enumerate(feature_space.items()):
             computations.append(self.get_lt(index))
 
-        self.LT = np.array((dask.compute(*computations)))
+        self.LT = np.array((dask.compute(*computations,
+                                         scheduler=self.scheduler)))
 
         build_time = time.time() - initial_time
 
