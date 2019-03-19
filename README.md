@@ -8,11 +8,11 @@ MLChem
 **MLChem** is machine learning for chemistry.
 
 This package is written in Python 3, and intends to offer modern and rich
-features to perform machine learning pipelines in chemistry.
+features to perform machine learning workflows for chemical physics.
 
 A list of features and methods are shown below.
 
-- Behler-Parrinelo Neural Networks, and Kernel Ridge Regression.
+- Atom-centered Neural Networks, and Kernel Ridge Regression for the prediction of total energies.
 - PyTorch backend.
 - GPU support.
 - ASE interface.
