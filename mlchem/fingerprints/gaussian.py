@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from mlchem.utils import get_neighborlist, convert_elapsed_time
+from mlchem.data.serialization import dump
 from sklearn.externals import joblib
 from .cutoff import Cosine
 from collections import OrderedDict
@@ -45,10 +46,11 @@ class Gaussian(object):
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
                  scaler='MinMaxScaler', defaults=None, save_scaler='mlchem',
-                 scheduler='distributed'):
+                 scheduler='distributed', filename='gaussian.fp'):
 
         self.cutoff = cutoff
         self.normalized = normalized
+        self.filename = filename
         self.scheduler = scheduler
         if scaler is None:
             self.scaler = scaler
@@ -233,6 +235,7 @@ class Gaussian(object):
               'seconds.' .format(h, m, s))
 
         if svm:
+            dump(feature_space, filename=self.filename)
             return feature_space, reference_space
         else:
             return feature_space

@@ -41,9 +41,6 @@ class KernelRidge(object):
         weights. This method returns an unique set of regression coefficients.
     weights_independent : bool
         Whether or not the weights are going to be split for energy and forces.
-    randomize_weights : bool
-        If set to True, weights are randomly started when minimizing the L2
-        loss function.
     forcetraining : bool
         Turn force training true.
     nnpartition : str
@@ -95,10 +92,9 @@ class KernelRidge(object):
         return cls.NAME
 
     def __init__(self, sigma=1., kernel='rbf', scheduler='distributed',
-                 lamda=1e-5, trainingimages=None, version=None,
-                 checkpoints=None, cholesky=True, weights_independent=True,
-                 randomize_weights=False, forcetraining=False, nnpartition=None,
-                 sum_rule=True):
+                 lamda=1e-5, trainingimages=None, checkpoints=None,
+                 cholesky=True, weights_independent=True, forcetraining=False,
+                 nnpartition=None, sum_rule=True):
 
         np.set_printoptions(precision=30, threshold=999999999)
         self.kernel = kernel
@@ -185,33 +181,18 @@ class KernelRidge(object):
         print('Kernel matrix built in {} hours {} minutes {:.2f} seconds.'
                .format(h, m, s))
 
-    def train(self, inputs, targets, model=None, data=None, optimizer=None,
-              lr=None, weight_decay=None, regularization=None, epochs=100,
-              convergence=None, lossfxn=None):
+    def train(self, inputs, targets, data=None):
         """Train the model
 
         Parameters
         ----------
         inputs : dict
             Dictionary with hashed feature space.
-        epochs : int
-            Number of full training cycles.
         targets : list
             The expected values that the model has to learn aka y.
-        model : object
-            The KernelRidge class.
         data : object
             DataSet object created from the handler.
-        lr : float
-            Learning rate.
-        weight_decay : float
-            Weight decay passed to the optimizer. Default is 0.
-        regularization : float
-            This is the L2 regularization. It is not the same as weight decay.
-        convergence : dict
-            Instead of using epochs, users can set a convergence criterion.
-        lossfxn : obj
-            A loss function object.
+
         """
         if isinstance(self.lamda, dict):
             lamda = self.lamda['energy']

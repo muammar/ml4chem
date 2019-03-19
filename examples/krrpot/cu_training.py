@@ -36,6 +36,6 @@ def train():
 
 
 if __name__ == '__main__':
-    cluster = LocalCluster(n_workers=2, threads_per_worker=2)
+    cluster = LocalCluster(n_workers=8, threads_per_worker=2)
     client = Client(cluster, asyncronous=True)
     train()
