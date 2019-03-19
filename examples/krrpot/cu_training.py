@@ -30,9 +30,7 @@ def train():
                       model=KernelRidge(),
                       label='cu_training')
 
-    calc.train(training_set=images, epochs=epochs, lr=lr,
-               weight_decay=weight_decay, regularization=regularization,
-               convergence=convergence)
+    calc.train(training_set=images)
 
 
 if __name__ == '__main__':
