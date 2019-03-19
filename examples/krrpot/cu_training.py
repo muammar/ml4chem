@@ -14,17 +14,6 @@ def train():
     # Arguments for fingerprinting the images
     normalized = True
 
-    # Arguments for building the model
-    n = 10
-    activation = 'relu'
-
-    # Arguments for training the potential
-    convergence = {'energy': 5e-3}
-    epochs = 100
-    lr = 1e-4
-    weight_decay = 0.
-    regularization = 0.
-
     calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
                                             save_scaler='cu_training'),
                       model=KernelRidge(),

@@ -145,6 +145,7 @@ class KernelRidge(object):
         print('Computing Kernel Matrix...')
         # We start populating computations with delayed functions to
         # operate with dask's scheduler
+        print('    Adding calculations to scheduler...')
         computations = []
         for hash, _feature_space in feature_space.items():
             f_map = []
@@ -158,16 +159,28 @@ class KernelRidge(object):
                     computations.append(kernel)
             self.fingerprint_map.append(f_map)
 
+        scheduler_time = time.time() - initial_time
+        h, m, s = convert_elapsed_time(scheduler_time)
+        print('    Calculations added in {} hours {} minutes {:.2f} seconds.'
+              .format(h, m, s))
+
         # We compute the calculations with dask and the result is converted
         # to numpy array.
-        kernel_matrix = np.array((dask.compute(*computations,
-                                                scheduler=self.scheduler)))
-        self.K = kernel_matrix.reshape(dim, dim)
+        print('    Evaluating kernel similarities...')
+
+        kernel_matrix = dask.compute(*computations, scheduler=self.scheduler)
+        self.K = np.array(kernel_matrix).reshape(dim, dim)
+
+        build_time = time.time() - initial_time
+        h, m, s = convert_elapsed_time(build_time)
+        print('Kernel matrix built in {} hours {} minutes {:.2f} seconds.'
+               .format(h, m, s))
 
         """
         LT Vectors
         """
         # We build the LT matrix needed for ADA
+        print('Building LT matrix')
         computations = []
         for index, feature_space in enumerate(feature_space.items()):
             computations.append(self.get_lt(index))
@@ -175,10 +188,10 @@ class KernelRidge(object):
         self.LT = np.array((dask.compute(*computations,
                                          scheduler=self.scheduler)))
 
-        build_time = time.time() - initial_time
 
-        h, m, s = convert_elapsed_time(build_time)
-        print('Kernel matrix built in {} hours {} minutes {:.2f} seconds.'
+        lt_time = time.time() - initial_time
+        h, m, s = convert_elapsed_time(lt_time)
+        print('LT matrix built in {} hours {} minutes {:.2f} seconds.'
                .format(h, m, s))
 
     def train(self, inputs, targets, data=None):
