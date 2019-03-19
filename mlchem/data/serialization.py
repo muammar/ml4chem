@@ -10,10 +10,8 @@ def dump(arr, filename='data.db'):
     arr : dict or array
         A dictionary or array containting data to be saved to file using
         msgpack.
-    binary : bool
-        Whether or not we are storing in binary format.
     filename : str
-        Name of file.
+        Name of file to save in disk.
     """
 
     with open(filename, 'wb') as f:
@@ -26,7 +24,7 @@ def load(filename):
     Parameters
     ----------
     filename : str
-        Name of file.
+        Name of file to load from disk.
     """
 
     with open(filename, 'rb') as f:
