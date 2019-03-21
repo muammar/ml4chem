@@ -29,7 +29,7 @@ class AutoEncoder(torch.nn.Module):
         return cls.NAME
 
     def __init__(self, hiddenlayers=(3, 3), activation='relu'):
-        super(NeuralNetwork, self).__init__()
+        super(AutoEncoder, self).__init__()
         self.hiddenlayers = hiddenlayers
         self.activation = activation
 

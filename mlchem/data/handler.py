@@ -30,6 +30,7 @@ class DataSet(object):
         self.unique_element_symbols = None
 
         if self.is_valid_structure(images) is False:
+            print('Data structure is not compatible with MLChem')
             self.prepare_images(images, purpose=purpose)
 
     def prepare_images(self, images, purpose=None):

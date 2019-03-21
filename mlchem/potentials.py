@@ -142,7 +142,8 @@ class Potentials(Calculator, object):
             This is the L2 regularization. It is not the same as weight decay.
         """
 
-        data_handler = DataSet(training_set, self.model, purpose='training')
+        data_handler = DataSet(training_set, model=self.model,
+                               purpose='training')
 
         # Raw input and targets aka X, y
         training_set, targets = data_handler.get_images(purpose='training')
@@ -194,7 +195,7 @@ class Potentials(Calculator, object):
         Calculator.calculate(self, atoms, properties, system_changes)
 
         # We convert the atoms in atomic fingerprints
-        data_handler = DataSet([atoms], self.model, purpose='inference')
+        data_handler = DataSet([atoms], model=self.model, purpose='inference')
         atoms = data_handler.get_images(purpose='inference')
 
         # We copy the loaded fingerprint class
