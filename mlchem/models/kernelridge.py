@@ -2,6 +2,7 @@ import time
 import dask
 import numpy as np
 from mlchem.utils import convert_elapsed_time, get_chunks
+from collections import OrderedDict
 from scipy.linalg import cholesky
 
 
@@ -105,6 +106,21 @@ class KernelRidge(object):
         self.scheduler = scheduler
         self.lamda = lamda
         self.batch_size = batch_size
+
+        # Let's add parameters that are going to be stored in the .params json
+        # file.
+        self.params = OrderedDict()
+        self.params['name'] = self.name()
+
+        # This is a very general way of not forgetting to save variables
+        _params = vars()
+
+        # Delete useless variables
+        del _params['self']
+
+        for k, v in _params.items():
+            if v is not None:
+                self.params[k] = v
 
     def prepare_model(self, feature_space, reference_features, data=None,
                       purpose='training'):
@@ -225,20 +241,25 @@ class KernelRidge(object):
             DataSet object created from the handler.
 
         """
+        self.weights = {}
+
         if isinstance(self.lamda, dict):
             lamda = self.lamda['energy']
         else:
             lamda = self.lamda
+
         size = len(targets)
         I_e = np.identity(size)
         K = self.LT.dot(self.K).dot(self.LT.T)
         print('Size of the Kernel matrix is {}.' .format(K.shape))
+        print('Starting Cholesky Factorization...')
         cholesky_U = cholesky((K + lamda * I_e))
+        print('Cholesky Factorization finished...')
         betas = np.linalg.solve(cholesky_U.T, targets)
         _weights = np.linalg.solve(cholesky_U, betas)
-        weights = [w * g for index, w in enumerate(_weights) for
-                   g in self.fingerprint_map[index]]
-        print(weights)
+        _weights = [w * g for index, w in enumerate(_weights) for
+                    g in self.fingerprint_map[index]]
+        self.weights['energy'] = _weights
 
     @dask.delayed
     def get_lt(self, index):

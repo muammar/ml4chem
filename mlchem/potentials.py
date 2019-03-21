@@ -3,8 +3,8 @@ import codecs
 import copy
 import json
 import torch
-
 from mlchem.data.handler import DataSet
+from mlchem.data.serialization import dump
 from mlchem.backends.available import available_backends
 
 
@@ -107,13 +107,18 @@ class Potentials(Calculator, object):
                                 'hiddenlayers': model.hiddenlayers,
                                 'activation': model.activation}}
 
-            params.update(fingerprints)
+            torch.save(model.state_dict(), path + '.mlchem')
 
-            with open(path + '.params', 'wb') as json_file:
-                json.dump(params, codecs.getwriter('utf-8')(json_file),
+        else:
+            params = {'model': model.params}
+            dump(model.weights, path + '.mlchem')
+
+        params.update(fingerprints)
+
+        with open(path + '.params', 'wb') as json_file:
+            json.dump(params, codecs.getwriter('utf-8')(json_file),
                           ensure_ascii=False, indent=4)
 
-            torch.save(model.state_dict(), path + '.mlchem')
 
     def train(self, training_set, epochs=100, lr=0.001, convergence=None,
               device='cpu',  optimizer=None, lossfxn=None, weight_decay=0.,

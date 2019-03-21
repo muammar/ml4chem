@@ -64,7 +64,7 @@ class Gaussian(object):
         self.params = OrderedDict()
         self.params['name'] = self.name()
 
-        # This is a very general way of not forgetting save variables
+        # This is a very general way of not forgetting to save variables
         _params = vars()
 
         # Delete useless variables
