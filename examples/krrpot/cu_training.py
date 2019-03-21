@@ -16,7 +16,7 @@ def train():
 
     calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
                                             save_scaler='cu_training'),
-                      model=KernelRidge(),
+                      model=KernelRidge(batch_size=160),
                       label='cu_training')
 
     calc.train(training_set=images)

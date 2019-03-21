@@ -52,3 +52,14 @@ def convert_elapsed_time(seconds):
     hours, minutes = divmod(minutes, 60)
 
     return int(hours), int(minutes), seconds
+
+def get_chunks(sequence, chunk_size):
+    """A function that yields a list in chunks"""
+    res = []
+    for item in sequence:
+        res.append(item)
+        if len(res) >= chunk_size:
+            yield res
+            res = []
+    if res:
+        yield res  # yield the last, incomplete, portion

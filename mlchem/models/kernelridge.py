@@ -1,7 +1,7 @@
 import time
 import dask
 import numpy as np
-from mlchem.utils import convert_elapsed_time
+from mlchem.utils import convert_elapsed_time, get_chunks
 from scipy.linalg import cholesky
 
 
@@ -52,6 +52,9 @@ class KernelRidge(object):
     sum_rule : bool
         Whether or not we sum of fingerprintprime elements over a given axis.
         This applies np.sum(fingerprint_list, axis=0).
+    batch_size : int
+        Number of elements per batch in order to split computations. Useful
+        when number of local chemical environments is too large.
 
     Notes
     -----
@@ -94,17 +97,18 @@ class KernelRidge(object):
     def __init__(self, sigma=1., kernel='rbf', scheduler='distributed',
                  lamda=1e-5, trainingimages=None, checkpoints=None,
                  cholesky=True, weights_independent=True, forcetraining=False,
-                 nnpartition=None, sum_rule=True):
+                 nnpartition=None, sum_rule=True, batch_size=None):
 
         np.set_printoptions(precision=30, threshold=999999999)
         self.kernel = kernel
         self.sigma = sigma
         self.scheduler = scheduler
         self.lamda = lamda
+        self.batch_size = batch_size
 
     def prepare_model(self, feature_space, reference_features, data=None,
                       purpose='training'):
-        """Prepare the model
+        """Prepare the Kernel Ridge Regression model
 
         Parameters
         ----------
@@ -128,7 +132,8 @@ class KernelRidge(object):
             print('Model Training')
             print('==============')
             print('Model name: {}.'.format(self.name()))
-            print('Kernel Parameters:')
+            print('Kernel parameters:')
+            print('    - Kernel function: {}.' .format(self.kernel))
             print('    - Sigma: {}.' .format(self.sigma))
             print('    - Lamda: {}.' .format(self.lamda))
 
@@ -161,14 +166,27 @@ class KernelRidge(object):
 
         scheduler_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(scheduler_time)
-        print('    Calculations added in {} hours {} minutes {:.2f} seconds.'
-              .format(h, m, s))
+        print('    {} kernel evaluations added in {} hours {} minutes {:.2f}'
+              '  seconds.' .format(len(computations), h, m, s))
+
+        if self.batch_size is not None:
+            computations = list(get_chunks(computations, self.batch_size))
+            print('    The calculations were batched in groups of {}.'
+                  .format(self.batch_size))
 
         # We compute the calculations with dask and the result is converted
         # to numpy array.
-        print('    Evaluating kernel similarities...')
+        print('    Evaluating atomic similarities...')
 
-        kernel_matrix = dask.compute(*computations, scheduler=self.scheduler)
+        if self.batch_size is not None:
+            kernel_matrix = []
+            for i, chunk in enumerate(computations):
+                kernel_matrix.append(dask.compute(*chunk,
+                                     scheduler=self.scheduler))
+        else:
+            kernel_matrix = dask.compute(*computations,
+                                         scheduler=self.scheduler)
+
         self.K = np.array(kernel_matrix).reshape(dim, dim)
 
         build_time = time.time() - initial_time
