@@ -56,6 +56,8 @@ class KernelRidge(object):
     batch_size : int
         Number of elements per batch in order to split computations. Useful
         when number of local chemical environments is too large.
+    weights : dict
+        Dictionary of weights.
 
     Notes
     -----
@@ -98,7 +100,8 @@ class KernelRidge(object):
     def __init__(self, sigma=1., kernel='rbf', scheduler='distributed',
                  lamda=1e-5, trainingimages=None, checkpoints=None,
                  cholesky=True, weights_independent=True, forcetraining=False,
-                 nnpartition=None, sum_rule=True, batch_size=None):
+                 nnpartition=None, sum_rule=True, batch_size=None,
+                 weights=None):
 
         np.set_printoptions(precision=30, threshold=999999999)
         self.kernel = kernel
@@ -111,6 +114,7 @@ class KernelRidge(object):
         # file.
         self.params = OrderedDict()
         self.params['name'] = self.name()
+        self.params['type'] = 'svm'
 
         # This is a very general way of not forgetting to save variables
         _params = vars()
@@ -121,6 +125,14 @@ class KernelRidge(object):
         for k, v in _params.items():
             if v is not None:
                 self.params[k] = v
+
+        # Everything that is added here is not going to be part of the json
+        # params file
+        self.fingerprint_map = []
+        if weights is None:
+            self.weights = {}
+        else:
+            self.weights = weights
 
     def prepare_model(self, feature_space, reference_features, data=None,
                       purpose='training'):
@@ -153,9 +165,7 @@ class KernelRidge(object):
             print('    - Sigma: {}.' .format(self.sigma))
             print('    - Lamda: {}.' .format(self.lamda))
 
-        self.fingerprint_map = []
         dim = len(reference_features)
-        call = {'exponential': exponential, 'laplacian': laplacian, 'rbf': rbf}
 
         """
         Atomic kernel matrices
@@ -167,18 +177,9 @@ class KernelRidge(object):
         # We start populating computations with delayed functions to
         # operate with dask's scheduler
         print('    Adding calculations to scheduler...')
-        computations = []
-        for hash, _feature_space in feature_space.items():
-            f_map = []
-            for i_symbol, i_afp in _feature_space:
-                f_map.append(1)
-                for j_symbol, j_afp in reference_features:
-                    kernel = call[self.kernel](i_afp, j_afp,
-                                               i_symbol=i_symbol,
-                                               j_symbol=j_symbol,
-                                               sigma=self.sigma)
-                    computations.append(kernel)
-            self.fingerprint_map.append(f_map)
+
+        computations = self.get_kernel_matrix(feature_space,
+                                              reference_features)
 
         scheduler_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(scheduler_time)
@@ -194,21 +195,21 @@ class KernelRidge(object):
         # to numpy array.
         print('    Evaluating atomic similarities...')
 
-        if self.batch_size is not None:
+        if self.batch_size is None:
+            kernel_matrix = dask.compute(*computations,
+                                         scheduler=self.scheduler)
+        else:
             kernel_matrix = []
             for i, chunk in enumerate(computations):
                 kernel_matrix.append(dask.compute(*chunk,
                                      scheduler=self.scheduler))
-        else:
-            kernel_matrix = dask.compute(*computations,
-                                         scheduler=self.scheduler)
 
         self.K = np.array(kernel_matrix).reshape(dim, dim)
 
         build_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(build_time)
         print('Kernel matrix built in {} hours {} minutes {:.2f} seconds.'
-               .format(h, m, s))
+              .format(h, m, s))
 
         """
         LT Vectors
@@ -222,11 +223,30 @@ class KernelRidge(object):
         self.LT = np.array((dask.compute(*computations,
                                          scheduler=self.scheduler)))
 
-
         lt_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(lt_time)
         print('LT matrix built in {} hours {} minutes {:.2f} seconds.'
-               .format(h, m, s))
+              .format(h, m, s))
+
+    def get_kernel_matrix(self, feature_space, reference_features):
+        """Create computations to build kernel matrix"""
+
+        call = {'exponential': exponential, 'laplacian': laplacian, 'rbf': rbf}
+        computations = []
+
+        for hash, _feature_space in feature_space.items():
+            f_map = []
+            for i_symbol, i_afp in _feature_space:
+                f_map.append(1)
+                for j_symbol, j_afp in reference_features:
+                    kernel = call[self.kernel](i_afp, j_afp,
+                                               i_symbol=i_symbol,
+                                               j_symbol=j_symbol,
+                                               sigma=self.sigma)
+                    computations.append(kernel)
+            self.fingerprint_map.append(f_map)
+
+        return computations
 
     def train(self, inputs, targets, data=None):
         """Train the model
@@ -241,7 +261,6 @@ class KernelRidge(object):
             DataSet object created from the handler.
 
         """
-        self.weights = {}
 
         if isinstance(self.lamda, dict):
             lamda = self.lamda['energy']
@@ -260,6 +279,19 @@ class KernelRidge(object):
         _weights = [w * g for index, w in enumerate(_weights) for
                     g in self.fingerprint_map[index]]
         self.weights['energy'] = _weights
+
+    def get_potential_energy(self, fingerprints, reference_space):
+        """Get potential energy in KernelRidge"""
+        reference_space = reference_space[b'reference_space']
+        computations = self.get_kernel_matrix(fingerprints, reference_space)
+        kernel = np.array(dask.compute(*computations,
+                                       scheduler=self.scheduler))
+        weights = np.array(self.weights['energy'])
+        dim = int(kernel.shape[0] / weights.shape[0])
+        kernel = kernel.reshape(dim, len(weights))
+        energy_per_atom = np.dot(kernel, weights)
+        energy = np.sum(energy_per_atom)
+        return energy
 
     @dask.delayed
     def get_lt(self, index):

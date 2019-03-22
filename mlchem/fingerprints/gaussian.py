@@ -46,7 +46,7 @@ class Gaussian(object):
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
                  scaler='MinMaxScaler', defaults=None, save_scaler='mlchem',
-                 scheduler='distributed', filename='gaussian.fp'):
+                 scheduler='distributed', filename='fingerprints.db'):
 
         self.cutoff = cutoff
         self.normalized = normalized
@@ -179,14 +179,14 @@ class Gaussian(object):
             stacked_features = dask.array.from_array(stacked_features,
                                                      chunks=(d1 * d2, d3))
             scaler.fit(stacked_features.compute(scheduler=self.scheduler))
-            stacked_features \
-                = scaler.transform(stacked_features.compute(scheduler=self.scheduler))
+            stacked_features = scaler.transform(stacked_features.compute(
+                scheduler=self.scheduler))
 
             scaled_feature_space = stacked_features.reshape(d1, d2, d3)
 
             # Populate computations list with delayed functions
-
             computations = []
+
             if svm:
                 reference_space = []
 
@@ -207,10 +207,29 @@ class Gaussian(object):
                     computations.append(self.restack_image(
                         i, image, scaled_feature_space, svm=svm))
 
-            feature_space = dask.compute(*computations, scheduler=self.scheduler)
+            feature_space = dask.compute(*computations,
+                                         scheduler=self.scheduler)
+
             feature_space = OrderedDict(feature_space)
 
+            save_scaler_to_file(scaler, self.save_scaler)
+
+            fp_time = time.time() - initial_time
+
+            h, m, s = convert_elapsed_time(fp_time)
+            print('Fingerprinting finished in {} hours {} minutes {:.2f} '
+                  'seconds.' .format(h, m, s))
+
+            if svm:
+                data = {'feature_space': feature_space}
+                data.update({'reference_space': reference_space})
+                dump(data, filename=self.filename)
+                return feature_space, reference_space
+            else:
+                return feature_space
+
         elif purpose == 'inference':
+            feature_space = OrderedDict()
             scaled_feature_space = scaler.transform(stacked_features)
             index = 0
             # TODO this has to be parallelized.
@@ -219,26 +238,32 @@ class Gaussian(object):
                     feature_space[key] = []
                 for atom in image:
                     symbol = atom.symbol
-                    scaled = torch.tensor(scaled_feature_space[index],
-                                          requires_grad=True,
-                                          dtype=torch.float)
+
+                    if svm:
+                        scaled = scaled_feature_space[index]
+                        # TODO change this to something more elegant later
+                        try:
+                            self.reference_space
+                        except AttributeError:
+                            # If self.reference does not exist it means that
+                            # reference_space is being loaded by Messagepack.
+                            symbol = symbol.encode('utf-8')
+                    else:
+                        scaled = torch.tensor(scaled_feature_space[index],
+                                              requires_grad=True,
+                                              dtype=torch.float)
+
                     feature_space[key].append((symbol, scaled))
                     index += 1
 
-        if purpose == 'training' and self.scaler is not None:
-            save_scaler_to_file(scaler, self.save_scaler)
+            fp_time = time.time() - initial_time
 
-        fp_time = time.time() - initial_time
+            h, m, s = convert_elapsed_time(fp_time)
+            print('Fingerprinting finished in {} hours {} minutes {:.2f} '
+                  'seconds.' .format(h, m, s))
 
-        h, m, s = convert_elapsed_time(fp_time)
-        print('Fingerprinting finished in {} hours {} minutes {:.2f} '
-              'seconds.' .format(h, m, s))
-
-        if svm:
-            dump(feature_space, filename=self.filename)
-            return feature_space, reference_space
-        else:
             return feature_space
+
 
     @dask.delayed
     def restack_atom(self, image_index, atom, scaled_feature_space):

@@ -20,7 +20,7 @@ A list of features and methods are shown below.
 - Free software <3. No secrets! Pull requests and additions are more than welcome!
 - Good documentation (I hope!).
 - Explicit and idiomatic: `mlchem.get_me_a_coffee()`.
-- Parallelization powered by dask <3.
+- Scalability. Powered by Dask <3.
 - [Messagepack serialization](https://msgpack.org/index.html).
 
 
