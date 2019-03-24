@@ -4,7 +4,7 @@ import copy
 import json
 import torch
 from mlchem.data.handler import DataSet
-from mlchem.data.serialization import dump
+from mlchem.data.serialization import dump, load
 from mlchem.backends.available import available_backends
 
 
@@ -42,6 +42,9 @@ class Potentials(Calculator, object):
 
         print('Available backends', self.available_backends)
 
+        self.svm_models = ['KernelRidge']
+        self.reference_space = None
+
     @classmethod
     def load(Cls, model=None, params=None, scaler=None, **kwargs):
         """Load a model
@@ -60,20 +63,33 @@ class Potentials(Calculator, object):
 
         with open(params) as mlchem_params:
             mlchem_params = json.load(mlchem_params)
+            model_type = mlchem_params['model'].get('type')
 
-            # Instantiate the model class
-            model_params = mlchem_params['model']
-            del model_params['name']   # delete unneeded key, value
-            from mlchem.models.neuralnetwork import NeuralNetwork
-            model = NeuralNetwork(**model_params)
+            if model_type == 'svm':
+                model_params = mlchem_params['model']
+                del model_params['name']   # delete unneeded key, value
+                del model_params['type']   # delete unneeded key, value
+                from mlchem.models.kernelridge import KernelRidge
+                weights = load(model)
+                weights = {key.decode('utf-8'): value for key, value in
+                           weights.items()}
+                model_params.update({'weights': weights})
+                model = KernelRidge(**model_params)
+            else:
+                # Instantiate the model class
+                model_params = mlchem_params['model']
+                del model_params['name']   # delete unneeded key, value
+                del model_params['type']   # delete unneeded key, value
+                from mlchem.models.neuralnetwork import NeuralNetwork
+                model = NeuralNetwork(**model_params)
 
-            # Instatiation of fingerprint class
-            from mlchem.fingerprints import Gaussian
-            fingerprint_params = mlchem_params['fingerprints']
-            del fingerprint_params['name']
-            fingerprints = Gaussian(**fingerprint_params)
+        # Instatiation of fingerprint class
+        from mlchem.fingerprints import Gaussian
+        fingerprint_params = mlchem_params['fingerprints']
+        del fingerprint_params['name']
+        fingerprints = Gaussian(**fingerprint_params)
 
-            calc = Cls(fingerprints=fingerprints, model=model, **kwargs)
+        calc = Cls(fingerprints=fingerprints, model=model, **kwargs)
 
         return calc
 
@@ -91,6 +107,7 @@ class Potentials(Calculator, object):
         """
 
         model_name = model.name()
+        fingerprints = {'fingerprints': self.fingerprints.params}
 
         if path is None and label is None:
             path = 'model'
@@ -99,20 +116,19 @@ class Potentials(Calculator, object):
         else:
             path += label
 
-        fingerprints = {'fingerprints': self.fingerprints.params}
-
-        if model_name == 'PytorchPotentials':
+        if model_name in self.svm_models:
+            params = {'model': model.params}
+            dump(model.weights, path + '.mlchem')
+        else:
 
             params = {'model': {'name': model_name,
                                 'hiddenlayers': model.hiddenlayers,
-                                'activation': model.activation}}
+                                'activation': model.activation,
+                                'type': 'nn'}}
 
             torch.save(model.state_dict(), path + '.mlchem')
 
-        else:
-            params = {'model': model.params}
-            dump(model.weights, path + '.mlchem')
-
+        # Adding fingerprints to .params json file.
         params.update(fingerprints)
 
         with open(path + '.params', 'wb') as json_file:
@@ -154,7 +170,18 @@ class Potentials(Calculator, object):
         training_set, targets = data_handler.get_images(purpose='training')
 
         # Now let's train
-        if self.model.name() != 'KernelRidge':
+        if self.model.name() in self.svm_models:
+            # Mapping raw positions into a feature space aka X
+            feature_space, reference_features = \
+                    self.fingerprints.calculate_features(training_set,
+                                                         data=data_handler,
+                                                         purpose='training',
+                                                         svm=True)
+            self.model.prepare_model(feature_space, reference_features,
+                                     data=data_handler)
+
+            self.model.train(feature_space, targets)
+        else:
             # Mapping raw positions into a feature space aka X
             feature_space = self.fingerprints.calculate_features(
                     training_set,
@@ -172,17 +199,6 @@ class Potentials(Calculator, object):
                   optimizer=optimizer, lr=lr, weight_decay=weight_decay,
                   regularization=regularization, epochs=epochs,
                   convergence=convergence, lossfxn=lossfxn)
-        else:
-            # Mapping raw positions into a feature space aka X
-            feature_space, reference_features = \
-                    self.fingerprints.calculate_features(training_set,
-                                                         data=data_handler,
-                                                         purpose='training',
-                                                         svm=True)
-            self.model.prepare_model(feature_space, reference_features,
-                                     data=data_handler)
-
-            self.model.train(feature_space, targets)
 
         self.save(self.model, path=self.path, label=self.label)
 
@@ -198,6 +214,7 @@ class Potentials(Calculator, object):
         properties :
         """
         Calculator.calculate(self, atoms, properties, system_changes)
+        model_name = self.model.name()
 
         # We convert the atoms in atomic fingerprints
         data_handler = DataSet([atoms], model=self.model, purpose='inference')
@@ -206,20 +223,33 @@ class Potentials(Calculator, object):
         # We copy the loaded fingerprint class
         fingerprints = copy.deepcopy(self.fingerprints)
         fingerprints.scaler = self.scaler
-        fingerprints = fingerprints.calculate_features(atoms,
-                                                       data=data_handler,
-                                                       purpose='inference')
+        kwargs = {'data': data_handler, 'purpose':'inference'}
+
+        if model_name in self.svm_models:
+            kwargs.update({'svm': True})
+
+        fingerprints = fingerprints.calculate_features(atoms, **kwargs)
 
         if 'energy' in properties:
             print('Calculating energy')
-            input_dimension = len(list(fingerprints.values())[0][0][-1])
-            model = copy.deepcopy(self.model)
-            model.prepare_model(input_dimension, data=data_handler,
-                                purpose='inference')
-            model.load_state_dict(torch.load(self.mlchem_path),
-                                  strict=True)
-            model.eval()
-            energy = model(fingerprints)
+            if model_name in self.svm_models:
+
+                try:
+                    reference_space = load(self.reference_space)
+                except:
+                    raise('This is not a database...')
+
+                energy = self.model.get_potential_energy(fingerprints,
+                                                         reference_space)
+            else:
+                input_dimension = len(list(fingerprints.values())[0][0][-1])
+                model = copy.deepcopy(self.model)
+                model.prepare_model(input_dimension, data=data_handler,
+                                    purpose='inference')
+                model.load_state_dict(torch.load(self.mlchem_path),
+                                      strict=True)
+                model.eval()
+                energy = model(fingerprints).item()
 
             # Populate ASE's self.results dict
-            self.results['energy'] = energy.item()
+            self.results['energy'] = energy

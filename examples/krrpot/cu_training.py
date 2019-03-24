@@ -13,10 +13,11 @@ def train():
 
     # Arguments for fingerprinting the images
     normalized = True
+    batch_size = 160
 
     calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
                                             save_scaler='cu_training'),
-                      model=KernelRidge(batch_size=160),
+                      model=KernelRidge(batch_size=batch_size),
                       label='cu_training')
 
     calc.train(training_set=images)

@@ -10,8 +10,12 @@ def main():
     # Load the images with ASE
     images = Trajectory('cu_training.traj')
 
-    calc = Potentials.load(model='cu_training.mlchem', params='cu_training.params',
+    calc = Potentials.load(model='cu_training.mlchem',
+                           params='cu_training.params',
                            scaler='cu_training.scaler')
+
+    # Passage of fingerprint database with reference space
+    calc.reference_space = 'fingerprints.db'
 
     for atoms in images:
         energy = calc.get_potential_energy(atoms)
