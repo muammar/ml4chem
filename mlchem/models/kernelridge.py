@@ -272,7 +272,7 @@ class KernelRidge(object):
         K = self.LT.dot(self.K).dot(self.LT.T)
         print('Size of the Kernel matrix is {}.' .format(K.shape))
         print('Starting Cholesky Factorization...')
-        cholesky_U = cholesky((K + lamda * I_e))
+        cholesky_U = cholesky((K + (lamda * I_e)))
         print('Cholesky Factorization finished...')
         betas = np.linalg.solve(cholesky_U.T, targets)
         _weights = np.linalg.solve(cholesky_U, betas)

@@ -136,7 +136,7 @@ class Gaussian(object):
             self.scaler = None
 
         # We start populating computations with delayed functions to operate
-        # with dask's scheduler
+        # with dask's scheduler. These computations get fingerprints.
         computations = []
         for image in images.items():
             key, image = image
@@ -193,16 +193,15 @@ class Gaussian(object):
                 for i, image in enumerate(images.items()):
                     computations.append(self.restack_image(
                         i, image, scaled_feature_space, svm=svm))
-                    hash, image = image
 
-                    for atom in image:
+                    # image = (hash, ase_image) -> tuple
+                    for atom in image[1]:
                         reference_space.append(self.restack_atom(
                             i, atom, scaled_feature_space))
 
                 reference_space = dask.compute(*reference_space,
                                                scheduler=self.scheduler)
             else:
-
                 for i, image in enumerate(images.items()):
                     computations.append(self.restack_image(
                         i, image, scaled_feature_space, svm=svm))
@@ -231,12 +230,11 @@ class Gaussian(object):
         elif purpose == 'inference':
             feature_space = OrderedDict()
             scaled_feature_space = scaler.transform(stacked_features)
-            index = 0
             # TODO this has to be parallelized.
             for key, image in images.items():
                 if key not in feature_space.keys():
                     feature_space[key] = []
-                for atom in image:
+                for index, atom in enumerate(image):
                     symbol = atom.symbol
 
                     if svm:
@@ -254,7 +252,6 @@ class Gaussian(object):
                                               dtype=torch.float)
 
                     feature_space[key].append((symbol, scaled))
-                    index += 1
 
             fp_time = time.time() - initial_time
 
