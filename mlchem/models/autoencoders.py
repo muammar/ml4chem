@@ -130,7 +130,10 @@ class AutoEncoder(torch.nn.Module):
             _decoder = torch.nn.Linear(inp_dim,
                                        output_dimension)
             decoder.append(_decoder)
-            decoder.append(activation[self.activation]())
+            # According to this video https://youtu.be/xTU79Zs4XKY?t=416
+            # real numbered inputs need no activation function in the output
+            # layer
+            # decoder.append(activation[self.activation]())
 
             # Stacking up the layers.
             decoder = torch.nn.Sequential(*decoder)
@@ -262,6 +265,8 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     print(outputs)
     print('targets')
     print(targets)
+    print(outputs.size())
+    print(targets.size())
 
     #import matplotlib.pyplot as plt
     #plt.plot(list(range(epoch)), _loss, label='loss')

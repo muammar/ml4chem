@@ -37,9 +37,6 @@ def autoencode():
     Input
     """
 
-    for atoms in images:
-        for atom in atoms:
-            print(atom.position)
     features = Cartesian()
     inputs = features.calculate_features(training_set, data=data_handler)
 
