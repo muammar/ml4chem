@@ -1,5 +1,5 @@
-import time
 import datetime
+import time
 import torch
 
 from mlchem.backends.operations import BackendOperations as backend
@@ -80,12 +80,16 @@ class AutoEncoder(NeuralNetwork, torch.nn.Module):
 
         symbol_encoder_pair = []
         symbol_decoder_pair = []
-        self.output_layer_index = {}
 
         for symbol in unique_element_symbols:
             encoder = []
             encoder_layers = self.hiddenlayers['encoder']
+            decoder = []
+            decoder_layers = self.hiddenlayers['decoder']
 
+            """
+            Encoder
+            """
             # The first encoder layer for symbol
             out_dimension = encoder_layers[0]
             _encoder = torch.nn.Linear(input_dimension,
@@ -93,25 +97,43 @@ class AutoEncoder(NeuralNetwork, torch.nn.Module):
             encoder.append(_encoder)
             encoder.append(activation[self.activation]())
 
-            inp_dimension = out_dimension
-
-            for nodes in encoder_layers:
-                _encoder = torch.nn.Linear(inp_dimension, nodes)
+            for inp_dim, out_dim in zip(encoder_layers, encoder_layers[1:]):
+                _encoder = torch.nn.Linear(inp_dim, out_dim)
                 encoder.append(_encoder)
                 encoder.append(activation[self.activation]())
-                inp_dimension = nodes
 
             # Stacking up the layers.
             encoder = torch.nn.Sequential(*encoder)
             symbol_encoder_pair.append([symbol, encoder])
 
+            """
+            Decoder
+            """
+            for inp_dim, out_dim in zip(decoder_layers, decoder_layers[1:]):
+                _decoder = torch.nn.Linear(inp_dim, out_dim)
+                decoder.append(_decoder)
+                decoder.append(activation[self.activation]())
+
+            # The last decoder layer for symbol
+            inp_dim = out_dim
+            _decoder = torch.nn.Linear(inp_dim,
+                                       output_dimension)
+            decoder.append(_decoder)
+            decoder.append(activation[self.activation]())
+
+            # Stacking up the layers.
+            decoder = torch.nn.Sequential(*decoder)
+            symbol_decoder_pair.append([symbol, decoder])
+
         self.encoders = torch.nn.ModuleDict(symbol_encoder_pair)
+        self.decoders = torch.nn.ModuleDict(symbol_decoder_pair)
         print(self.encoders)
+        print(self.decoders)
 
         if purpose == 'training':
-            print(self.linears)
             # Iterate over all modules and just intialize those that are
             # a linear layer.
+            print('Initialization of weights.')
             for m in self.modules():
                 if isinstance(m, torch.nn.Linear):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
