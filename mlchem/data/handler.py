@@ -18,12 +18,10 @@ class DataSet(object):
     ----------
     images : list or object
         List of images.
-    model : object
-        The model can determine the data structure.
     purpose : str
         Are we needing the data for training or inferring?
     """
-    def __init__(self, images, model=None, purpose=None):
+    def __init__(self, images, purpose=None):
 
         self.images = None
         self.targets = None
@@ -151,9 +149,6 @@ class DataSet(object):
         purpose : str
             The purpose of the data so that structure is prepared accordingly.
             Supported are: 'training', 'inference'
-        model_name : str
-            The model that is going to be used. Supported models are
-            'NeuralNetwork'.
         """
 
         if purpose == 'training':

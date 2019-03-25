@@ -4,6 +4,7 @@ import torch
 
 from mlchem.backends.operations import BackendOperations as backend
 from mlchem.data.visualization import parity
+from mlchem.models.loss import RMSELoss
 from mlchem.utils import convert_elapsed_time
 
 torch.set_printoptions(precision=10)
@@ -62,7 +63,6 @@ class NeuralNetwork(torch.nn.Module):
         unique_element_symbols = data.unique_element_symbols[purpose]
 
         symbol_model_pair = []
-        self.output_layer_index = {}
 
         for symbol in unique_element_symbols:
             linears = []
@@ -101,7 +101,6 @@ class NeuralNetwork(torch.nn.Module):
                 elif index == len(self.hiddenlayers):
                     inp_dimension = self.hiddenlayers[index - 1]
                     out_dimension = 1
-                    self.output_layer_index[symbol] = index
                     _linear = torch.nn.Linear(inp_dimension, out_dimension)
                     linears.append(_linear)
                 # These are hidden-layers
@@ -224,7 +223,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         outputs = model(inputs)
 
         if lossfxn is None:
-            loss, rmse = loss_function(outputs, targets, optimizer, data)
+            loss, rmse = RMSELoss(outputs, targets, optimizer, data)
         else:
             raise('I do not know what to do')
 
@@ -258,46 +257,3 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     plt.show()
 
     parity(outputs.detach().numpy(), targets.detach().numpy())
-
-
-def loss_function(outputs, targets, optimizer, data):
-    """Default loss function
-
-    If user does not input loss function we provide mean-squared error loss
-    function.
-
-    Parameters
-    ----------
-    outputs : tensor
-        Outputs of the model.
-    targets : tensor
-        Expected value of outputs.
-    optimizer : obj
-        An optimizer object to minimize the loss function error.
-    data : obj
-        A data object from mlchem.
-
-    Returns
-    -------
-    loss : tensor
-        The value of the loss function.
-    rmse : float
-        Value of the root-mean squared error per atom.
-    """
-
-    optimizer.zero_grad()  # clear previous gradients
-
-    criterion = torch.nn.MSELoss(reduction='sum')
-    atoms_per_image = torch.tensor(data.atoms_per_image,
-                                   requires_grad=False,
-                                   dtype=torch.float)
-    outputs_atom = torch.div(outputs, atoms_per_image)
-    targets_atom = torch.div(targets, atoms_per_image)
-
-    loss = criterion(outputs_atom, targets_atom) * .5
-    loss.backward()
-    optimizer.step()
-
-    rmse = torch.sqrt(loss).item()
-
-    return loss, rmse

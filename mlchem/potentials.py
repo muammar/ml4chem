@@ -163,8 +163,7 @@ class Potentials(Calculator, object):
             This is the L2 regularization. It is not the same as weight decay.
         """
 
-        data_handler = DataSet(training_set, model=self.model,
-                               purpose='training')
+        data_handler = DataSet(training_set, purpose='training')
 
         # Raw input and targets aka X, y
         training_set, targets = data_handler.get_images(purpose='training')
@@ -213,17 +212,18 @@ class Potentials(Calculator, object):
             List if images in ASE format.
         properties :
         """
+        purpose = 'inference'
         Calculator.calculate(self, atoms, properties, system_changes)
         model_name = self.model.name()
 
         # We convert the atoms in atomic fingerprints
-        data_handler = DataSet([atoms], model=self.model, purpose='inference')
-        atoms = data_handler.get_images(purpose='inference')
+        data_handler = DataSet([atoms], purpose=purpose)
+        atoms = data_handler.get_images(purpose=purpose)
 
         # We copy the loaded fingerprint class
         fingerprints = copy.deepcopy(self.fingerprints)
         fingerprints.scaler = self.scaler
-        kwargs = {'data': data_handler, 'purpose':'inference'}
+        kwargs = {'data': data_handler, 'purpose': purpose}
 
         if model_name in self.svm_models:
             kwargs.update({'svm': True})
@@ -245,7 +245,7 @@ class Potentials(Calculator, object):
                 input_dimension = len(list(fingerprints.values())[0][0][-1])
                 model = copy.deepcopy(self.model)
                 model.prepare_model(input_dimension, data=data_handler,
-                                    purpose='inference')
+                                    purpose=purpose)
                 model.load_state_dict(torch.load(self.mlchem_path),
                                       strict=True)
                 model.eval()

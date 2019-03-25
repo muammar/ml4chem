@@ -219,8 +219,9 @@ class Gaussian(object):
             print('Fingerprinting finished in {} hours {} minutes {:.2f} '
                   'seconds.' .format(h, m, s))
 
+            data = {'feature_space': feature_space}
+
             if svm:
-                data = {'feature_space': feature_space}
                 data.update({'reference_space': reference_space})
                 dump(data, filename=self.filename)
                 return feature_space, reference_space
