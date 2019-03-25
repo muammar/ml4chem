@@ -68,7 +68,9 @@ def RMSELossAE(outputs, targets, optimizer):
 
     optimizer.zero_grad()  # clear previous gradients
 
-    criterion = torch.nn.MSELoss(reduction='sum')
+    criterion = torch.nn.MSELoss(reduction='mean')
+    # TODO verify this is the correct form
+    # loss = criterion(outputs, targets) * .5
     loss = criterion(outputs, targets)
     loss.backward()
     optimizer.step()

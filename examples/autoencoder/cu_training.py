@@ -54,11 +54,10 @@ def autoencode():
     autoencoder.prepare_model(3, 3, data=data_handler)
     # Arguments for training the potential
     convergence = {'rmse': 5e-3}
-    convergence = None
     epochs = 2000
     lr = 1e-3
-    weight_decay = 0.
-    regularization = 0.
+    weight_decay = 0
+    regularization = None
 
     targets = [atom.position for atoms in images for atom in atoms]
 
