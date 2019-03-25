@@ -6,11 +6,17 @@
 .. mdinclude:: ../../README.md
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    license
    docs
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Machine Learning Potentials:
+
+   models
 
 
 Indices and tables
