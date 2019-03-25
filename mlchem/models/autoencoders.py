@@ -2,16 +2,27 @@ import datetime
 import time
 import torch
 
-from mlchem.backends.operations import BackendOperations as backend
 from mlchem.data.visualization import parity
-from mlchem.models.neuralnetwork import NeuralNetwork
+from mlchem.models.loss import RMSELossAE
 from mlchem.utils import convert_elapsed_time
 
 torch.set_printoptions(precision=10)
 
 
-class AutoEncoder(NeuralNetwork, torch.nn.Module):
+class AutoEncoder(torch.nn.Module):
     """A Vanilla autoencoder with Pytorch
+
+
+    AutoEncoders are very intersting models where usually the input is
+    reconstructed (input equals output). These models are able to learn data
+    codings in an unsupervised manner. They are composed by an encoder that
+    takes an input and concentrate (encodes) the information in a lower/larger
+    dimension (latent space). Subsequently, a decoder takes the latent space
+    and tries to resconstruct the input. However, when the output is not equal
+    to the input, the model learns how to 'translate' input into output e.g.
+    image coloring.
+
+    This module uses autoencoders for pipelines in chemistry.
 
     Parameters
     ----------
@@ -139,134 +150,123 @@ class AutoEncoder(NeuralNetwork, torch.nn.Module):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
                     torch.nn.init.xavier_uniform_(m.weight)
 
-    #def forward(self, X):
-    #    """Forward propagation
+    def forward(self, X):
+        """Forward propagation
 
-    #    This is forward propagation and it returns the atomic energy.
+        This method takes an input and applies encoder and decoder layers.
 
-    #    Parameters
-    #    ----------
-    #    X : list
-    #        List of inputs in the feature space.
+        Parameters
+        ----------
+        X : list
+            List of inputs either raw or in the feature space.
 
-    #    Returns
-    #    -------
-    #    outputs : tensor
-    #        A list of tensors with energies per image.
-    #    """
+        Returns
+        -------
+        outputs : tensor
+            Decoded latent vector.
+        """
 
-    #    outputs = []
-
-    #    for hash in X:
-    #        image = X[hash]
-    #        atomic_energies = []
-
-    #        for symbol, x in image:
-    #            x = self.linears[symbol](x)
-
-    #            intercept_name = 'intercept_' + symbol
-    #            slope_name = 'slope_' + symbol
-    #            slope = getattr(self, slope_name)
-    #            intercept = getattr(self, intercept_name)
-
-    #            x = (slope * x) + intercept
-    #            atomic_energies.append(x)
-
-    #        atomic_energies = torch.cat(atomic_energies)
-    #        image_energy = torch.sum(atomic_energies)
-    #        outputs.append(image_energy)
-    #    outputs = torch.stack(outputs)
-    #    return outputs
+        outputs = []
+        #latent_space = {}
+        for hash, image in X.items():
+            #latent_space[hash] = []
+            for symbol, x in image:
+                latent_vector = self.encoders[symbol](x)
+                decoder = self.decoders[symbol](latent_vector)
+                outputs.append(decoder)
+        outputs = torch.stack(outputs)
+        return outputs
 
 
-#def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
-#          weight_decay=None, regularization=None, epochs=100, convergence=None,
-#          lossfxn=None):
-#    """Train the model
-#
-#    Parameters
-#    ----------
-#    inputs : dict
-#        Dictionary with hashed feature space.
-#    epochs : int
-#        Number of full training cycles.
-#    targets : list
-#        The expected values that the model has to learn aka y.
-#    model : object
-#        The NeuralNetwork class.
-#    data : object
-#        DataSet object created from the handler.
-#    lr : float
-#        Learning rate.
-#    weight_decay : float
-#        Weight decay passed to the optimizer. Default is 0.
-#    regularization : float
-#        This is the L2 regularization. It is not the same as weight decay.
-#    convergence : dict
-#        Instead of using epochs, users can set a convergence criterion.
-#    lossfxn : obj
-#        A loss function object.
-#    """
-#
-#    # old_state_dict = {}
-#
-#    # for key in model.state_dict():
-#    #     old_state_dict[key] = model.state_dict()[key].clone()
-#
-#    targets = torch.tensor(targets, requires_grad=False)
-#
-#    # Define optimizer
-#    if optimizer is None:
-#        optimizer = torch.optim.Adam(model.parameters(), lr=lr,
-#                                     weight_decay=weight_decay)
-#
-#    print()
-#    print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp', 'Loss'))
-#    print('{:6s} {:19s} {:8s}'.format('------',
-#                                      '-------------------', '---------'))
-#    initial_time = time.time()
-#
-#    _loss = []
-#    _rmse = []
-#    epoch = 0
-#
-#    while True:
-#        epoch += 1
-#
-#        outputs = model(inputs)
-#
-#        if lossfxn is None:
-#            loss, rmse = loss_function(outputs, targets, optimizer, data)
-#        else:
-#            raise('I do not know what to do')
-#
-#        _loss.append(loss)
-#        _rmse.append(rmse)
-#
-#        ts = time.time()
-#        ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
-#                                                          '%H:%M:%S')
-#        print('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
-#
-#        if convergence is None and epoch == epochs:
-#            break
-#        elif (convergence is not None and rmse < convergence['energy']):
-#            break
-#
-#    training_time = time.time() - initial_time
-#
-#    h, m, s = convert_elapsed_time(training_time)
-#    print('Training finished in {} hours {} minutes {:.2f} seconds.'
-#          .format(h, m, s))
-#    print('outputs')
-#    print(outputs)
-#    print('targets')
-#    print(targets)
-#
-#    import matplotlib.pyplot as plt
-#    plt.plot(list(range(epoch)), _loss, label='loss')
-#    plt.plot(list(range(epoch)), _rmse, label='rmse/atom')
-#    plt.legend(loc='upper left')
-#    plt.show()
-#
-#    parity(outputs.detach().numpy(), targets.detach().numpy())
+def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
+          weight_decay=None, regularization=None, epochs=100, convergence=None,
+          lossfxn=None):
+    """Train the model
+
+    Parameters
+    ----------
+    inputs : dict
+        Dictionary with hashed feature space.
+    epochs : int
+        Number of full training cycles.
+    targets : list
+        The expected values that the model has to learn aka y.
+    model : object
+        The NeuralNetwork class.
+    data : object
+        DataSet object created from the handler.
+    lr : float
+        Learning rate.
+    weight_decay : float
+        Weight decay passed to the optimizer. Default is 0.
+    regularization : float
+        This is the L2 regularization. It is not the same as weight decay.
+    convergence : dict
+        Instead of using epochs, users can set a convergence criterion.
+            >>> convergence ={'rmse': 5e-3}
+
+    lossfxn : obj
+        A loss function object.
+    """
+
+    # old_state_dict = {}
+
+    # for key in model.state_dict():
+    #     old_state_dict[key] = model.state_dict()[key].clone()
+
+    targets = torch.tensor(targets, requires_grad=False, dtype=torch.float)
+
+    # Define optimizer
+    if optimizer is None:
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr,
+                                     weight_decay=weight_decay)
+
+    print()
+    print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp', 'Loss'))
+    print('{:6s} {:19s} {:8s}'.format('------',
+                                      '-------------------', '---------'))
+    initial_time = time.time()
+
+    _loss = []
+    _rmse = []
+    epoch = 0
+
+    while True:
+        epoch += 1
+        outputs = model(inputs)
+
+        if lossfxn is None:
+            loss, rmse = RMSELossAE(outputs, targets, optimizer)
+        else:
+            raise('I do not know what to do')
+
+        _loss.append(loss)
+        _rmse.append(rmse)
+
+        ts = time.time()
+        ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
+                                                          '%H:%M:%S')
+        print('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
+
+        if convergence is None and epoch == epochs:
+            break
+        elif (convergence is not None and rmse < convergence['rmse']):
+            break
+
+    training_time = time.time() - initial_time
+
+    h, m, s = convert_elapsed_time(training_time)
+    print('Training finished in {} hours {} minutes {:.2f} seconds.'
+          .format(h, m, s))
+    print('outputs')
+    print(outputs)
+    print('targets')
+    print(targets)
+
+    #import matplotlib.pyplot as plt
+    #plt.plot(list(range(epoch)), _loss, label='loss')
+    #plt.plot(list(range(epoch)), _rmse, label='rmse/atom')
+    #plt.legend(loc='upper left')
+    #plt.show()
+
+    #parity(outputs.detach().numpy(), targets.detach().numpy())

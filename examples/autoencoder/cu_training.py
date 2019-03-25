@@ -3,11 +3,11 @@ from dask.distributed import Client, LocalCluster
 import sys
 sys.path.append('../../')
 from mlchem.data.handler import DataSet
-from mlchem.fingerprints import Gaussian
-from mlchem.models.autoencoders import AutoEncoder
+from mlchem.fingerprints import Cartesian
+from mlchem.models.autoencoders import AutoEncoder, train
 
 
-def train():
+def autoencode():
     # Load the images with ASE
     images = Trajectory('cu_training.traj')
     purpose = 'training'
@@ -21,42 +21,56 @@ def train():
     data_handler = DataSet(images, purpose=purpose)
     training_set, targets = data_handler.get_images(purpose=purpose)
 
-    """
-    Let's create the outputs of the model
-    """
-    fingerprints = Gaussian(cutoff=6.5, normalized=normalized,
-                            save_scaler='cu_training')
+    #"""
+    #Let's create the outputs of the model
+    #"""
+    #fingerprints = Gaussian(cutoff=6.5, normalized=normalized,
+    #                        save_scaler='cu_training')
 
-    outputs = fingerprints.calculate_features(training_set,
-                                              data=data_handler,
-                                              purpose=purpose,
-                                              svm=False)
+    #outputs = fingerprints.calculate_features(training_set,
+    #                                          data=data_handler,
+    #                                          purpose=purpose,
+    #                                          svm=False)
+    #output_dimension = len(list(outputs.values())[0][0][1])
+
+    """
+    Input
+    """
+
+    for atoms in images:
+        for atom in atoms:
+            print(atom.position)
+    features = Cartesian()
+    inputs = features.calculate_features(training_set, data=data_handler)
+
     """
     Building AutoEncoder
     """
     # Arguments for building the model
-    hiddenlayers = {'encoder': (10, 5),
-                    'decoder': (5, 10)}
-    activation = 'relu'
+    hiddenlayers = {'encoder': (20, 10, 5),
+                    'decoder': (5, 10, 20)}
+    activation = 'tanh'
     autoencoder = AutoEncoder(hiddenlayers=hiddenlayers,
                               activation=activation)
 
-    output_dimension = len(list(outputs.values())[0][0][1])
+    data_handler.get_unique_element_symbols(images, purpose=purpose)
+    autoencoder.prepare_model(3, 3, data=data_handler)
+    # Arguments for training the potential
+    convergence = {'rmse': 5e-3}
+    convergence = None
+    epochs = 2000
+    lr = 1e-3
+    weight_decay = 0.
+    regularization = 0.
 
-    autoencoder.prepare_model(3, output_dimension, data=data_handler)
-    ## Arguments for training the potential
-    #convergence = {'energy': 5e-3}
-    #epochs = 100
-    #lr = 1e-4
-    #weight_decay = 0.
-    #regularization = 0.
+    targets = [atom.position for atoms in images for atom in atoms]
 
-    #calc.train(training_set=images, epochs=epochs, lr=lr,
-    #           weight_decay=weight_decay, regularization=regularization,
-    #           convergence=convergence)
-
+    train(inputs, targets, model=autoencoder, data=data_handler,
+            optimizer=None, lr=lr, weight_decay=weight_decay,
+            regularization=regularization, epochs=epochs,
+            convergence=convergence, lossfxn=None)
 
 if __name__ == '__main__':
     cluster = LocalCluster()
     client = Client(cluster, asyncronous=True)
-    train()
+    autoencode()

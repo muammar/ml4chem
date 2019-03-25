@@ -2,7 +2,6 @@ import time
 import datetime
 import torch
 
-from mlchem.backends.operations import BackendOperations as backend
 from mlchem.data.visualization import parity
 from mlchem.models.loss import RMSELoss
 from mlchem.utils import convert_elapsed_time

@@ -89,8 +89,8 @@ class Gaussian(object):
 
         Parameters
         ----------
-        image : ase object, list
-            A list of atoms.
+        image : dict
+            Hashed images using the DataSet class.
         purpose : str
             The supported purposes are: 'training', 'inference'.
         data : obj
@@ -373,6 +373,8 @@ class Gaussian(object):
 
         Parameters
         ----------
+        atom : object
+            An ASE atom object.
         image : ase object, list
             List of atoms in an image.
         index : int
