@@ -2,7 +2,7 @@ import datetime
 import time
 import torch
 
-from mlchem.data.visualization import parity
+from collections import OrderedDict
 from mlchem.models.loss import RMSELossAE
 from mlchem.utils import convert_elapsed_time
 
@@ -59,7 +59,7 @@ class AutoEncoder(torch.nn.Module):
         self.activation = activation
 
     def prepare_model(self, input_dimension, output_dimension, data=None,
-            purpose='training'):
+                      purpose='training'):
         """Prepare the model
 
         Parameters
@@ -76,13 +76,11 @@ class AutoEncoder(torch.nn.Module):
         activation = {'tanh': torch.nn.Tanh, 'relu': torch.nn.ReLU,
                       'celu': torch.nn.CELU}
 
-        #hl = len(self.hiddenlayers)
         if purpose == 'training':
             print()
             print('Model Training')
             print('==============')
             print('Model name: {}.'.format(self.name()))
-            #print('Number of hidden-layers: {}' .format(hl))
             print('Structure of Neural Net: {}'
                   .format('(input, ' + str(self.hiddenlayers)[1:-1] +
                           ', output)'))
@@ -170,15 +168,49 @@ class AutoEncoder(torch.nn.Module):
         """
 
         outputs = []
-        #latent_space = {}
         for hash, image in X.items():
-            #latent_space[hash] = []
             for symbol, x in image:
                 latent_vector = self.encoders[symbol](x)
                 decoder = self.decoders[symbol](latent_vector)
                 outputs.append(decoder)
         outputs = torch.stack(outputs)
         return outputs
+
+    def get_latent_space(self, X, svm=False):
+        """Get latent space for training MLChem
+
+        This method takes an input and use the encoder to return latent space
+        in the structure needed for training MLChem.
+
+        Parameters
+        ----------
+        X : list
+            List of inputs either raw or in the feature space.
+        svm : bool
+            Whether or not these latent vectors are going to be used for kernel
+            methods.
+
+        Returns
+        -------
+        latent_space : dict
+            Latent space with structure: {'hash': [('H', [latent_vector]]}
+        """
+
+        latent_space = OrderedDict()
+
+        for hash, image in X.items():
+            latent_space[hash] = []
+            for symbol, x in image:
+                latent_vector = self.encoders[symbol](x)
+
+                if svm:
+                    _latent_vector = latent_vector.detach().numpy()
+                else:
+                    _latent_vector = latent_vector.detach()
+
+                latent_space[hash].append((symbol, _latent_vector))
+
+        return latent_space
 
 
 def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
@@ -265,13 +297,3 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     print(outputs)
     print('targets')
     print(targets)
-    print(outputs.size())
-    print(targets.size())
-
-    #import matplotlib.pyplot as plt
-    #plt.plot(list(range(epoch)), _loss, label='loss')
-    #plt.plot(list(range(epoch)), _rmse, label='rmse/atom')
-    #plt.legend(loc='upper left')
-    #plt.show()
-
-    #parity(outputs.detach().numpy(), targets.detach().numpy())

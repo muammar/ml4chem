@@ -65,6 +65,7 @@ def autoencode():
             optimizer=None, lr=lr, weight_decay=weight_decay,
             regularization=regularization, epochs=epochs,
             convergence=convergence, lossfxn=None)
+    print(autoencoder.get_latent_space(inputs))
 
 if __name__ == '__main__':
     cluster = LocalCluster()
