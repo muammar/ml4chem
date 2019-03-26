@@ -197,6 +197,8 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         Calculation can be run in the cpu or cuda (gpu).
     """
 
+    initial_time = time.time()
+
     # old_state_dict = {}
 
     # for key in model.state_dict():
@@ -205,7 +207,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     targets = torch.tensor(targets, requires_grad=False)
 
     if device == 'cuda':
-        print('Moving data to CUDA')
+        print('Moving data to CUDA...')
         targets = targets.cuda()
         _inputs = OrderedDict()
         for hash, f in inputs.items():
@@ -215,6 +217,11 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
                 _inputs[hash].append((symbol, vector.cuda()))
 
         inputs = _inputs
+
+        move_time = time.time() - initial_time
+        h, m, s = convert_elapsed_time(move_time)
+        print('Data moved to GPU in {} hours {} minutes {:.2f} seconds.'
+              .format(h, m, s))
 
     # Define optimizer
     if optimizer is None:
@@ -230,7 +237,6 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
                                              '-------------------',
                                              '------------',
                                              '---------'))
-    initial_time = time.time()
 
     _loss = []
     _rmse = []
