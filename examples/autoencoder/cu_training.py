@@ -19,7 +19,7 @@ def autoencode():
     Data Structure Preparation
     """
     data_handler = DataSet(images, purpose=purpose)
-    training_set, targets = data_handler.get_images(purpose=purpose)
+    training_set, energy_targets = data_handler.get_images(purpose=purpose)
 
     #"""
     #Let's create the outputs of the model
@@ -53,7 +53,7 @@ def autoencode():
     data_handler.get_unique_element_symbols(images, purpose=purpose)
     autoencoder.prepare_model(3, 3, data=data_handler)
     # Arguments for training the potential
-    convergence = {'rmse': 5e-3}
+    convergence = {'rmse': 5e-2}
     epochs = 2000
     lr = 1e-3
     weight_decay = 0
@@ -65,9 +65,23 @@ def autoencode():
             optimizer=None, lr=lr, weight_decay=weight_decay,
             regularization=regularization, epochs=epochs,
             convergence=convergence, lossfxn=None)
-    print(autoencoder.get_latent_space(inputs))
+    latent_space = autoencoder.get_latent_space(inputs)
+
+    return latent_space, energy_targets, data_handler
+
+def neural(inputs, targets, data_handler):
+    from mlchem.models.neuralnetwork import NeuralNetwork, train
+    model = NeuralNetwork(hiddenlayers=(10, 10), activation='relu')
+    model.prepare_model(5, data=data_handler, purpose='training')
+
+    lr = 1e-4
+    convergence = {'energy': 5e-3}
+    weight_decay = 0
+    train(inputs, targets, model=model, data=data_handler, lr=lr,
+          convergence=convergence, weight_decay=weight_decay)
 
 if __name__ == '__main__':
     cluster = LocalCluster()
     client = Client(cluster, asyncronous=True)
-    autoencode()
+    inputs, outputs, data_handler = autoencode()
+    neural(inputs, outputs, data_handler)

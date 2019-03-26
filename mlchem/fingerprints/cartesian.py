@@ -90,7 +90,7 @@ class Cartesian(object):
                 index = atom.index
                 symbol = atom.symbol
 
-                afp = self.get_atomic_fingerprint(atom, svm=svm)
+                afp = self.get_atomic_features(atom, svm=svm)
                 feature_vectors.append(afp)
 
         # In this block we compute the delayed functions in computations.
@@ -108,8 +108,8 @@ class Cartesian(object):
         return feature_space
 
     @dask.delayed
-    def get_atomic_fingerprint(self, atom, svm=False):
-        """Delayed class method to compute atomic fingerprints
+    def get_atomic_features(self, atom, svm=False):
+        """Delayed class method to get atomic features
 
 
         Parameters
@@ -119,6 +119,7 @@ class Cartesian(object):
         svm : bool
             Is this SVM?
         """
+
         symbol = atom.symbol
         position = atom.position
         if svm is False:

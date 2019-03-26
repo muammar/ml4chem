@@ -81,7 +81,7 @@ class AutoEncoder(torch.nn.Module):
             print('Model Training')
             print('==============')
             print('Model name: {}.'.format(self.name()))
-            print('Structure of Neural Net: {}'
+            print('Structure of Autoencoder: {}'
                   .format('(input, ' + str(self.hiddenlayers)[1:-1] +
                           ', output)'))
 
@@ -297,3 +297,4 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     print(outputs)
     print('targets')
     print(targets)
+    return epoch, _loss, _rmse
