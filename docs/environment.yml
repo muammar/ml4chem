@@ -15,3 +15,4 @@ dependencies:
         - sphinxcontrib-bibtex
         - sphinxcontrib-inlinesyntaxhighlight
         - ase
+        - m2r
