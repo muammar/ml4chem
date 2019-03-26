@@ -257,9 +257,14 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
                                      weight_decay=weight_decay)
 
     print()
-    print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp', 'Loss'))
-    print('{:6s} {:19s} {:8s}'.format('------',
-                                      '-------------------', '---------'))
+    print('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
+                                             'Time Stamp',
+                                             'Loss',
+                                             'Rec Err'))
+    print('{:6s} {:19s} {:12s} {:9s}'.format('------',
+                                             '-------------------',
+                                             '------------',
+                                             '--------'))
     initial_time = time.time()
 
     _loss = []

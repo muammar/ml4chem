@@ -1,7 +1,7 @@
 import torch
 
 
-def RMSELoss(outputs, targets, optimizer, data):
+def RMSELoss(outputs, targets, optimizer, data, device='cpu'):
     """Default loss function
 
     If user does not input loss function we provide mean-squared error loss
@@ -17,6 +17,8 @@ def RMSELoss(outputs, targets, optimizer, data):
         An optimizer object to minimize the loss function error.
     data : obj
         A data object from mlchem.
+    device : str
+        Calculation can be run in the cpu or cuda (gpu).
 
     Returns
     -------
@@ -32,6 +34,12 @@ def RMSELoss(outputs, targets, optimizer, data):
     atoms_per_image = torch.tensor(data.atoms_per_image,
                                    requires_grad=False,
                                    dtype=torch.float)
+    if device == 'cuda':
+        # We need to move this to CUDA. And only if it is not
+        # already there.
+        if atoms_per_image.is_cuda is False:
+            atoms_per_image = atoms_per_image.cuda()
+
     outputs_atom = torch.div(outputs, atoms_per_image)
     targets_atom = torch.div(targets, atoms_per_image)
 
@@ -42,6 +50,7 @@ def RMSELoss(outputs, targets, optimizer, data):
     rmse = torch.sqrt(loss).item()
 
     return loss, rmse
+
 
 def RMSELossAE(outputs, targets, optimizer):
     """Default loss function

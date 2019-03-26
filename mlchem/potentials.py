@@ -133,8 +133,7 @@ class Potentials(Calculator, object):
 
         with open(path + '.params', 'wb') as json_file:
             json.dump(params, codecs.getwriter('utf-8')(json_file),
-                          ensure_ascii=False, indent=4)
-
+                      ensure_ascii=False, indent=4)
 
     def train(self, training_set, epochs=100, lr=0.001, convergence=None,
               device='cpu',  optimizer=None, lossfxn=None, weight_decay=0.,
@@ -152,7 +151,7 @@ class Potentials(Calculator, object):
         convergence : dict
             Instead of using epochs, users can set a convergence criterion.
         device : str
-            Calculation can be run in the cpu or gpu.
+            Calculation can be run in the cpu or cuda (gpu).
         optimizer : object
             An optimizer class.
         lossfxn : object
@@ -192,12 +191,36 @@ class Potentials(Calculator, object):
             input_dimension = len(list(feature_space.values())[0][0][-1])
             self.model.prepare_model(input_dimension, data=data_handler)
 
+            # CUDA stuff
+            if device == 'cuda':
+                print(' ')
+                print('Checking if CUDA is available...')
+                use_cuda = torch.cuda.is_available()
+                if use_cuda:
+                    count = torch.cuda.device_count()
+                    print('MLChem found {} CUDA devices available.'
+                          .format(count))
+
+                    for index in range(count):
+                        device_name = torch.cuda.get_device_name(index)
+                        if index == 0:
+                            device_name += ' (Default)'
+                        print('    - {}.'. format(device_name))
+                    device = device
+                else:
+                    print('No CUDA available. We will use CPU.')
+                    device = 'cpu'
+
+            device_ = torch.device(device)
+
+            self.model.to(device_)
+
             # This is something specific of pytorch.
             from mlchem.models.neuralnetwork import train
             train(feature_space, targets, model=self.model, data=data_handler,
                   optimizer=optimizer, lr=lr, weight_decay=weight_decay,
                   regularization=regularization, epochs=epochs,
-                  convergence=convergence, lossfxn=lossfxn)
+                  convergence=convergence, lossfxn=lossfxn, device=device)
 
         self.save(self.model, path=self.path, label=self.label)
 

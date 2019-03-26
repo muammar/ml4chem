@@ -2,6 +2,7 @@ import time
 import datetime
 import torch
 
+from collections import OrderedDict
 from mlchem.data.visualization import parity
 from mlchem.models.loss import RMSELoss
 from mlchem.utils import convert_elapsed_time
@@ -167,7 +168,7 @@ class NeuralNetwork(torch.nn.Module):
 
 def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
           weight_decay=None, regularization=None, epochs=100, convergence=None,
-          lossfxn=None):
+          lossfxn=None, device='cpu'):
     """Train the model
 
     Parameters
@@ -192,6 +193,8 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         Instead of using epochs, users can set a convergence criterion.
     lossfxn : obj
         A loss function object.
+    device : str
+        Calculation can be run in the cpu or cuda (gpu).
     """
 
     # old_state_dict = {}
@@ -201,15 +204,32 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
 
     targets = torch.tensor(targets, requires_grad=False)
 
+    if device == 'cuda':
+        print('Moving data to CUDA')
+        targets = targets.cuda()
+        _inputs = OrderedDict()
+        for hash, f in inputs.items():
+            _inputs[hash] = []
+            for features in f:
+                symbol, vector = features
+                _inputs[hash].append((symbol, vector.cuda()))
+
+        inputs = _inputs
+
     # Define optimizer
     if optimizer is None:
         optimizer = torch.optim.Adam(model.parameters(), lr=lr,
                                      weight_decay=weight_decay)
 
     print()
-    print('{:6s} {:19s} {:8s}'.format('Epoch', 'Time Stamp', 'Loss'))
-    print('{:6s} {:19s} {:8s}'.format('------',
-                                      '-------------------', '---------'))
+    print('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
+                                             'Time Stamp',
+                                             'Loss',
+                                             'RMSE/atom'))
+    print('{:6s} {:19s} {:12s} {:9s}'.format('------',
+                                             '-------------------',
+                                             '------------',
+                                             '---------'))
     initial_time = time.time()
 
     _loss = []
@@ -222,7 +242,8 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         outputs = model(inputs)
 
         if lossfxn is None:
-            loss, rmse = RMSELoss(outputs, targets, optimizer, data)
+            loss, rmse = RMSELoss(outputs, targets, optimizer, data,
+                                  device=device)
         else:
             raise('I do not know what to do')
 
