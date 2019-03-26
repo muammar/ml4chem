@@ -3,14 +3,12 @@ name: mlchem
 channels:
     - anaconda
     - pytorch
-    - conda-forge
-
 
 dependencies:
     - python==3.7
     - pytorch
-    - matplotlib
     - pip:
+        - matplotlib
         - pyyaml
         - sphinx-gallery
         - sphinxcontrib-napoleon
