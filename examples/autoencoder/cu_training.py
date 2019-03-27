@@ -3,7 +3,7 @@ from dask.distributed import Client, LocalCluster
 import sys
 sys.path.append('../../')
 from mlchem.data.handler import DataSet
-from mlchem.fingerprints import Cartesian
+from mlchem.fingerprints import Cartesian, Gaussian
 from mlchem.models.autoencoders import AutoEncoder, train
 
 
@@ -24,14 +24,14 @@ def autoencode():
     #"""
     #Let's create the outputs of the model
     #"""
-    #fingerprints = Gaussian(cutoff=6.5, normalized=normalized,
-    #                        save_scaler='cu_training')
+    fingerprints = Gaussian(cutoff=6.5, normalized=normalized,
+                            save_scaler='cu_training.scaler')
 
-    #outputs = fingerprints.calculate_features(training_set,
-    #                                          data=data_handler,
-    #                                          purpose=purpose,
-    #                                          svm=False)
-    #output_dimension = len(list(outputs.values())[0][0][1])
+    outputs = fingerprints.calculate_features(training_set,
+                                              data=data_handler,
+                                              purpose=purpose,
+                                              svm=False)
+    output_dimension = len(list(outputs.values())[0][0][1])
 
     """
     Input
@@ -44,14 +44,14 @@ def autoencode():
     Building AutoEncoder
     """
     # Arguments for building the model
-    hiddenlayers = {'encoder': (20, 10, 5),
-                    'decoder': (5, 10, 20)}
+    hiddenlayers = {'encoder': (20, 10, 4),
+                    'decoder': (4, 10, 20)}
     activation = 'tanh'
     autoencoder = AutoEncoder(hiddenlayers=hiddenlayers,
                               activation=activation)
 
     data_handler.get_unique_element_symbols(images, purpose=purpose)
-    autoencoder.prepare_model(3, 3, data=data_handler)
+    autoencoder.prepare_model(3, output_dimension, data=data_handler)
     # Arguments for training the potential
     convergence = {'rmse': 5e-2}
     epochs = 2000
@@ -59,12 +59,12 @@ def autoencode():
     weight_decay = 0
     regularization = None
 
-    targets = [atom.position for atoms in images for atom in atoms]
+    #targets = [atom.position for atoms in images for atom in atoms]
 
-    train(inputs, targets, model=autoencoder, data=data_handler,
-            optimizer=None, lr=lr, weight_decay=weight_decay,
-            regularization=regularization, epochs=epochs,
-            convergence=convergence, lossfxn=None)
+    train(inputs, outputs, model=autoencoder, data=data_handler,
+          optimizer=None, lr=lr, weight_decay=weight_decay,
+          regularization=regularization, epochs=epochs,
+          convergence=convergence, lossfxn=None)
     latent_space = autoencoder.get_latent_space(inputs)
 
     return latent_space, energy_targets, data_handler
@@ -84,4 +84,4 @@ if __name__ == '__main__':
     cluster = LocalCluster()
     client = Client(cluster, asyncronous=True)
     inputs, outputs, data_handler = autoencode()
-    neural(inputs, outputs, data_handler)
+    #neural(inputs, outputs, data_handler)

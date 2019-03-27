@@ -249,7 +249,16 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     # for key in model.state_dict():
     #     old_state_dict[key] = model.state_dict()[key].clone()
 
-    targets = torch.tensor(targets, requires_grad=False, dtype=torch.float)
+    try:
+        targets = torch.tensor(targets, requires_grad=False, dtype=torch.float)
+    # FIXME find an elegant way of doing this.
+    except TypeError:
+        _targets = []
+        for hash, target in targets.items():
+            for symbol, t in target:
+                _targets.append(t)
+        _targets = torch.stack(_targets)
+        targets = _targets
 
     # Define optimizer
     if optimizer is None:

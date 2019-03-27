@@ -163,7 +163,6 @@ class Gaussian(object):
         if self.scaler is None:
             feature_space = dask.compute(*computations,
                                          scheduler=self.scheduler)
-            feature_space = OrderedDict(feature_space)
         else:
             stacked_features = dask.compute(*computations,
                                             scheduler=self.scheduler)
@@ -651,6 +650,4 @@ def save_scaler_to_file(scaler, path):
     path : str
         Path to save .scaler file.
     """
-    path += '.scaler'
-
     joblib.dump(scaler, path)
