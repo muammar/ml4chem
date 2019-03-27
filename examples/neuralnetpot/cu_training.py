@@ -26,7 +26,7 @@ def train():
     regularization = 0.
 
     calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
-                                            save_scaler='cu_training'),
+                                            save_scaler='cu_training.scaler'),
                       model=NeuralNetwork(hiddenlayers=(n, n),
                                           activation=activation),
                       label='cu_training')

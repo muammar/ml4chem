@@ -28,6 +28,10 @@ class Potentials(Calculator, object):
     # This is needed by ASE
     implemented_properties = ['energy', 'forces']
 
+    # This is a good way to make attributes available to the class. This can be
+    # accessed as Potentials.attibute
+    svm_models = ['KernelRidge']
+
     def __init__(self, fingerprints=None, model=None, path=None,
                  label='mlchem', atoms=None, mlchem_path=None, scaler=None):
 
@@ -42,7 +46,6 @@ class Potentials(Calculator, object):
 
         print('Available backends', self.available_backends)
 
-        self.svm_models = ['KernelRidge']
         self.reference_space = None
 
     @classmethod
@@ -93,13 +96,16 @@ class Potentials(Calculator, object):
 
         return calc
 
-    def save(self, model, path=None, label=None):
+    @staticmethod
+    def save(model, features, path=None, label=None):
         """Save a model
 
         Parameters
         ----------
         model : obj
             The model to be saved.
+        features : obj
+            Features object.
         path : str
             The path where to save the model.
         label : str
@@ -107,7 +113,7 @@ class Potentials(Calculator, object):
         """
 
         model_name = model.name()
-        fingerprints = {'fingerprints': self.fingerprints.params}
+        fingerprints = {'fingerprints': features.params}
 
         if path is None and label is None:
             path = 'model'
@@ -116,7 +122,7 @@ class Potentials(Calculator, object):
         else:
             path += label
 
-        if model_name in self.svm_models:
+        if model_name in Potentials.svm_models:
             params = {'model': model.params}
             dump(model.weights, path + '.mlchem')
         else:
@@ -168,7 +174,7 @@ class Potentials(Calculator, object):
         training_set, targets = data_handler.get_images(purpose='training')
 
         # Now let's train
-        if self.model.name() in self.svm_models:
+        if self.model.name() in Potentials.svm_models:
             # Mapping raw positions into a feature space aka X
             feature_space, reference_features = \
                     self.fingerprints.calculate_features(training_set,
@@ -222,9 +228,9 @@ class Potentials(Calculator, object):
                   regularization=regularization, epochs=epochs,
                   convergence=convergence, lossfxn=lossfxn, device=device)
 
-        self.save(self.model, path=self.path, label=self.label)
+        self.save(self.model, self.fingerprints, path=self.path,
+                  label=self.label)
 
-        self.data_handler = data_handler
 
     def calculate(self, atoms, properties, system_changes):
         """Calculate things
@@ -248,14 +254,14 @@ class Potentials(Calculator, object):
         fingerprints.scaler = self.scaler
         kwargs = {'data': data_handler, 'purpose': purpose}
 
-        if model_name in self.svm_models:
+        if model_name in Potentials.svm_models:
             kwargs.update({'svm': True})
 
         fingerprints = fingerprints.calculate_features(atoms, **kwargs)
 
         if 'energy' in properties:
             print('Calculating energy')
-            if model_name in self.svm_models:
+            if model_name in Potentials.svm_models:
 
                 try:
                     reference_space = load(self.reference_space)
