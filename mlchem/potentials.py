@@ -97,7 +97,7 @@ class Potentials(Calculator, object):
         return calc
 
     @staticmethod
-    def save(model, features, path=None, label=None):
+    def save(model, features=None, path=None, label=None):
         """Save a model
 
         Parameters
@@ -113,7 +113,6 @@ class Potentials(Calculator, object):
         """
 
         model_name = model.name()
-        fingerprints = {'fingerprints': features.params}
 
         if path is None and label is None:
             path = 'model'
@@ -124,6 +123,8 @@ class Potentials(Calculator, object):
 
         if model_name in Potentials.svm_models:
             params = {'model': model.params}
+
+            # Save model weigths to file
             dump(model.weights, path + '.mlchem')
         else:
 
@@ -134,9 +135,12 @@ class Potentials(Calculator, object):
 
             torch.save(model.state_dict(), path + '.mlchem')
 
-        # Adding fingerprints to .params json file.
-        params.update(fingerprints)
+        if features is not None:
+            # Adding fingerprints to .params json file.
+            fingerprints = {'fingerprints': features.params}
+            params.update(fingerprints)
 
+        # Save parameters to file
         with open(path + '.params', 'wb') as json_file:
             json.dump(params, codecs.getwriter('utf-8')(json_file),
                       ensure_ascii=False, indent=4)
@@ -228,7 +232,7 @@ class Potentials(Calculator, object):
                   regularization=regularization, epochs=epochs,
                   convergence=convergence, lossfxn=lossfxn, device=device)
 
-        self.save(self.model, self.fingerprints, path=self.path,
+        self.save(self.model, features=self.fingerprints, path=self.path,
                   label=self.label)
 
 

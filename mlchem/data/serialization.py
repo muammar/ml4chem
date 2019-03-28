@@ -3,7 +3,10 @@ import msgpack_numpy as m
 
 
 def dump(arr, filename='data.db'):
-    """Dump array to file using msgpack
+    """Dump array or dictionary to file using msgpack
+
+    This function allows to dump arrays and mlchem dictionaries serialized with
+    msgpack.
 
     Parameters
     ----------
@@ -24,7 +27,7 @@ def load(filename):
     Parameters
     ----------
     filename : str
-        Name of file to load from disk.
+        Path of file to load from disk.
     """
 
     with open(filename, 'rb') as f:

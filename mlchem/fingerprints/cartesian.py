@@ -1,13 +1,9 @@
-import numpy as np
 import torch
-from mlchem.utils import get_neighborlist, convert_elapsed_time
-from mlchem.data.serialization import dump
-from sklearn.externals import joblib
-from .cutoff import Cosine
-from collections import OrderedDict
 import dask
 import time
-from ase.data import atomic_numbers
+from collections import OrderedDict
+from mlchem.data.serialization import dump
+from mlchem.utils import convert_elapsed_time
 
 
 class Cartesian(object):
@@ -37,7 +33,6 @@ class Cartesian(object):
 
         self.filename = filename
         self.scheduler = scheduler
-
 
     def calculate_features(self, images, purpose='training', data=None,
                            svm=False):
@@ -77,7 +72,6 @@ class Cartesian(object):
 
             print('Unique elements: {}' .format(unique_element_symbols))
 
-
         # We start populating computations with delayed functions to operate
         # with dask's scheduler. These computations get cartesian coordinates.
         computations = []
@@ -87,9 +81,6 @@ class Cartesian(object):
             computations.append(feature_vectors)
 
             for atom in image:
-                index = atom.index
-                symbol = atom.symbol
-
                 afp = self.get_atomic_features(atom, svm=svm)
                 feature_vectors.append(afp)
 
@@ -105,6 +96,13 @@ class Cartesian(object):
         print('Fingerprinting finished in {} hours {} minutes {:.2f} '
               'seconds.' .format(h, m, s))
 
+        data = {'feature_space': feature_space}
+
+        try:
+            dump(data, filename=self.filename)
+        except TypeError:
+            # FIXME data has to be ndarray. Tensors are not supported.
+            print('Msgpack cannot dump tensors...')
         return feature_space
 
     @dask.delayed
