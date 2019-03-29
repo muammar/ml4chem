@@ -1,10 +1,12 @@
-import torch
 import dask
+import logging
 import time
+import torch
 from collections import OrderedDict
 from mlchem.data.serialization import dump
 from mlchem.utils import convert_elapsed_time
 
+logger = logging.getLogger(__name__)
 
 class Cartesian(object):
     """Cartesian Coordinates
@@ -57,20 +59,22 @@ class Cartesian(object):
             structure: {'hash': [('H', [vector]]}
         """
 
-        print()
-        print('Fingerprinting')
-        print('==============')
+        message = 'Fingerprinting'
+        logger.info(message)
 
         initial_time = time.time()
 
         # Verify that we know the unique element symbols
         if data.unique_element_symbols is None:
-            print('Getting unique element symbols for {}' .format(purpose))
+            message = 'Getting unique element symbols for {}' .format(purpose)
+            logger.info(message)
+
             unique_element_symbols = \
                 data.get_unique_element_symbols(images, purpose=purpose)
             unique_element_symbols = unique_element_symbols[purpose]
 
-            print('Unique elements: {}' .format(unique_element_symbols))
+            message = 'Unique elements: {}' .format(unique_element_symbols)
+            logger.info(message)
 
         # We start populating computations with delayed functions to operate
         # with dask's scheduler. These computations get cartesian coordinates.
@@ -93,8 +97,10 @@ class Cartesian(object):
         fp_time = time.time() - initial_time
 
         h, m, s = convert_elapsed_time(fp_time)
-        print('Fingerprinting finished in {} hours {} minutes {:.2f} '
-              'seconds.' .format(h, m, s))
+
+        message = 'Fingerprinting finished in {} hours {} minutes {:.2f} \
+                   seconds.' .format(h, m, s)
+        logger.info(message)
 
         data = {'feature_space': feature_space}
 
@@ -102,7 +108,7 @@ class Cartesian(object):
             dump(data, filename=self.filename)
         except TypeError:
             # FIXME data has to be ndarray. Tensors are not supported.
-            print('Msgpack cannot dump tensors...')
+            logger.error('Msgpack cannot dump tensors...')
         return feature_space
 
     @dask.delayed

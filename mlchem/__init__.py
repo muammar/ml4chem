@@ -1,8 +1,13 @@
 from mlchem.potentials import Potentials
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 __all__ = ['Potentials']
 
-name = """
+header = """
 -------------------------------------------------------------------------------
                 _______        _______ _     _ _______ _______
                 |  |  | |      |       |_____| |______ |  |  |
@@ -16,4 +21,5 @@ workflows for chemical physics.
 This software is developed by Muammar El Khatib.
 -------------------------------------------------------------------------------
 """
-print(name)
+
+logger.info(header)

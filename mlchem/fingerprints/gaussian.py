@@ -1,13 +1,16 @@
-import numpy as np
+import dask
+import logging
+import time
 import torch
+import numpy as np
 from mlchem.utils import get_neighborlist, convert_elapsed_time
 from mlchem.data.serialization import dump
 from sklearn.externals import joblib
 from .cutoff import Cosine
 from collections import OrderedDict
-import dask
-import time
 from ase.data import atomic_numbers
+
+logger = logging.getLogger(__name__)
 
 
 class Gaussian(object):
@@ -106,20 +109,22 @@ class Gaussian(object):
             structure: {'hash': [('H', [vector]]}
         """
 
-        print()
-        print('Fingerprinting')
-        print('==============')
+        message = 'Fingerprinting'
+        logger.info(message)
 
         initial_time = time.time()
 
         # Verify that we know the unique element symbols
         if data.unique_element_symbols is None:
-            print('Getting unique element symbols for {}' .format(purpose))
+            message = 'Getting unique element symbols for {}' .format(purpose)
+            logger.info(message)
+
             unique_element_symbols = \
                 data.get_unique_element_symbols(images, purpose=purpose)
             unique_element_symbols = unique_element_symbols[purpose]
 
-            print('Unique elements: {}' .format(unique_element_symbols))
+            message = 'Unique elements: {}' .format(unique_element_symbols)
+            logger.info(message)
 
         # If self.defaults is True we create default symmetry functions.
         if self.defaults:
@@ -132,7 +137,7 @@ class Gaussian(object):
         elif purpose == 'inference':
             scaler = joblib.load(self.scaler)
         else:
-            print('{} is not supported.' .format(self.scaler))
+            logger.warning('{} is not supported.' .format(self.scaler))
             self.scaler = None
 
         # We start populating computations with delayed functions to operate
@@ -172,7 +177,8 @@ class Gaussian(object):
             stacked_features = stacked_features.reshape(d1 * d2, d3)
 
         if self.scaler == 'minmaxscaler' and purpose == 'training':
-            print('Preprocessing data...')
+            message = 'Preprocessing data...'
+            logger.info(message)
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
             stacked_features = dask.array.from_array(stacked_features,
@@ -215,8 +221,10 @@ class Gaussian(object):
             fp_time = time.time() - initial_time
 
             h, m, s = convert_elapsed_time(fp_time)
-            print('Fingerprinting finished in {} hours {} minutes {:.2f} '
-                  'seconds.' .format(h, m, s))
+            message = 'Fingerprinting finished in {} hours {} minutes {:.2f} \
+                       seconds.' .format(h, m, s)
+
+            logger.info(message)
 
             data = {'feature_space': feature_space}
 
@@ -256,8 +264,10 @@ class Gaussian(object):
             fp_time = time.time() - initial_time
 
             h, m, s = convert_elapsed_time(fp_time)
-            print('Fingerprinting finished in {} hours {} minutes {:.2f} '
-                  'seconds.' .format(h, m, s))
+
+            message = 'Fingerprinting finished in {} hours {} minutes {:.2f} \
+                       seconds.' .format(h, m, s)
+            logger.info(message)
 
             return feature_space
 
@@ -413,7 +423,7 @@ class Gaussian(object):
                                        GP['zeta'], GP['eta'], self.cutoff,
                                        self.cutofffxn, Ri)
             else:
-                print('not implemented')
+                logger.error('not implemented')
             fingerprint[count] = feature
 
         if scaler is None:
@@ -460,7 +470,10 @@ class Gaussian(object):
         GP = {}
 
         if defaults:
-            print('Making default symmetry functions')
+            message = 'Making default symmetry functions'
+
+            logger.warning(message)
+
             for symbol in symbols:
                 # Radial
                 etas = np.logspace(np.log10(0.05), np.log10(5.), num=4)
@@ -521,8 +534,9 @@ class Gaussian(object):
                                            'zeta': zeta})
             return GP
         else:
-            print('The requested type of angular symmetry function is not'
-                  ' supported.')
+            message = 'The requested type of angular symmetry function is not \
+                       supported.'
+            logger.error(message)
 
 
 def calculate_G2(n_numbers, neighborsymbols, neighborpositions, center_symbol,

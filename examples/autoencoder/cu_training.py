@@ -65,7 +65,8 @@ def autoencode():
           optimizer=None, lr=lr, weight_decay=weight_decay,
           regularization=regularization, epochs=epochs,
           convergence=convergence, lossfxn=None)
-    latent_space = autoencoder.get_latent_space(inputs)
+    latent_space = autoencoder.get_latent_space(inputs, svm=True)
+    print(latent_space)
 
     return latent_space, energy_targets, data_handler
 

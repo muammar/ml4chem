@@ -253,7 +253,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         else:
             raise('I do not know what to do')
 
-        _loss.append(loss.detach())
+        _loss.append(loss.item())
         _rmse.append(rmse)
 
         ts = time.time()

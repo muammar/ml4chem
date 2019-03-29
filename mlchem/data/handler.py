@@ -1,6 +1,9 @@
 from collections import OrderedDict
 from mlchem.utils import get_hash
 import dask
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DataSet(object):
@@ -28,7 +31,7 @@ class DataSet(object):
         self.unique_element_symbols = None
 
         if self.is_valid_structure(images) is False:
-            print('Data structure is not compatible with MLChem')
+            logger.warning('Data structure is not compatible with MLChem')
             self.prepare_images(images, purpose=purpose)
 
     def prepare_images(self, images, purpose=None):
@@ -50,7 +53,7 @@ class DataSet(object):
         self.targets : list
             Targets used for training the model.
         """
-        print('Preparing images...')
+        logger.info('Preparing images...')
         self.images = OrderedDict()
 
         if purpose == 'training':
@@ -81,7 +84,7 @@ class DataSet(object):
             min_energy = min_energy / len(images[min_index])
 
             self.max_energy, self.min_energy = max_energy, min_energy
-        print('Images hashed and processed...')
+        logger.info('Images hashed and processed...')
 
     def is_valid_structure(self, images):
         """Check if the data has a valid structure
@@ -134,9 +137,9 @@ class DataSet(object):
                                                          atom in image])))
 
             else:
-                print('what happens in the following case?')    # FIXME
+                logger.warning('what happens in the following case?')    # FIXME
         else:
-            print('The requested purpose is not supported...')
+            logger.warning('The requested purpose is not supported...')
             symbols = None
 
         self.unique_element_symbols = symbols
