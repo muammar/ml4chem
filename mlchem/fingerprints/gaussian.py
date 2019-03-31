@@ -10,7 +10,7 @@ from .cutoff import Cosine
 from collections import OrderedDict
 from ase.data import atomic_numbers
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 class Gaussian(object):

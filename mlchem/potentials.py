@@ -4,12 +4,13 @@ import json
 import logging
 import torch
 from ase.calculators.calculator import Calculator
+from mlchem.backends.available import available_backends
 from mlchem.data.handler import DataSet
 from mlchem.data.serialization import dump, load
-from mlchem.backends.available import available_backends
+from mlchem.utils import get_header_message
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 class Potentials(Calculator, object):
@@ -48,6 +49,7 @@ class Potentials(Calculator, object):
         self.mlchem_path = mlchem_path
         self.scaler = scaler
 
+        logger.info(get_header_message())
         logger.info('Available backends: {}.' .format(self.available_backends))
 
         self.reference_space = None

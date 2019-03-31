@@ -1,7 +1,8 @@
-from ase.io import Trajectory
-from dask.distributed import Client, LocalCluster
+import logging
 import sys
 sys.path.append('../../')
+from ase.io import Trajectory
+from dask.distributed import Client, LocalCluster
 from mlchem import Potentials
 from mlchem.fingerprints import Gaussian
 from mlchem.models.neuralnetwork import NeuralNetwork
@@ -37,6 +38,8 @@ def train():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(filename = 'cu_training.log', level=logging.INFO,
+                        format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
     cluster = LocalCluster()
     client = Client(cluster, asyncronous=True)
     train()

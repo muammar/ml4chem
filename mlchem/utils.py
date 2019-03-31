@@ -64,3 +64,22 @@ def get_chunks(sequence, chunk_size):
             res = []
     if res:
         yield res  # yield the last, incomplete, portion
+
+def get_header_message():
+    """Function that returns MLChem header"""
+
+    header = """
+    -------------------------------------------------------------------------------
+                    _______        _______ _     _ _______ _______
+                    |  |  | |      |       |_____| |______ |  |  |
+                    |  |  | |_____ |_____  |     | |______ |  |  |\n
+
+
+    MLChem is Machine Learning for Chemistry. This package is written in Python 3,
+    and intends to offer modern and rich features to perform machine learning
+    workflows for chemical physics.
+
+    This software is developed by Muammar El Khatib.
+    -------------------------------------------------------------------------------
+    """
+    return header

@@ -1,3 +1,4 @@
+import logging
 import sys
 sys.path.append('../')
 from ase.io import Trajectory
@@ -5,6 +6,8 @@ from mlchem import Potentials
 from mlchem.fingerprints import Gaussian
 from mlchem.models.neuralnetwork import NeuralNetwork
 
+logging.basicConfig(filename = 'cu_inference.log', level=logging.INFO,
+                    format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
 # Load the images with ASE
 images = Trajectory('cu_training.traj')
 

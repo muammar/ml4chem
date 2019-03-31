@@ -6,8 +6,7 @@ from mlchem.utils import convert_elapsed_time, get_chunks
 from collections import OrderedDict
 from scipy.linalg import cholesky
 
-
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 class KernelRidge(object):

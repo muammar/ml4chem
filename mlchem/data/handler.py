@@ -3,7 +3,7 @@ from mlchem.utils import get_hash
 import dask
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 class DataSet(object):

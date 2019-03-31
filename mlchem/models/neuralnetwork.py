@@ -9,7 +9,7 @@ from mlchem.models.loss import RMSELoss
 from mlchem.utils import convert_elapsed_time
 
 torch.set_printoptions(precision=10)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 class NeuralNetwork(torch.nn.Module):

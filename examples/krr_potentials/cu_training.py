@@ -1,6 +1,7 @@
+import logging
+import sys
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
-import sys
 sys.path.append('../../')
 from mlchem import Potentials
 from mlchem.fingerprints import Gaussian
@@ -24,6 +25,9 @@ def train():
 
 
 if __name__ == '__main__':
+
+    logging.basicConfig(filename = 'cu_training.log', level=logging.INFO,
+                        format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
     cluster = LocalCluster(n_workers=8, threads_per_worker=2)
     client = Client(cluster, asyncronous=True)
     train()

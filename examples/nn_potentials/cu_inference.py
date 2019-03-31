@@ -1,7 +1,8 @@
+import logging
 import sys
-from dask.distributed import Client, LocalCluster
 sys.path.append('../../')
 from ase.io import Trajectory
+from dask.distributed import Client, LocalCluster
 from mlchem import Potentials
 
 def main():
@@ -19,6 +20,8 @@ def main():
         print('             DFT energy = {}' .format(atoms.get_potential_energy()))
 
 if __name__ == '__main__':
+    logging.basicConfig(filename = 'cu_inference.log', level=logging.INFO,
+                        format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
     cluster = LocalCluster(n_workers=8, threads_per_worker=2)
     client = Client(cluster, asyncronous=True)
     main()

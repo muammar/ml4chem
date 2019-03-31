@@ -1,0 +1,353 @@
+potentials.py:52 INFO:
+    -------------------------------------------------------------------------------
+                    _______        _______ _     _ _______ _______
+                    |  |  | |      |       |_____| |______ |  |  |
+                    |  |  | |_____ |_____  |     | |______ |  |  |
+
+
+
+    MLChem is Machine Learning for Chemistry. This package is written in Python 3,
+    and intends to offer modern and rich features to perform machine learning
+    workflows for chemical physics.
+
+    This software is developed by Muammar El Khatib.
+    -------------------------------------------------------------------------------
+    
+potentials.py:53 INFO:Available backends: ['torch', 'torchvision', 'numpy'].
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for training
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:178 INFO:Preprocessing data...
+gaussian.py:222 INFO:Fingerprinting finished in 0 hours 0 minutes 8.94 seconds.
+neuralnetwork.py:56 INFO:Model Training
+neuralnetwork.py:57 INFO:==============
+neuralnetwork.py:58 INFO:Model name: PytorchPotentials.
+neuralnetwork.py:59 INFO:Number of hidden-layers: 2
+neuralnetwork.py:62 INFO:Structure of Neural Net: (input, 10, 10, output)
+neuralnetwork.py:121 INFO:ModuleDict(
+  (Cu): Sequential(
+    (0): Linear(in_features=8, out_features=10, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=10, out_features=10, bias=True)
+    (3): ReLU()
+    (4): Linear(in_features=10, out_features=1, bias=True)
+  )
+)
+neuralnetwork.py:124 WARNING:Initialization of weights with Xavier Uniform by default.
+neuralnetwork.py:236 INFO:Epoch  Time Stamp          Loss         RMSE/atom
+neuralnetwork.py:240 INFO:------ ------------------- ------------ ---------
+neuralnetwork.py:263 INFO:     1 2019-03-31 10:24:28 1.491688e-03 0.038622
+neuralnetwork.py:263 INFO:     2 2019-03-31 10:24:28 1.477369e-03 0.038437
+neuralnetwork.py:263 INFO:     3 2019-03-31 10:24:28 1.463164e-03 0.038251
+neuralnetwork.py:263 INFO:     4 2019-03-31 10:24:28 1.449045e-03 0.038066
+neuralnetwork.py:263 INFO:     5 2019-03-31 10:24:28 1.435011e-03 0.037882
+neuralnetwork.py:263 INFO:     6 2019-03-31 10:24:28 1.421101e-03 0.037697
+neuralnetwork.py:263 INFO:     7 2019-03-31 10:24:28 1.407278e-03 0.037514
+neuralnetwork.py:263 INFO:     8 2019-03-31 10:24:28 1.393570e-03 0.037331
+neuralnetwork.py:263 INFO:     9 2019-03-31 10:24:28 1.379958e-03 0.037148
+neuralnetwork.py:263 INFO:    10 2019-03-31 10:24:29 1.366461e-03 0.036966
+neuralnetwork.py:263 INFO:    11 2019-03-31 10:24:29 1.353066e-03 0.036784
+neuralnetwork.py:263 INFO:    12 2019-03-31 10:24:29 1.339779e-03 0.036603
+neuralnetwork.py:263 INFO:    13 2019-03-31 10:24:29 1.326587e-03 0.036422
+neuralnetwork.py:263 INFO:    14 2019-03-31 10:24:29 1.313540e-03 0.036243
+neuralnetwork.py:263 INFO:    15 2019-03-31 10:24:29 1.300596e-03 0.036064
+neuralnetwork.py:263 INFO:    16 2019-03-31 10:24:29 1.287764e-03 0.035885
+neuralnetwork.py:263 INFO:    17 2019-03-31 10:24:29 1.275037e-03 0.035708
+neuralnetwork.py:263 INFO:    18 2019-03-31 10:24:29 1.262411e-03 0.035530
+neuralnetwork.py:263 INFO:    19 2019-03-31 10:24:29 1.249862e-03 0.035353
+neuralnetwork.py:263 INFO:    20 2019-03-31 10:24:29 1.237418e-03 0.035177
+neuralnetwork.py:263 INFO:    21 2019-03-31 10:24:29 1.225099e-03 0.035001
+neuralnetwork.py:263 INFO:    22 2019-03-31 10:24:29 1.212883e-03 0.034826
+neuralnetwork.py:263 INFO:    23 2019-03-31 10:24:29 1.200771e-03 0.034652
+neuralnetwork.py:263 INFO:    24 2019-03-31 10:24:29 1.188787e-03 0.034479
+neuralnetwork.py:263 INFO:    25 2019-03-31 10:24:29 1.176903e-03 0.034306
+neuralnetwork.py:263 INFO:    26 2019-03-31 10:24:29 1.165147e-03 0.034134
+neuralnetwork.py:263 INFO:    27 2019-03-31 10:24:29 1.153506e-03 0.033963
+neuralnetwork.py:263 INFO:    28 2019-03-31 10:24:29 1.141979e-03 0.033793
+neuralnetwork.py:263 INFO:    29 2019-03-31 10:24:29 1.130564e-03 0.033624
+neuralnetwork.py:263 INFO:    30 2019-03-31 10:24:29 1.119262e-03 0.033455
+neuralnetwork.py:263 INFO:    31 2019-03-31 10:24:29 1.108048e-03 0.033287
+neuralnetwork.py:263 INFO:    32 2019-03-31 10:24:29 1.096954e-03 0.033120
+neuralnetwork.py:263 INFO:    33 2019-03-31 10:24:29 1.085925e-03 0.032953
+neuralnetwork.py:263 INFO:    34 2019-03-31 10:24:29 1.074987e-03 0.032787
+neuralnetwork.py:263 INFO:    35 2019-03-31 10:24:29 1.064150e-03 0.032621
+neuralnetwork.py:263 INFO:    36 2019-03-31 10:24:29 1.053407e-03 0.032456
+neuralnetwork.py:263 INFO:    37 2019-03-31 10:24:29 1.042750e-03 0.032292
+neuralnetwork.py:263 INFO:    38 2019-03-31 10:24:29 1.032115e-03 0.032127
+neuralnetwork.py:263 INFO:    39 2019-03-31 10:24:29 1.021575e-03 0.031962
+neuralnetwork.py:263 INFO:    40 2019-03-31 10:24:29 1.011135e-03 0.031798
+neuralnetwork.py:263 INFO:    41 2019-03-31 10:24:29 1.000769e-03 0.031635
+neuralnetwork.py:263 INFO:    42 2019-03-31 10:24:29 9.904972e-04 0.031472
+neuralnetwork.py:263 INFO:    43 2019-03-31 10:24:29 9.803033e-04 0.031310
+neuralnetwork.py:263 INFO:    44 2019-03-31 10:24:29 9.701734e-04 0.031148
+neuralnetwork.py:263 INFO:    45 2019-03-31 10:24:29 9.601468e-04 0.030986
+neuralnetwork.py:263 INFO:    46 2019-03-31 10:24:29 9.501812e-04 0.030825
+neuralnetwork.py:263 INFO:    47 2019-03-31 10:24:29 9.403081e-04 0.030664
+neuralnetwork.py:263 INFO:    48 2019-03-31 10:24:29 9.305178e-04 0.030504
+neuralnetwork.py:263 INFO:    49 2019-03-31 10:24:29 9.207987e-04 0.030345
+neuralnetwork.py:263 INFO:    50 2019-03-31 10:24:29 9.111854e-04 0.030186
+neuralnetwork.py:263 INFO:    51 2019-03-31 10:24:29 9.016538e-04 0.030028
+neuralnetwork.py:263 INFO:    52 2019-03-31 10:24:29 8.922068e-04 0.029870
+neuralnetwork.py:263 INFO:    53 2019-03-31 10:24:29 8.828516e-04 0.029713
+neuralnetwork.py:263 INFO:    54 2019-03-31 10:24:29 8.735588e-04 0.029556
+neuralnetwork.py:263 INFO:    55 2019-03-31 10:24:29 8.643502e-04 0.029400
+neuralnetwork.py:263 INFO:    56 2019-03-31 10:24:29 8.551910e-04 0.029244
+neuralnetwork.py:263 INFO:    57 2019-03-31 10:24:29 8.461137e-04 0.029088
+neuralnetwork.py:263 INFO:    58 2019-03-31 10:24:29 8.370806e-04 0.028932
+neuralnetwork.py:263 INFO:    59 2019-03-31 10:24:29 8.281268e-04 0.028777
+neuralnetwork.py:263 INFO:    60 2019-03-31 10:24:29 8.192241e-04 0.028622
+neuralnetwork.py:263 INFO:    61 2019-03-31 10:24:29 8.103907e-04 0.028467
+neuralnetwork.py:263 INFO:    62 2019-03-31 10:24:29 8.016201e-04 0.028313
+neuralnetwork.py:263 INFO:    63 2019-03-31 10:24:29 7.929143e-04 0.028159
+neuralnetwork.py:263 INFO:    64 2019-03-31 10:24:29 7.842758e-04 0.028005
+neuralnetwork.py:263 INFO:    65 2019-03-31 10:24:29 7.757031e-04 0.027851
+neuralnetwork.py:263 INFO:    66 2019-03-31 10:24:29 7.671675e-04 0.027698
+neuralnetwork.py:263 INFO:    67 2019-03-31 10:24:29 7.587079e-04 0.027545
+neuralnetwork.py:263 INFO:    68 2019-03-31 10:24:29 7.503059e-04 0.027392
+neuralnetwork.py:263 INFO:    69 2019-03-31 10:24:29 7.419696e-04 0.027239
+neuralnetwork.py:263 INFO:    70 2019-03-31 10:24:29 7.336802e-04 0.027087
+neuralnetwork.py:263 INFO:    71 2019-03-31 10:24:29 7.254512e-04 0.026934
+neuralnetwork.py:263 INFO:    72 2019-03-31 10:24:29 7.172883e-04 0.026782
+neuralnetwork.py:263 INFO:    73 2019-03-31 10:24:29 7.091817e-04 0.026630
+neuralnetwork.py:263 INFO:    74 2019-03-31 10:24:29 7.011226e-04 0.026479
+neuralnetwork.py:263 INFO:    75 2019-03-31 10:24:29 6.931261e-04 0.026327
+neuralnetwork.py:263 INFO:    76 2019-03-31 10:24:29 6.851857e-04 0.026176
+neuralnetwork.py:263 INFO:    77 2019-03-31 10:24:29 6.772965e-04 0.026025
+neuralnetwork.py:263 INFO:    78 2019-03-31 10:24:29 6.694770e-04 0.025874
+neuralnetwork.py:263 INFO:    79 2019-03-31 10:24:29 6.616896e-04 0.025723
+neuralnetwork.py:263 INFO:    80 2019-03-31 10:24:29 6.539705e-04 0.025573
+neuralnetwork.py:263 INFO:    81 2019-03-31 10:24:29 6.462988e-04 0.025422
+neuralnetwork.py:263 INFO:    82 2019-03-31 10:24:29 6.386813e-04 0.025272
+neuralnetwork.py:263 INFO:    83 2019-03-31 10:24:29 6.311239e-04 0.025122
+neuralnetwork.py:263 INFO:    84 2019-03-31 10:24:29 6.236155e-04 0.024972
+neuralnetwork.py:263 INFO:    85 2019-03-31 10:24:30 6.161690e-04 0.024823
+neuralnetwork.py:263 INFO:    86 2019-03-31 10:24:30 6.087583e-04 0.024673
+neuralnetwork.py:263 INFO:    87 2019-03-31 10:24:30 6.014117e-04 0.024524
+neuralnetwork.py:263 INFO:    88 2019-03-31 10:24:30 5.941102e-04 0.024374
+neuralnetwork.py:263 INFO:    89 2019-03-31 10:24:30 5.868525e-04 0.024225
+neuralnetwork.py:263 INFO:    90 2019-03-31 10:24:30 5.796609e-04 0.024076
+neuralnetwork.py:263 INFO:    91 2019-03-31 10:24:30 5.725195e-04 0.023927
+neuralnetwork.py:263 INFO:    92 2019-03-31 10:24:30 5.654281e-04 0.023779
+neuralnetwork.py:263 INFO:    93 2019-03-31 10:24:30 5.583842e-04 0.023630
+neuralnetwork.py:263 INFO:    94 2019-03-31 10:24:30 5.513384e-04 0.023481
+neuralnetwork.py:263 INFO:    95 2019-03-31 10:24:30 5.443377e-04 0.023331
+neuralnetwork.py:263 INFO:    96 2019-03-31 10:24:30 5.373809e-04 0.023181
+neuralnetwork.py:263 INFO:    97 2019-03-31 10:24:30 5.304643e-04 0.023032
+neuralnetwork.py:263 INFO:    98 2019-03-31 10:24:30 5.236023e-04 0.022882
+neuralnetwork.py:263 INFO:    99 2019-03-31 10:24:30 5.167844e-04 0.022733
+neuralnetwork.py:263 INFO:   100 2019-03-31 10:24:30 5.100245e-04 0.022584
+neuralnetwork.py:263 INFO:   101 2019-03-31 10:24:30 5.033176e-04 0.022435
+neuralnetwork.py:263 INFO:   102 2019-03-31 10:24:30 4.966552e-04 0.022286
+neuralnetwork.py:263 INFO:   103 2019-03-31 10:24:30 4.900382e-04 0.022137
+neuralnetwork.py:263 INFO:   104 2019-03-31 10:24:30 4.834757e-04 0.021988
+neuralnetwork.py:263 INFO:   105 2019-03-31 10:24:30 4.769572e-04 0.021839
+neuralnetwork.py:263 INFO:   106 2019-03-31 10:24:30 4.705000e-04 0.021691
+neuralnetwork.py:263 INFO:   107 2019-03-31 10:24:30 4.640823e-04 0.021543
+neuralnetwork.py:263 INFO:   108 2019-03-31 10:24:30 4.577167e-04 0.021394
+neuralnetwork.py:263 INFO:   109 2019-03-31 10:24:30 4.514031e-04 0.021246
+neuralnetwork.py:263 INFO:   110 2019-03-31 10:24:30 4.451468e-04 0.021099
+neuralnetwork.py:263 INFO:   111 2019-03-31 10:24:30 4.389272e-04 0.020951
+neuralnetwork.py:263 INFO:   112 2019-03-31 10:24:30 4.327685e-04 0.020803
+neuralnetwork.py:263 INFO:   113 2019-03-31 10:24:30 4.266842e-04 0.020656
+neuralnetwork.py:263 INFO:   114 2019-03-31 10:24:30 4.206466e-04 0.020510
+neuralnetwork.py:263 INFO:   115 2019-03-31 10:24:30 4.146803e-04 0.020364
+neuralnetwork.py:263 INFO:   116 2019-03-31 10:24:30 4.087604e-04 0.020218
+neuralnetwork.py:263 INFO:   117 2019-03-31 10:24:30 4.028942e-04 0.020072
+neuralnetwork.py:263 INFO:   118 2019-03-31 10:24:30 3.970873e-04 0.019927
+neuralnetwork.py:263 INFO:   119 2019-03-31 10:24:30 3.913186e-04 0.019782
+neuralnetwork.py:263 INFO:   120 2019-03-31 10:24:30 3.856186e-04 0.019637
+neuralnetwork.py:263 INFO:   121 2019-03-31 10:24:30 3.799622e-04 0.019493
+neuralnetwork.py:263 INFO:   122 2019-03-31 10:24:30 3.743705e-04 0.019349
+neuralnetwork.py:263 INFO:   123 2019-03-31 10:24:30 3.688217e-04 0.019205
+neuralnetwork.py:263 INFO:   124 2019-03-31 10:24:30 3.633254e-04 0.019061
+neuralnetwork.py:263 INFO:   125 2019-03-31 10:24:30 3.578879e-04 0.018918
+neuralnetwork.py:263 INFO:   126 2019-03-31 10:24:30 3.525025e-04 0.018775
+neuralnetwork.py:263 INFO:   127 2019-03-31 10:24:30 3.471591e-04 0.018632
+neuralnetwork.py:263 INFO:   128 2019-03-31 10:24:30 3.418788e-04 0.018490
+neuralnetwork.py:263 INFO:   129 2019-03-31 10:24:30 3.366496e-04 0.018348
+neuralnetwork.py:263 INFO:   130 2019-03-31 10:24:30 3.314778e-04 0.018207
+neuralnetwork.py:263 INFO:   131 2019-03-31 10:24:30 3.263519e-04 0.018065
+neuralnetwork.py:263 INFO:   132 2019-03-31 10:24:30 3.212783e-04 0.017924
+neuralnetwork.py:263 INFO:   133 2019-03-31 10:24:30 3.162620e-04 0.017784
+neuralnetwork.py:263 INFO:   134 2019-03-31 10:24:30 3.113122e-04 0.017644
+neuralnetwork.py:263 INFO:   135 2019-03-31 10:24:30 3.064084e-04 0.017505
+neuralnetwork.py:263 INFO:   136 2019-03-31 10:24:30 3.015556e-04 0.017365
+neuralnetwork.py:263 INFO:   137 2019-03-31 10:24:30 2.967582e-04 0.017227
+neuralnetwork.py:263 INFO:   138 2019-03-31 10:24:30 2.920150e-04 0.017088
+neuralnetwork.py:263 INFO:   139 2019-03-31 10:24:30 2.873202e-04 0.016951
+neuralnetwork.py:263 INFO:   140 2019-03-31 10:24:30 2.826881e-04 0.016813
+neuralnetwork.py:263 INFO:   141 2019-03-31 10:24:30 2.781081e-04 0.016677
+neuralnetwork.py:263 INFO:   142 2019-03-31 10:24:30 2.735724e-04 0.016540
+neuralnetwork.py:263 INFO:   143 2019-03-31 10:24:30 2.690955e-04 0.016404
+neuralnetwork.py:263 INFO:   144 2019-03-31 10:24:30 2.646652e-04 0.016269
+neuralnetwork.py:263 INFO:   145 2019-03-31 10:24:30 2.602808e-04 0.016133
+neuralnetwork.py:263 INFO:   146 2019-03-31 10:24:30 2.559416e-04 0.015998
+neuralnetwork.py:263 INFO:   147 2019-03-31 10:24:30 2.516670e-04 0.015864
+neuralnetwork.py:263 INFO:   148 2019-03-31 10:24:30 2.474402e-04 0.015730
+neuralnetwork.py:263 INFO:   149 2019-03-31 10:24:30 2.432583e-04 0.015597
+neuralnetwork.py:263 INFO:   150 2019-03-31 10:24:30 2.391333e-04 0.015464
+neuralnetwork.py:263 INFO:   151 2019-03-31 10:24:30 2.350600e-04 0.015332
+neuralnetwork.py:263 INFO:   152 2019-03-31 10:24:30 2.310395e-04 0.015200
+neuralnetwork.py:263 INFO:   153 2019-03-31 10:24:30 2.270630e-04 0.015069
+neuralnetwork.py:263 INFO:   154 2019-03-31 10:24:30 2.231507e-04 0.014938
+neuralnetwork.py:263 INFO:   155 2019-03-31 10:24:30 2.192821e-04 0.014808
+neuralnetwork.py:263 INFO:   156 2019-03-31 10:24:30 2.154628e-04 0.014679
+neuralnetwork.py:263 INFO:   157 2019-03-31 10:24:31 2.116957e-04 0.014550
+neuralnetwork.py:263 INFO:   158 2019-03-31 10:24:31 2.079761e-04 0.014421
+neuralnetwork.py:263 INFO:   159 2019-03-31 10:24:31 2.043160e-04 0.014294
+neuralnetwork.py:263 INFO:   160 2019-03-31 10:24:31 2.006999e-04 0.014167
+neuralnetwork.py:263 INFO:   161 2019-03-31 10:24:31 1.971440e-04 0.014041
+neuralnetwork.py:263 INFO:   162 2019-03-31 10:24:31 1.936340e-04 0.013915
+neuralnetwork.py:263 INFO:   163 2019-03-31 10:24:31 1.901797e-04 0.013791
+neuralnetwork.py:263 INFO:   164 2019-03-31 10:24:31 1.867665e-04 0.013666
+neuralnetwork.py:263 INFO:   165 2019-03-31 10:24:31 1.834088e-04 0.013543
+neuralnetwork.py:263 INFO:   166 2019-03-31 10:24:31 1.801030e-04 0.013420
+neuralnetwork.py:263 INFO:   167 2019-03-31 10:24:31 1.768412e-04 0.013298
+neuralnetwork.py:263 INFO:   168 2019-03-31 10:24:31 1.736336e-04 0.013177
+neuralnetwork.py:263 INFO:   169 2019-03-31 10:24:31 1.704660e-04 0.013056
+neuralnetwork.py:263 INFO:   170 2019-03-31 10:24:31 1.673537e-04 0.012937
+neuralnetwork.py:263 INFO:   171 2019-03-31 10:24:31 1.642878e-04 0.012817
+neuralnetwork.py:263 INFO:   172 2019-03-31 10:24:31 1.612681e-04 0.012699
+neuralnetwork.py:263 INFO:   173 2019-03-31 10:24:31 1.582920e-04 0.012581
+neuralnetwork.py:263 INFO:   174 2019-03-31 10:24:31 1.553732e-04 0.012465
+neuralnetwork.py:263 INFO:   175 2019-03-31 10:24:31 1.524930e-04 0.012349
+neuralnetwork.py:263 INFO:   176 2019-03-31 10:24:31 1.496640e-04 0.012234
+neuralnetwork.py:263 INFO:   177 2019-03-31 10:24:31 1.468774e-04 0.012119
+neuralnetwork.py:263 INFO:   178 2019-03-31 10:24:31 1.441428e-04 0.012006
+neuralnetwork.py:263 INFO:   179 2019-03-31 10:24:31 1.414469e-04 0.011893
+neuralnetwork.py:263 INFO:   180 2019-03-31 10:24:31 1.387949e-04 0.011781
+neuralnetwork.py:263 INFO:   181 2019-03-31 10:24:31 1.361993e-04 0.011670
+neuralnetwork.py:263 INFO:   182 2019-03-31 10:24:31 1.336386e-04 0.011560
+neuralnetwork.py:263 INFO:   183 2019-03-31 10:24:31 1.311239e-04 0.011451
+neuralnetwork.py:263 INFO:   184 2019-03-31 10:24:31 1.286563e-04 0.011343
+neuralnetwork.py:263 INFO:   185 2019-03-31 10:24:31 1.262235e-04 0.011235
+neuralnetwork.py:263 INFO:   186 2019-03-31 10:24:31 1.238415e-04 0.011128
+neuralnetwork.py:263 INFO:   187 2019-03-31 10:24:31 1.215005e-04 0.011023
+neuralnetwork.py:263 INFO:   188 2019-03-31 10:24:31 1.191990e-04 0.010918
+neuralnetwork.py:263 INFO:   189 2019-03-31 10:24:31 1.169410e-04 0.010814
+neuralnetwork.py:263 INFO:   190 2019-03-31 10:24:31 1.147220e-04 0.010711
+neuralnetwork.py:263 INFO:   191 2019-03-31 10:24:31 1.125503e-04 0.010609
+neuralnetwork.py:263 INFO:   192 2019-03-31 10:24:31 1.104120e-04 0.010508
+neuralnetwork.py:263 INFO:   193 2019-03-31 10:24:31 1.083198e-04 0.010408
+neuralnetwork.py:263 INFO:   194 2019-03-31 10:24:31 1.062618e-04 0.010308
+neuralnetwork.py:263 INFO:   195 2019-03-31 10:24:31 1.042468e-04 0.010210
+neuralnetwork.py:263 INFO:   196 2019-03-31 10:24:31 1.022678e-04 0.010113
+neuralnetwork.py:263 INFO:   197 2019-03-31 10:24:31 1.003299e-04 0.010016
+neuralnetwork.py:263 INFO:   198 2019-03-31 10:24:31 9.842628e-05 0.009921
+neuralnetwork.py:263 INFO:   199 2019-03-31 10:24:31 9.656217e-05 0.009827
+neuralnetwork.py:263 INFO:   200 2019-03-31 10:24:31 9.473049e-05 0.009733
+neuralnetwork.py:263 INFO:   201 2019-03-31 10:24:31 9.293624e-05 0.009640
+neuralnetwork.py:263 INFO:   202 2019-03-31 10:24:31 9.118054e-05 0.009549
+neuralnetwork.py:263 INFO:   203 2019-03-31 10:24:31 8.945527e-05 0.009458
+neuralnetwork.py:263 INFO:   204 2019-03-31 10:24:31 8.776782e-05 0.009368
+neuralnetwork.py:263 INFO:   205 2019-03-31 10:24:31 8.611620e-05 0.009280
+neuralnetwork.py:263 INFO:   206 2019-03-31 10:24:31 8.449255e-05 0.009192
+neuralnetwork.py:263 INFO:   207 2019-03-31 10:24:31 8.290834e-05 0.009105
+neuralnetwork.py:263 INFO:   208 2019-03-31 10:24:31 8.135409e-05 0.009020
+neuralnetwork.py:263 INFO:   209 2019-03-31 10:24:31 7.983428e-05 0.008935
+neuralnetwork.py:263 INFO:   210 2019-03-31 10:24:31 7.834701e-05 0.008851
+neuralnetwork.py:263 INFO:   211 2019-03-31 10:24:31 7.689022e-05 0.008769
+neuralnetwork.py:263 INFO:   212 2019-03-31 10:24:31 7.546397e-05 0.008687
+neuralnetwork.py:263 INFO:   213 2019-03-31 10:24:31 7.407236e-05 0.008607
+neuralnetwork.py:263 INFO:   214 2019-03-31 10:24:31 7.270412e-05 0.008527
+neuralnetwork.py:263 INFO:   215 2019-03-31 10:24:31 7.137199e-05 0.008448
+neuralnetwork.py:263 INFO:   216 2019-03-31 10:24:31 7.006629e-05 0.008371
+neuralnetwork.py:263 INFO:   217 2019-03-31 10:24:31 6.878834e-05 0.008294
+neuralnetwork.py:263 INFO:   218 2019-03-31 10:24:31 6.754448e-05 0.008219
+neuralnetwork.py:263 INFO:   219 2019-03-31 10:24:31 6.632534e-05 0.008144
+neuralnetwork.py:263 INFO:   220 2019-03-31 10:24:31 6.513207e-05 0.008070
+neuralnetwork.py:263 INFO:   221 2019-03-31 10:24:31 6.397087e-05 0.007998
+neuralnetwork.py:263 INFO:   222 2019-03-31 10:24:31 6.283369e-05 0.007927
+neuralnetwork.py:263 INFO:   223 2019-03-31 10:24:31 6.172204e-05 0.007856
+neuralnetwork.py:263 INFO:   224 2019-03-31 10:24:31 6.063718e-05 0.007787
+neuralnetwork.py:263 INFO:   225 2019-03-31 10:24:31 5.957899e-05 0.007719
+neuralnetwork.py:263 INFO:   226 2019-03-31 10:24:31 5.854421e-05 0.007651
+neuralnetwork.py:263 INFO:   227 2019-03-31 10:24:31 5.753562e-05 0.007585
+neuralnetwork.py:263 INFO:   228 2019-03-31 10:24:31 5.654731e-05 0.007520
+neuralnetwork.py:263 INFO:   229 2019-03-31 10:24:31 5.558730e-05 0.007456
+neuralnetwork.py:263 INFO:   230 2019-03-31 10:24:31 5.464573e-05 0.007392
+neuralnetwork.py:263 INFO:   231 2019-03-31 10:24:32 5.373199e-05 0.007330
+neuralnetwork.py:263 INFO:   232 2019-03-31 10:24:32 5.283687e-05 0.007269
+neuralnetwork.py:263 INFO:   233 2019-03-31 10:24:32 5.196474e-05 0.007209
+neuralnetwork.py:263 INFO:   234 2019-03-31 10:24:32 5.111709e-05 0.007150
+neuralnetwork.py:263 INFO:   235 2019-03-31 10:24:32 5.028980e-05 0.007092
+neuralnetwork.py:263 INFO:   236 2019-03-31 10:24:32 4.948281e-05 0.007034
+neuralnetwork.py:263 INFO:   237 2019-03-31 10:24:32 4.869387e-05 0.006978
+neuralnetwork.py:263 INFO:   238 2019-03-31 10:24:32 4.792587e-05 0.006923
+neuralnetwork.py:263 INFO:   239 2019-03-31 10:24:32 4.717703e-05 0.006869
+neuralnetwork.py:263 INFO:   240 2019-03-31 10:24:32 4.644758e-05 0.006815
+neuralnetwork.py:263 INFO:   241 2019-03-31 10:24:32 4.573564e-05 0.006763
+neuralnetwork.py:263 INFO:   242 2019-03-31 10:24:32 4.504588e-05 0.006712
+neuralnetwork.py:263 INFO:   243 2019-03-31 10:24:32 4.436931e-05 0.006661
+neuralnetwork.py:263 INFO:   244 2019-03-31 10:24:32 4.371407e-05 0.006612
+neuralnetwork.py:263 INFO:   245 2019-03-31 10:24:32 4.307580e-05 0.006563
+neuralnetwork.py:263 INFO:   246 2019-03-31 10:24:32 4.245372e-05 0.006516
+neuralnetwork.py:263 INFO:   247 2019-03-31 10:24:32 4.184699e-05 0.006469
+neuralnetwork.py:263 INFO:   248 2019-03-31 10:24:32 4.125677e-05 0.006423
+neuralnetwork.py:263 INFO:   249 2019-03-31 10:24:32 4.068112e-05 0.006378
+neuralnetwork.py:263 INFO:   250 2019-03-31 10:24:32 4.012071e-05 0.006334
+neuralnetwork.py:263 INFO:   251 2019-03-31 10:24:32 3.957709e-05 0.006291
+neuralnetwork.py:263 INFO:   252 2019-03-31 10:24:32 3.904848e-05 0.006249
+neuralnetwork.py:263 INFO:   253 2019-03-31 10:24:32 3.853212e-05 0.006207
+neuralnetwork.py:263 INFO:   254 2019-03-31 10:24:32 3.803076e-05 0.006167
+neuralnetwork.py:263 INFO:   255 2019-03-31 10:24:32 3.754158e-05 0.006127
+neuralnetwork.py:263 INFO:   256 2019-03-31 10:24:32 3.706781e-05 0.006088
+neuralnetwork.py:263 INFO:   257 2019-03-31 10:24:32 3.660460e-05 0.006050
+neuralnetwork.py:263 INFO:   258 2019-03-31 10:24:32 3.615518e-05 0.006013
+neuralnetwork.py:263 INFO:   259 2019-03-31 10:24:32 3.571793e-05 0.005976
+neuralnetwork.py:263 INFO:   260 2019-03-31 10:24:32 3.529383e-05 0.005941
+neuralnetwork.py:263 INFO:   261 2019-03-31 10:24:32 3.487999e-05 0.005906
+neuralnetwork.py:263 INFO:   262 2019-03-31 10:24:32 3.447793e-05 0.005872
+neuralnetwork.py:263 INFO:   263 2019-03-31 10:24:32 3.408700e-05 0.005838
+neuralnetwork.py:263 INFO:   264 2019-03-31 10:24:32 3.370582e-05 0.005806
+neuralnetwork.py:263 INFO:   265 2019-03-31 10:24:32 3.333489e-05 0.005774
+neuralnetwork.py:263 INFO:   266 2019-03-31 10:24:32 3.297680e-05 0.005743
+neuralnetwork.py:263 INFO:   267 2019-03-31 10:24:32 3.262689e-05 0.005712
+neuralnetwork.py:263 INFO:   268 2019-03-31 10:24:32 3.228672e-05 0.005682
+neuralnetwork.py:263 INFO:   269 2019-03-31 10:24:32 3.195553e-05 0.005653
+neuralnetwork.py:263 INFO:   270 2019-03-31 10:24:32 3.163585e-05 0.005625
+neuralnetwork.py:263 INFO:   271 2019-03-31 10:24:32 3.132419e-05 0.005597
+neuralnetwork.py:263 INFO:   272 2019-03-31 10:24:32 3.102277e-05 0.005570
+neuralnetwork.py:263 INFO:   273 2019-03-31 10:24:32 3.072546e-05 0.005543
+neuralnetwork.py:263 INFO:   274 2019-03-31 10:24:32 3.044007e-05 0.005517
+neuralnetwork.py:263 INFO:   275 2019-03-31 10:24:32 3.016127e-05 0.005492
+neuralnetwork.py:263 INFO:   276 2019-03-31 10:24:32 2.988996e-05 0.005467
+neuralnetwork.py:263 INFO:   277 2019-03-31 10:24:32 2.962679e-05 0.005443
+neuralnetwork.py:263 INFO:   278 2019-03-31 10:24:32 2.937085e-05 0.005419
+neuralnetwork.py:263 INFO:   279 2019-03-31 10:24:32 2.912267e-05 0.005397
+neuralnetwork.py:263 INFO:   280 2019-03-31 10:24:32 2.888076e-05 0.005374
+neuralnetwork.py:263 INFO:   281 2019-03-31 10:24:32 2.864494e-05 0.005352
+neuralnetwork.py:263 INFO:   282 2019-03-31 10:24:32 2.841400e-05 0.005330
+neuralnetwork.py:263 INFO:   283 2019-03-31 10:24:32 2.819129e-05 0.005310
+neuralnetwork.py:263 INFO:   284 2019-03-31 10:24:32 2.797520e-05 0.005289
+neuralnetwork.py:263 INFO:   285 2019-03-31 10:24:32 2.776418e-05 0.005269
+neuralnetwork.py:263 INFO:   286 2019-03-31 10:24:32 2.755947e-05 0.005250
+neuralnetwork.py:263 INFO:   287 2019-03-31 10:24:32 2.735854e-05 0.005231
+neuralnetwork.py:263 INFO:   288 2019-03-31 10:24:32 2.716494e-05 0.005212
+neuralnetwork.py:263 INFO:   289 2019-03-31 10:24:32 2.697415e-05 0.005194
+neuralnetwork.py:263 INFO:   290 2019-03-31 10:24:32 2.679000e-05 0.005176
+neuralnetwork.py:263 INFO:   291 2019-03-31 10:24:32 2.661190e-05 0.005159
+neuralnetwork.py:263 INFO:   292 2019-03-31 10:24:32 2.643686e-05 0.005142
+neuralnetwork.py:263 INFO:   293 2019-03-31 10:24:32 2.626899e-05 0.005125
+neuralnetwork.py:263 INFO:   294 2019-03-31 10:24:32 2.610515e-05 0.005109
+neuralnetwork.py:263 INFO:   295 2019-03-31 10:24:32 2.594518e-05 0.005094
+neuralnetwork.py:263 INFO:   296 2019-03-31 10:24:32 2.578870e-05 0.005078
+neuralnetwork.py:263 INFO:   297 2019-03-31 10:24:32 2.563795e-05 0.005063
+neuralnetwork.py:263 INFO:   298 2019-03-31 10:24:32 2.549068e-05 0.005049
+neuralnetwork.py:263 INFO:   299 2019-03-31 10:24:32 2.534599e-05 0.005034
+neuralnetwork.py:263 INFO:   300 2019-03-31 10:24:32 2.520590e-05 0.005021
+neuralnetwork.py:263 INFO:   301 2019-03-31 10:24:32 2.506835e-05 0.005007
+neuralnetwork.py:263 INFO:   302 2019-03-31 10:24:32 2.493675e-05 0.004994
+neuralnetwork.py:274 INFO:Training finished in 0 hours 0 minutes 4.10 seconds.
+neuralnetwork.py:275 INFO:outputs
+neuralnetwork.py:276 INFO:tensor([-14.5676269531, -14.5618619919, -14.5402507782, -14.4954156876,
+        -14.4446868896, -14.4093074799, -14.3855695724, -14.3723878860,
+        -14.3687915802, -14.3701000214], grad_fn=<StackBackward>)
+neuralnetwork.py:277 INFO:targets
+neuralnetwork.py:278 INFO:tensor([-14.5868730545, -14.5640010834, -14.5292606354, -14.4874134064,
+        -14.4443883896, -14.4063940048, -14.3788156509, -14.3651800156,
+        -14.3665180206, -14.3813629150])

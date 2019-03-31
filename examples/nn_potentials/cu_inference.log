@@ -1,0 +1,106 @@
+potentials.py:52 INFO:
+    -------------------------------------------------------------------------------
+                    _______        _______ _     _ _______ _______
+                    |  |  | |      |       |_____| |______ |  |  |
+                    |  |  | |_____ |_____  |     | |______ |  |  |
+
+
+
+    MLChem is Machine Learning for Chemistry. This package is written in Python 3,
+    and intends to offer modern and rich features to perform machine learning
+    workflows for chemical physics.
+
+    This software is developed by Muammar El Khatib.
+    -------------------------------------------------------------------------------
+    
+potentials.py:53 INFO:Available backends: ['torch', 'torchvision', 'numpy'].
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for inference
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:264 INFO:Fingerprinting finished in 0 hours 0 minutes 1.73 seconds.
+potentials.py:273 INFO:Calculating energy
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for inference
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:264 INFO:Fingerprinting finished in 0 hours 0 minutes 1.25 seconds.
+potentials.py:273 INFO:Calculating energy
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for inference
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:264 INFO:Fingerprinting finished in 0 hours 0 minutes 1.01 seconds.
+potentials.py:273 INFO:Calculating energy
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for inference
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:264 INFO:Fingerprinting finished in 0 hours 0 minutes 0.99 seconds.
+potentials.py:273 INFO:Calculating energy
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for inference
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:264 INFO:Fingerprinting finished in 0 hours 0 minutes 0.98 seconds.
+potentials.py:273 INFO:Calculating energy
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for inference
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:264 INFO:Fingerprinting finished in 0 hours 0 minutes 0.98 seconds.
+potentials.py:273 INFO:Calculating energy
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for inference
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:264 INFO:Fingerprinting finished in 0 hours 0 minutes 0.99 seconds.
+potentials.py:273 INFO:Calculating energy
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for inference
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:264 INFO:Fingerprinting finished in 0 hours 0 minutes 0.99 seconds.
+potentials.py:273 INFO:Calculating energy
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for inference
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:264 INFO:Fingerprinting finished in 0 hours 0 minutes 0.99 seconds.
+potentials.py:273 INFO:Calculating energy
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for inference
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:264 INFO:Fingerprinting finished in 0 hours 0 minutes 0.97 seconds.
+potentials.py:273 INFO:Calculating energy

@@ -1,0 +1,42 @@
+potentials.py:52 INFO:
+    -------------------------------------------------------------------------------
+                    _______        _______ _     _ _______ _______
+                    |  |  | |      |       |_____| |______ |  |  |
+                    |  |  | |_____ |_____  |     | |______ |  |  |
+
+
+
+    MLChem is Machine Learning for Chemistry. This package is written in Python 3,
+    and intends to offer modern and rich features to perform machine learning
+    workflows for chemical physics.
+
+    This software is developed by Muammar El Khatib.
+    -------------------------------------------------------------------------------
+    
+potentials.py:53 INFO:Available backends: ['torch', 'torchvision', 'numpy'].
+handler.py:34 WARNING:Data structure is not compatible with MLChem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:112 INFO:Fingerprinting
+gaussian.py:119 INFO:Getting unique element symbols for training
+gaussian.py:125 INFO:Unique elements: ['Cu']
+gaussian.py:466 WARNING:Making default symmetry functions
+gaussian.py:178 INFO:Preprocessing data...
+gaussian.py:222 INFO:Fingerprinting finished in 0 hours 0 minutes 8.75 seconds.
+kernelridge.py:162 INFO:Model Training
+kernelridge.py:163 INFO:Model name: KernelRidge.
+kernelridge.py:164 INFO:Kernel parameters:
+kernelridge.py:165 INFO:    - Kernel function: rbf.
+kernelridge.py:166 INFO:    - Sigma: 1.0.
+kernelridge.py:167 INFO:    - Lamda: 1e-05.
+kernelridge.py:177 INFO:Computing Kernel Matrix...
+kernelridge.py:180 WARNING:    Adding calculations to scheduler...
+kernelridge.py:188 INFO:    1600 kernel evaluations added in 0 hours 0 minutes 0.12 seconds.
+kernelridge.py:193 INFO:    The calculations were batched in groups of 160.
+kernelridge.py:197 INFO:    Evaluating atomic similarities...
+kernelridge.py:213 INFO:Kernel matrix built in 0 hours 0 minutes 3.67 seconds.
+kernelridge.py:219 INFO:Building LT matrix
+kernelridge.py:230 INFO:LT matrix built in 0 hours 0 minutes 3.71 seconds.
+kernelridge.py:274 INFO:Size of the Kernel matrix is (10, 10).
+kernelridge.py:275 INFO:Starting Cholesky Factorization...
+kernelridge.py:277 INFO:Cholesky Factorization finished...

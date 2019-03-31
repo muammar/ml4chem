@@ -6,7 +6,7 @@ from collections import OrderedDict
 from mlchem.data.serialization import dump
 from mlchem.utils import convert_elapsed_time
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 class Cartesian(object):
