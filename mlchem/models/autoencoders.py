@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 import torch
 
@@ -7,6 +8,7 @@ from mlchem.models.loss import RMSELossAE
 from mlchem.utils import convert_elapsed_time
 
 torch.set_printoptions(precision=10)
+logger = logging.getLogger(__name__)
 
 
 class AutoEncoder(torch.nn.Module):
@@ -77,13 +79,12 @@ class AutoEncoder(torch.nn.Module):
                       'celu': torch.nn.CELU}
 
         if purpose == 'training':
-            print()
-            print('Model Training')
-            print('==============')
-            print('Model name: {}.'.format(self.name()))
-            print('Structure of Autoencoder: {}'
-                  .format('(input, ' + str(self.hiddenlayers)[1:-1] +
-                          ', output)'))
+            logger.info('Model Training')
+            logger.info('==============')
+            logger.info('Model name: {}.'.format(self.name()))
+            logger.info('Structure of Autoencoder: {}'
+                        .format('(input, ' + str(self.hiddenlayers)[1:-1] +
+                                ', output)'))
 
         unique_element_symbols = data.unique_element_symbols[purpose]
 
@@ -139,13 +140,14 @@ class AutoEncoder(torch.nn.Module):
 
         self.encoders = torch.nn.ModuleDict(symbol_encoder_pair)
         self.decoders = torch.nn.ModuleDict(symbol_decoder_pair)
-        print(self.encoders)
-        print(self.decoders)
+        logger.info(self.encoders)
+        logger.info(self.decoders)
 
         if purpose == 'training':
             # Iterate over all modules and just intialize those that are
             # a linear layer.
-            print('Initialization of weights.')
+            logger.warning('Initialization of weights with Xavier Uniform by '
+                           'default.')
             for m in self.modules():
                 if isinstance(m, torch.nn.Linear):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
@@ -265,15 +267,14 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         optimizer = torch.optim.Adam(model.parameters(), lr=lr,
                                      weight_decay=weight_decay)
 
-    print()
-    print('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
-                                             'Time Stamp',
-                                             'Loss',
-                                             'Rec Err'))
-    print('{:6s} {:19s} {:12s} {:9s}'.format('------',
-                                             '-------------------',
-                                             '------------',
-                                             '--------'))
+    logger.info('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
+                                                   'Time Stamp',
+                                                   'Loss',
+                                                   'Rec Err'))
+    logger.info('{:6s} {:19s} {:12s} {:9s}'.format('------',
+                                                   '-------------------',
+                                                   '------------',
+                                                   '--------'))
     initial_time = time.time()
 
     _loss = []
@@ -295,7 +296,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         ts = time.time()
         ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
                                                           '%H:%M:%S')
-        print('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
+        logger.info('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
 
         if convergence is None and epoch == epochs:
             break
@@ -305,10 +306,10 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     training_time = time.time() - initial_time
 
     h, m, s = convert_elapsed_time(training_time)
-    print('Training finished in {} hours {} minutes {:.2f} seconds.'
-          .format(h, m, s))
-    print('outputs')
-    print(outputs)
-    print('targets')
-    print(targets)
+    logger.info('Training finished in {} hours {} minutes {:.2f} seconds.'
+                .format(h, m, s))
+    logger.info('outputs')
+    logger.info(outputs)
+    logger.info('targets')
+    logger.info(targets)
     return epoch, _loss, _rmse

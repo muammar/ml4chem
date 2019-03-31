@@ -8,6 +8,7 @@ from mlchem.utils import convert_elapsed_time
 
 logger = logging.getLogger(__name__)
 
+
 class Cartesian(object):
     """Cartesian Coordinates
 
@@ -59,22 +60,20 @@ class Cartesian(object):
             structure: {'hash': [('H', [vector]]}
         """
 
-        message = 'Fingerprinting'
-        logger.info(message)
+        logger.info('Fingerprinting')
 
         initial_time = time.time()
 
         # Verify that we know the unique element symbols
         if data.unique_element_symbols is None:
-            message = 'Getting unique element symbols for {}' .format(purpose)
-            logger.info(message)
+            logger.info('Getting unique element symbols for {}'
+                        .format(purpose))
 
             unique_element_symbols = \
                 data.get_unique_element_symbols(images, purpose=purpose)
             unique_element_symbols = unique_element_symbols[purpose]
 
-            message = 'Unique elements: {}' .format(unique_element_symbols)
-            logger.info(message)
+            logger.info('Unique elements: {}' .format(unique_element_symbols))
 
         # We start populating computations with delayed functions to operate
         # with dask's scheduler. These computations get cartesian coordinates.
@@ -98,9 +97,8 @@ class Cartesian(object):
 
         h, m, s = convert_elapsed_time(fp_time)
 
-        message = 'Fingerprinting finished in {} hours {} minutes {:.2f} \
-                   seconds.' .format(h, m, s)
-        logger.info(message)
+        logger.info('Fingerprinting finished in {} hours {} minutes {:.2f} '
+                    'seconds.' .format(h, m, s))
 
         data = {'feature_space': feature_space}
 

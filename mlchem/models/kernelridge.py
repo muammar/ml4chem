@@ -1,9 +1,13 @@
-import time
 import dask
+import logging
+import time
 import numpy as np
 from mlchem.utils import convert_elapsed_time, get_chunks
 from collections import OrderedDict
 from scipy.linalg import cholesky
+
+
+logger = logging.getLogger(__name__)
 
 
 class KernelRidge(object):
@@ -156,14 +160,12 @@ class KernelRidge(object):
         to apply the atomic decomposition Ansatz.
         """
         if purpose == 'training':
-            print()
-            print('Model Training')
-            print('==============')
-            print('Model name: {}.'.format(self.name()))
-            print('Kernel parameters:')
-            print('    - Kernel function: {}.' .format(self.kernel))
-            print('    - Sigma: {}.' .format(self.sigma))
-            print('    - Lamda: {}.' .format(self.lamda))
+            logger.info('Model Training')
+            logger.info('Model name: {}.'.format(self.name()))
+            logger.info('Kernel parameters:')
+            logger.info('    - Kernel function: {}.' .format(self.kernel))
+            logger.info('    - Sigma: {}.' .format(self.sigma))
+            logger.info('    - Lamda: {}.' .format(self.lamda))
 
         dim = len(reference_features)
 
@@ -173,27 +175,27 @@ class KernelRidge(object):
 
         initial_time = time.time()
 
-        print('Computing Kernel Matrix...')
+        logger.info('Computing Kernel Matrix...')
         # We start populating computations with delayed functions to
         # operate with dask's scheduler
-        print('    Adding calculations to scheduler...')
+        logger.warning('    Adding calculations to scheduler...')
 
         computations = self.get_kernel_matrix(feature_space,
                                               reference_features)
 
         scheduler_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(scheduler_time)
-        print('    {} kernel evaluations added in {} hours {} minutes {:.2f}'
-              '  seconds.' .format(len(computations), h, m, s))
+        logger.info('    {} kernel evaluations added in {} hours {} minutes '
+                    '{:.2f} seconds.' .format(len(computations), h, m, s))
 
         if self.batch_size is not None:
             computations = list(get_chunks(computations, self.batch_size))
-            print('    The calculations were batched in groups of {}.'
-                  .format(self.batch_size))
+            logger.info('    The calculations were batched in groups of {}.'
+                        .format(self.batch_size))
 
         # We compute the calculations with dask and the result is converted
         # to numpy array.
-        print('    Evaluating atomic similarities...')
+        logger.info('    Evaluating atomic similarities...')
 
         if self.batch_size is None:
             kernel_matrix = dask.compute(*computations,
@@ -208,14 +210,14 @@ class KernelRidge(object):
 
         build_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(build_time)
-        print('Kernel matrix built in {} hours {} minutes {:.2f} seconds.'
-              .format(h, m, s))
+        logger.info('Kernel matrix built in {} hours {} minutes {:.2f} '
+                    'seconds.' .format(h, m, s))
 
         """
         LT Vectors
         """
         # We build the LT matrix needed for ADA
-        print('Building LT matrix')
+        logger.info('Building LT matrix')
         computations = []
         for index, feature_space in enumerate(feature_space.items()):
             computations.append(self.get_lt(index))
@@ -225,8 +227,8 @@ class KernelRidge(object):
 
         lt_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(lt_time)
-        print('LT matrix built in {} hours {} minutes {:.2f} seconds.'
-              .format(h, m, s))
+        logger.info('LT matrix built in {} hours {} minutes {:.2f} seconds.'
+                    .format(h, m, s))
 
     def get_kernel_matrix(self, feature_space, reference_features):
         """Create computations to build kernel matrix"""
@@ -270,10 +272,10 @@ class KernelRidge(object):
         size = len(targets)
         I_e = np.identity(size)
         K = self.LT.dot(self.K).dot(self.LT.T)
-        print('Size of the Kernel matrix is {}.' .format(K.shape))
-        print('Starting Cholesky Factorization...')
+        logger.info('Size of the Kernel matrix is {}.' .format(K.shape))
+        logger.info('Starting Cholesky Factorization...')
         cholesky_U = cholesky((K + (lamda * I_e)))
-        print('Cholesky Factorization finished...')
+        logger.info('Cholesky Factorization finished...')
         betas = np.linalg.solve(cholesky_U.T, targets)
         _weights = np.linalg.solve(cholesky_U, betas)
         _weights = [w * g for index, w in enumerate(_weights) for

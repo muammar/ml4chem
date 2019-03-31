@@ -1,11 +1,15 @@
-from ase.calculators.calculator import Calculator
 import codecs
 import copy
 import json
+import logging
 import torch
+from ase.calculators.calculator import Calculator
 from mlchem.data.handler import DataSet
 from mlchem.data.serialization import dump, load
 from mlchem.backends.available import available_backends
+
+
+logger = logging.getLogger(__name__)
 
 
 class Potentials(Calculator, object):
@@ -44,7 +48,7 @@ class Potentials(Calculator, object):
         self.mlchem_path = mlchem_path
         self.scaler = scaler
 
-        print('Available backends', self.available_backends)
+        logger.info('Available backends: {}.' .format(self.available_backends))
 
         self.reference_space = None
 
@@ -203,22 +207,23 @@ class Potentials(Calculator, object):
 
             # CUDA stuff
             if device == 'cuda':
-                print(' ')
-                print('Checking if CUDA is available...')
+                logger.info('Checking if CUDA is available...')
                 use_cuda = torch.cuda.is_available()
                 if use_cuda:
                     count = torch.cuda.device_count()
-                    print('MLChem found {} CUDA devices available.'
-                          .format(count))
+                    logger.info('MLChem found {} CUDA devices available.'
+                                .format(count))
 
                     for index in range(count):
                         device_name = torch.cuda.get_device_name(index)
+
                         if index == 0:
                             device_name += ' (Default)'
-                        print('    - {}.'. format(device_name))
-                    device = device
+
+                        logger.info('    - {}.'. format(device_name))
+
                 else:
-                    print('No CUDA available. We will use CPU.')
+                    logger.warning('No CUDA available. We will use CPU.')
                     device = 'cpu'
 
             device_ = torch.device(device)
@@ -234,7 +239,6 @@ class Potentials(Calculator, object):
 
         self.save(self.model, features=self.fingerprints, path=self.path,
                   label=self.label)
-
 
     def calculate(self, atoms, properties, system_changes):
         """Calculate things
@@ -264,7 +268,7 @@ class Potentials(Calculator, object):
         fingerprints = fingerprints.calculate_features(atoms, **kwargs)
 
         if 'energy' in properties:
-            print('Calculating energy')
+            logger.info('Calculating energy')
             if model_name in Potentials.svm_models:
 
                 try:

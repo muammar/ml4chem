@@ -109,22 +109,20 @@ class Gaussian(object):
             structure: {'hash': [('H', [vector]]}
         """
 
-        message = 'Fingerprinting'
-        logger.info(message)
+        logger.info('Fingerprinting')
 
         initial_time = time.time()
 
         # Verify that we know the unique element symbols
         if data.unique_element_symbols is None:
-            message = 'Getting unique element symbols for {}' .format(purpose)
-            logger.info(message)
+            logger.info('Getting unique element symbols for {}'
+                        .format(purpose))
 
             unique_element_symbols = \
                 data.get_unique_element_symbols(images, purpose=purpose)
             unique_element_symbols = unique_element_symbols[purpose]
 
-            message = 'Unique elements: {}' .format(unique_element_symbols)
-            logger.info(message)
+            logger.info('Unique elements: {}' .format(unique_element_symbols))
 
         # If self.defaults is True we create default symmetry functions.
         if self.defaults:
@@ -177,8 +175,7 @@ class Gaussian(object):
             stacked_features = stacked_features.reshape(d1 * d2, d3)
 
         if self.scaler == 'minmaxscaler' and purpose == 'training':
-            message = 'Preprocessing data...'
-            logger.info(message)
+            logger.info('Preprocessing data...')
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
             stacked_features = dask.array.from_array(stacked_features,
@@ -221,10 +218,8 @@ class Gaussian(object):
             fp_time = time.time() - initial_time
 
             h, m, s = convert_elapsed_time(fp_time)
-            message = 'Fingerprinting finished in {} hours {} minutes {:.2f} \
-                       seconds.' .format(h, m, s)
-
-            logger.info(message)
+            logger.info('Fingerprinting finished in {} hours {} minutes {:.2f}'
+                        ' seconds.' .format(h, m, s))
 
             data = {'feature_space': feature_space}
 
@@ -265,12 +260,10 @@ class Gaussian(object):
 
             h, m, s = convert_elapsed_time(fp_time)
 
-            message = 'Fingerprinting finished in {} hours {} minutes {:.2f} \
-                       seconds.' .format(h, m, s)
-            logger.info(message)
+            logger.info('Fingerprinting finished in {} hours {} minutes {:.2f}'
+                        ' seconds.' .format(h, m, s))
 
             return feature_space
-
 
     @dask.delayed
     def restack_atom(self, image_index, atom, scaled_feature_space):
@@ -470,9 +463,7 @@ class Gaussian(object):
         GP = {}
 
         if defaults:
-            message = 'Making default symmetry functions'
-
-            logger.warning(message)
+            logger.warning('Making default symmetry functions')
 
             for symbol in symbols:
                 # Radial
@@ -534,9 +525,8 @@ class Gaussian(object):
                                            'zeta': zeta})
             return GP
         else:
-            message = 'The requested type of angular symmetry function is not \
-                       supported.'
-            logger.error(message)
+            logger.error('The requested type of angular symmetry function is '
+                         'not supported.')
 
 
 def calculate_G2(n_numbers, neighborsymbols, neighborpositions, center_symbol,

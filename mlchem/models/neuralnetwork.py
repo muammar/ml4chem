@@ -1,5 +1,6 @@
-import time
 import datetime
+import logging
+import time
 import torch
 
 from collections import OrderedDict
@@ -8,6 +9,7 @@ from mlchem.models.loss import RMSELoss
 from mlchem.utils import convert_elapsed_time
 
 torch.set_printoptions(precision=10)
+logger = logging.getLogger(__name__)
 
 
 class NeuralNetwork(torch.nn.Module):
@@ -51,14 +53,13 @@ class NeuralNetwork(torch.nn.Module):
 
         hl = len(self.hiddenlayers)
         if purpose == 'training':
-            print()
-            print('Model Training')
-            print('==============')
-            print('Model name: {}.'.format(self.name()))
-            print('Number of hidden-layers: {}' .format(hl))
-            print('Structure of Neural Net: {}'
-                  .format('(input, ' + str(self.hiddenlayers)[1:-1] +
-                          ', output)'))
+            logger.info('Model Training')
+            logger.info('==============')
+            logger.info('Model name: {}.'.format(self.name()))
+            logger.info('Number of hidden-layers: {}' .format(hl))
+            logger.info('Structure of Neural Net: {}'
+                        .format('(input, ' + str(self.hiddenlayers)[1:-1] +
+                                ', output)'))
         layers = range(len(self.hiddenlayers) + 1)
         unique_element_symbols = data.unique_element_symbols[purpose]
 
@@ -72,14 +73,13 @@ class NeuralNetwork(torch.nn.Module):
 
             if purpose == 'training':
                 intercept = (data.max_energy + data.min_energy) / 2.
-                intercept = torch.nn.Parameter(torch.tensor(intercept,
-                                                            requires_grad=True))
-
+                intercept = torch.nn.Parameter(
+                        torch.tensor(intercept, requires_grad=True))
                 slope = (data.max_energy - data.min_energy) / 2.
                 slope = torch.nn.Parameter(torch.tensor(slope,
                                                         requires_grad=True))
 
-                print(intercept, slope)
+                logger.info(intercept, slope)
 
                 self.register_parameter(intercept_name, intercept)
                 self.register_parameter(slope_name, slope)
@@ -118,9 +118,11 @@ class NeuralNetwork(torch.nn.Module):
         self.linears = torch.nn.ModuleDict(symbol_model_pair)
 
         if purpose == 'training':
-            print(self.linears)
+            logger.info(self.linears)
             # Iterate over all modules and just intialize those that are
             # a linear layer.
+            logger.warning('Initialization of weights with Xavier Uniform by '
+                           'default.')
             for m in self.modules():
                 if isinstance(m, torch.nn.Linear):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
@@ -207,7 +209,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     targets = torch.tensor(targets, requires_grad=False)
 
     if device == 'cuda':
-        print('Moving data to CUDA...')
+        logger.info('Moving data to CUDA...')
         targets = targets.cuda()
         _inputs = OrderedDict()
         for hash, f in inputs.items():
@@ -220,23 +222,22 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
 
         move_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(move_time)
-        print('Data moved to GPU in {} hours {} minutes {:.2f} seconds.'
-              .format(h, m, s))
+        logger.info('Data moved to GPU in {} hours {} minutes {:.2f} seconds.'
+                    .format(h, m, s))
 
     # Define optimizer
     if optimizer is None:
         optimizer = torch.optim.Adam(model.parameters(), lr=lr,
                                      weight_decay=weight_decay)
 
-    print()
-    print('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
-                                             'Time Stamp',
-                                             'Loss',
-                                             'RMSE/atom'))
-    print('{:6s} {:19s} {:12s} {:9s}'.format('------',
-                                             '-------------------',
-                                             '------------',
-                                             '---------'))
+    logger.info('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
+                                                   'Time Stamp',
+                                                   'Loss',
+                                                   'RMSE/atom'))
+    logger.info('{:6s} {:19s} {:12s} {:9s}'.format('------',
+                                                   '-------------------',
+                                                   '------------',
+                                                   '---------'))
 
     _loss = []
     _rmse = []
@@ -259,7 +260,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         ts = time.time()
         ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
                                                           '%H:%M:%S')
-        print('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
+        logger.info('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
 
         if convergence is None and epoch == epochs:
             break
@@ -269,12 +270,12 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     training_time = time.time() - initial_time
 
     h, m, s = convert_elapsed_time(training_time)
-    print('Training finished in {} hours {} minutes {:.2f} seconds.'
-          .format(h, m, s))
-    print('outputs')
-    print(outputs)
-    print('targets')
-    print(targets)
+    logger.info('Training finished in {} hours {} minutes {:.2f} seconds.'
+                .format(h, m, s))
+    logger.info('outputs')
+    logger.info(outputs)
+    logger.info('targets')
+    logger.info(targets)
 
     import matplotlib.pyplot as plt
     plt.plot(list(range(epoch)), _loss, label='loss')
