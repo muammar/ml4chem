@@ -4,7 +4,7 @@ import time
 import torch
 
 from collections import OrderedDict
-from mlchem.models.loss import RMSELossAE
+from mlchem.models.loss import MSELossAE
 from mlchem.utils import convert_elapsed_time
 
 torch.set_printoptions(precision=10)
@@ -286,9 +286,12 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         outputs = model(inputs)
 
         if lossfxn is None:
-            loss, rmse = RMSELossAE(outputs, targets, optimizer)
+            loss = MSELossAE(outputs, targets, optimizer)
         else:
             raise('I do not know what to do')
+
+
+        rmse = torch.sqrt(torch.mean((outputs - targets).pow(2))).item()
 
         _loss.append(loss.item())
         _rmse.append(rmse)

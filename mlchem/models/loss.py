@@ -1,7 +1,7 @@
 import torch
 
 
-def RMSELoss(outputs, targets, optimizer, data, device='cpu'):
+def MSELoss(outputs, targets, optimizer, data, device='cpu'):
     """Default loss function
 
     If user does not input loss function we provide mean-squared error loss
@@ -24,8 +24,6 @@ def RMSELoss(outputs, targets, optimizer, data, device='cpu'):
     -------
     loss : tensor
         The value of the loss function.
-    rmse : float
-        Value of the root-mean squared error per atom.
     """
 
     optimizer.zero_grad()  # clear previous gradients
@@ -47,12 +45,10 @@ def RMSELoss(outputs, targets, optimizer, data, device='cpu'):
     loss.backward()
     optimizer.step()
 
-    rmse = torch.sqrt(loss).item()
-
-    return loss, rmse
+    return loss
 
 
-def RMSELossAE(outputs, targets, optimizer):
+def MSELossAE(outputs, targets, optimizer):
     """Default loss function
 
     If user does not input loss function we provide mean-squared error loss
@@ -71,8 +67,6 @@ def RMSELossAE(outputs, targets, optimizer):
     -------
     loss : tensor
         The value of the loss function.
-    rmse : float
-        Value of the root-mean squared error per atom.
     """
 
     optimizer.zero_grad()  # clear previous gradients
@@ -83,6 +77,5 @@ def RMSELossAE(outputs, targets, optimizer):
     loss = criterion(outputs, targets)
     loss.backward()
     optimizer.step()
-    rmse = torch.sqrt(loss).item()
 
-    return loss, rmse
+    return loss

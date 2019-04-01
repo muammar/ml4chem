@@ -5,7 +5,7 @@ import torch
 
 from collections import OrderedDict
 from mlchem.data.visualization import parity
-from mlchem.models.loss import RMSELoss
+from mlchem.models.loss import MSELoss
 from mlchem.utils import convert_elapsed_time
 
 torch.set_printoptions(precision=10)
@@ -230,13 +230,17 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         optimizer = torch.optim.Adam(model.parameters(), lr=lr,
                                      weight_decay=weight_decay)
 
-    logger.info('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
+    logger.info('{:6s} {:19s} {:12s} {:8s} {:8s}'.format(
+                                                   'Epoch',
                                                    'Time Stamp',
                                                    'Loss',
+                                                   'RMSE/img',
                                                    'RMSE/atom'))
-    logger.info('{:6s} {:19s} {:12s} {:9s}'.format('------',
+    logger.info('{:6s} {:19s} {:12s} {:8s} {:8s}'.format(
+                                                   '------',
                                                    '-------------------',
                                                    '------------',
+                                                   '--------',
                                                    '---------'))
 
     _loss = []
@@ -249,18 +253,36 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         outputs = model(inputs)
 
         if lossfxn is None:
-            loss, rmse = RMSELoss(outputs, targets, optimizer, data,
-                                  device=device)
+            loss = MSELoss(outputs, targets, optimizer, data,
+                           device=device)
         else:
             raise('I do not know what to do')
 
+        # RMSE per image and per/atom
+        rmse = torch.sqrt(torch.mean((outputs - targets).pow(2)))
+
+        atoms_per_image = torch.tensor(data.atoms_per_image,
+                                       requires_grad=False,
+                                       dtype=torch.float)
+        if device == 'cuda':
+            # We need to move this to CUDA. And only if it is not
+            # already there.
+            if atoms_per_image.is_cuda is False:
+                atoms_per_image = atoms_per_image.cuda()
+
+        outputs_atom = outputs / atoms_per_image
+        targets_atom = targets / atoms_per_image
+
+        rmse_atom = torch.sqrt(torch.mean((outputs_atom -
+                                           targets_atom).pow(2)))
         _loss.append(loss.item())
-        _rmse.append(rmse)
+        _rmse.append(rmse.item())
 
         ts = time.time()
         ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
                                                           '%H:%M:%S')
-        logger.info('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
+        logger.info('{:6d} {} {:8e} {:8f} {:8f}' .format(epoch, ts, loss, rmse,
+                                                         rmse_atom))
 
         if convergence is None and epoch == epochs:
             break
@@ -279,7 +301,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
 
     import matplotlib.pyplot as plt
     plt.plot(list(range(epoch)), _loss, label='loss')
-    plt.plot(list(range(epoch)), _rmse, label='rmse/atom')
+    plt.plot(list(range(epoch)), _rmse, label='rmse / image')
     plt.legend(loc='upper left')
     plt.show()
 
