@@ -4,6 +4,7 @@ import logging
 import time
 import torch
 
+import numpy as np
 from collections import OrderedDict
 from mlchem.data.visualization import parity
 from mlchem.models.loss import MSELoss
@@ -171,7 +172,7 @@ class NeuralNetwork(torch.nn.Module):
 
 def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
           weight_decay=None, regularization=None, epochs=100, convergence=None,
-          lossfxn=None, device='cpu', n_batches=None):
+          lossfxn=None, device='cpu', batch_size=None):
     """Train the model
 
     Parameters
@@ -198,8 +199,8 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         A loss function object.
     device : str
         Calculation can be run in the cpu or cuda (gpu).
-    n_batches : int
-        Number of batches to use for training. Default is None.
+    batch_size : int
+        Number of data points per batch to use for training. Default is None.
     """
 
     initial_time = time.time()
@@ -211,14 +212,16 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
 
     atoms_per_image = data.atoms_per_image
 
-    n_batches = 5
+    if batch_size is None:
+        batch_size = len(inputs.values())
 
-    # If user requires chunks, we do them all here.
-    if isinstance(n_batches, int):
-        chunks = list(get_chunks(inputs, n_batches, svm=False))
-        targets = list(get_chunks(targets, n_batches, svm=False))
-        atoms_per_image = list(get_chunks(atoms_per_image, n_batches,
+    if isinstance(batch_size, int):
+        chunks = list(get_chunks(inputs, batch_size, svm=False))
+        targets = list(get_chunks(targets, batch_size, svm=False))
+        atoms_per_image = list(get_chunks(atoms_per_image, batch_size,
                                           svm=False))
+
+    logging.info('Batch size: {} elements per batch.' .format(batch_size))
 
     atoms_per_image = torch.tensor(atoms_per_image, requires_grad=False,
                                    dtype=torch.float)
@@ -265,28 +268,39 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     _rmse = []
     epoch = 0
 
+
     while True:
         epoch += 1
         optimizer.zero_grad()  # clear previous gradients
 
-        if n_batches is None:
-            # If no batches are given.
-            outputs, loss = train_batches(inputs, targets, model, optimizer,
-                                          lossfxn, atoms_per_image, device)
-        else:
-            losses = []
-            outputs_ = []
-            for index, chunk in enumerate(chunks):
-                outputs, loss = train_batches(index, chunk, targets, model,
+        losses = []
+        outputs_ = []
+        accumulation = []
+        grads = []
+        # Accumulation of gradients
+        for index, chunk in enumerate(chunks):
+            accumulation.append(train_batches(index, chunk, targets, model,
                                               optimizer, lossfxn,
-                                              atoms_per_image, device)
-                losses.append(loss)
-                outputs_.append(outputs)
+                                              atoms_per_image, device))
 
+        accumulation = dask.compute(*accumulation, scheduler='distributed')
+
+
+        for index, chunk in enumerate(accumulation):
+            outputs = chunk[0]
+            loss = chunk[1]
+            grad = np.array(chunk[2])
+            losses.append(loss)
+            outputs_.append(outputs)
+            grads.append(grad)
+
+        grads = sum(grads)
+
+        for index, param in enumerate(model.parameters()):
+            param.grad = torch.tensor(grads[index])
 
         loss = sum(losses)
 
-        loss.backward()
         optimizer.step()
         # RMSE per image and per/atom
         rmse = []
@@ -336,6 +350,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     parity(outputs.detach().numpy(), targets.detach().numpy())
 
 
+@dask.delayed
 def train_batches(index, chunk, targets, model, optimizer, lossfxn,
                   atoms_per_image, device):
     """A function that allows training per batches"""
@@ -345,7 +360,12 @@ def train_batches(index, chunk, targets, model, optimizer, lossfxn,
     if lossfxn is None:
         loss = MSELoss(outputs, targets[index], optimizer,
                        atoms_per_image[index], device=device)
+        loss.backward()
     else:
         raise('I do not know what to do')
 
-    return outputs, loss
+    gradients = []
+    for param in model.parameters():
+        gradients.append(param.grad.detach().numpy())
+
+    return outputs, loss, gradients

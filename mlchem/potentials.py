@@ -153,7 +153,7 @@ class Potentials(Calculator, object):
 
     def train(self, training_set, epochs=100, lr=0.001, convergence=None,
               device='cpu',  optimizer=None, lossfxn=None, weight_decay=0.,
-              regularization=0.):
+              regularization=0., batch_size=None):
         """Method to train models
 
         Parameters
@@ -176,6 +176,9 @@ class Potentials(Calculator, object):
             Weight decay passed to the optimizer. Default is 0.
         regularization : float
             This is the L2 regularization. It is not the same as weight decay.
+        batch_size : int
+            Number of data points per batch to use for training. Default is
+            None.
         """
 
         data_handler = DataSet(training_set, purpose='training')
@@ -237,7 +240,8 @@ class Potentials(Calculator, object):
             train(feature_space, targets, model=self.model, data=data_handler,
                   optimizer=optimizer, lr=lr, weight_decay=weight_decay,
                   regularization=regularization, epochs=epochs,
-                  convergence=convergence, lossfxn=lossfxn, device=device)
+                  convergence=convergence, lossfxn=lossfxn, device=device,
+                  batch_size=batch_size)
 
         self.save(self.model, features=self.fingerprints, path=self.path,
                   label=self.label)
