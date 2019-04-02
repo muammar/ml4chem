@@ -268,7 +268,6 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     _rmse = []
     epoch = 0
 
-
     while True:
         epoch += 1
         optimizer.zero_grad()  # clear previous gradients
@@ -284,7 +283,6 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
                                               atoms_per_image, device))
 
         accumulation = dask.compute(*accumulation, scheduler='distributed')
-
 
         for index, chunk in enumerate(accumulation):
             outputs = chunk[0]
@@ -306,13 +304,15 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         rmse = []
         rmse_atom = []
         for index, chunk in enumerate(outputs_):
-            rmse.append(torch.sqrt(torch.mean((chunk - targets[index]).pow(2))).item())
+            rmse.append(torch.sqrt(torch.mean((chunk -
+                        targets[index]).pow(2))).item())
 
             # RMSE per atom
             atoms_per_image_ = atoms_per_image[index]
             outputs_atom = chunk / atoms_per_image_
             targets_atom = targets[index] / atoms_per_image_
-            rmse_atom.append(torch.sqrt(torch.mean((outputs_atom - targets_atom).pow(2))).item())
+            rmse_atom.append(torch.sqrt(torch.mean((outputs_atom -
+                             targets_atom).pow(2))).item())
 
         rmse = sum(rmse)
         rmse_atom = sum(rmse_atom)
@@ -347,8 +347,6 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     plt.legend(loc='upper left')
     plt.show()
 
-    parity(outputs.detach().numpy(), targets.detach().numpy())
-
 
 @dask.delayed
 def train_batches(index, chunk, targets, model, optimizer, lossfxn,
@@ -365,6 +363,7 @@ def train_batches(index, chunk, targets, model, optimizer, lossfxn,
         raise('I do not know what to do')
 
     gradients = []
+
     for param in model.parameters():
         gradients.append(param.grad.detach().numpy())
 
