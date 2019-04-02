@@ -54,32 +54,39 @@ def convert_elapsed_time(seconds):
 
     return int(hours), int(minutes), seconds
 
-def get_chunks(sequence, chunk_size):
+
+def get_chunks(sequence, chunk_size, svm=True):
     """A function that yields a list in chunks"""
     res = []
+
+    if svm is False and isinstance(sequence, dict):
+        sequence = sequence.items()
+
     for item in sequence:
         res.append(item)
+
         if len(res) >= chunk_size:
             yield res
             res = []
     if res:
         yield res  # yield the last, incomplete, portion
 
+
 def get_header_message():
     """Function that returns MLChem header"""
 
     header = """
-    -------------------------------------------------------------------------------
-                    _______        _______ _     _ _______ _______
-                    |  |  | |      |       |_____| |______ |  |  |
-                    |  |  | |_____ |_____  |     | |______ |  |  |\n
+-------------------------------------------------------------------------------
+                _______        _______ _     _ _______ _______
+                |  |  | |      |       |_____| |______ |  |  |
+                |  |  | |_____ |_____  |     | |______ |  |  |\n
 
 
-    MLChem is Machine Learning for Chemistry. This package is written in Python 3,
-    and intends to offer modern and rich features to perform machine learning
-    workflows for chemical physics.
+MLChem is Machine Learning for Chemistry. This package is written in Python 3,
+and intends to offer modern and rich features to perform machine learning
+workflows for chemical physics.
 
-    This software is developed by Muammar El Khatib.
-    -------------------------------------------------------------------------------
-    """
+This software is developed by Muammar El Khatib.
+-------------------------------------------------------------------------------
+"""
     return header

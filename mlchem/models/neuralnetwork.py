@@ -1,3 +1,4 @@
+import dask
 import datetime
 import logging
 import time
@@ -6,7 +7,7 @@ import torch
 from collections import OrderedDict
 from mlchem.data.visualization import parity
 from mlchem.models.loss import MSELoss
-from mlchem.utils import convert_elapsed_time
+from mlchem.utils import convert_elapsed_time, get_chunks
 
 torch.set_printoptions(precision=10)
 logger = logging.getLogger()
@@ -170,7 +171,7 @@ class NeuralNetwork(torch.nn.Module):
 
 def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
           weight_decay=None, regularization=None, epochs=100, convergence=None,
-          lossfxn=None, device='cpu'):
+          lossfxn=None, device='cpu', n_batches=None):
     """Train the model
 
     Parameters
@@ -197,6 +198,8 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         A loss function object.
     device : str
         Calculation can be run in the cpu or cuda (gpu).
+    n_batches : int
+        Number of batches to use for training. Default is None.
     """
 
     initial_time = time.time()
@@ -206,10 +209,25 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     # for key in model.state_dict():
     #     old_state_dict[key] = model.state_dict()[key].clone()
 
+    atoms_per_image = data.atoms_per_image
+
+    n_batches = 5
+
+    # If user requires chunks, we do them all here.
+    if isinstance(n_batches, int):
+        chunks = list(get_chunks(inputs, n_batches, svm=False))
+        targets = list(get_chunks(targets, n_batches, svm=False))
+        atoms_per_image = list(get_chunks(atoms_per_image, n_batches,
+                                          svm=False))
+
+    atoms_per_image = torch.tensor(atoms_per_image, requires_grad=False,
+                                   dtype=torch.float)
     targets = torch.tensor(targets, requires_grad=False)
 
     if device == 'cuda':
         logger.info('Moving data to CUDA...')
+
+        atoms_per_image = atoms_per_image.cuda()
         targets = targets.cuda()
         _inputs = OrderedDict()
         for hash, f in inputs.items():
@@ -249,34 +267,44 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
 
     while True:
         epoch += 1
+        optimizer.zero_grad()  # clear previous gradients
 
-        outputs = model(inputs)
-
-        if lossfxn is None:
-            loss = MSELoss(outputs, targets, optimizer, data,
-                           device=device)
+        if n_batches is None:
+            # If no batches are given.
+            outputs, loss = train_batches(inputs, targets, model, optimizer,
+                                          lossfxn, atoms_per_image, device)
         else:
-            raise('I do not know what to do')
+            losses = []
+            outputs_ = []
+            for index, chunk in enumerate(chunks):
+                outputs, loss = train_batches(index, chunk, targets, model,
+                                              optimizer, lossfxn,
+                                              atoms_per_image, device)
+                losses.append(loss)
+                outputs_.append(outputs)
 
+
+        loss = sum(losses)
+
+        loss.backward()
+        optimizer.step()
         # RMSE per image and per/atom
-        rmse = torch.sqrt(torch.mean((outputs - targets).pow(2)))
+        rmse = []
+        rmse_atom = []
+        for index, chunk in enumerate(outputs_):
+            rmse.append(torch.sqrt(torch.mean((chunk - targets[index]).pow(2))).item())
 
-        atoms_per_image = torch.tensor(data.atoms_per_image,
-                                       requires_grad=False,
-                                       dtype=torch.float)
-        if device == 'cuda':
-            # We need to move this to CUDA. And only if it is not
-            # already there.
-            if atoms_per_image.is_cuda is False:
-                atoms_per_image = atoms_per_image.cuda()
+            # RMSE per atom
+            atoms_per_image_ = atoms_per_image[index]
+            outputs_atom = chunk / atoms_per_image_
+            targets_atom = targets[index] / atoms_per_image_
+            rmse_atom.append(torch.sqrt(torch.mean((outputs_atom - targets_atom).pow(2))).item())
 
-        outputs_atom = outputs / atoms_per_image
-        targets_atom = targets / atoms_per_image
+        rmse = sum(rmse)
+        rmse_atom = sum(rmse_atom)
 
-        rmse_atom = torch.sqrt(torch.mean((outputs_atom -
-                                           targets_atom).pow(2)))
         _loss.append(loss.item())
-        _rmse.append(rmse.item())
+        _rmse.append(rmse)
 
         ts = time.time()
         ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
@@ -306,3 +334,18 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     plt.show()
 
     parity(outputs.detach().numpy(), targets.detach().numpy())
+
+
+def train_batches(index, chunk, targets, model, optimizer, lossfxn,
+                  atoms_per_image, device):
+    """A function that allows training per batches"""
+    inputs = OrderedDict(chunk)
+    outputs = model(inputs)
+
+    if lossfxn is None:
+        loss = MSELoss(outputs, targets[index], optimizer,
+                       atoms_per_image[index], device=device)
+    else:
+        raise('I do not know what to do')
+
+    return outputs, loss
