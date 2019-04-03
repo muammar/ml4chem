@@ -81,7 +81,7 @@ class NeuralNetwork(torch.nn.Module):
                 slope = torch.nn.Parameter(torch.tensor(slope,
                                                         requires_grad=True))
 
-                logger.info(intercept, slope)
+                print(intercept, slope)
 
                 self.register_parameter(intercept_name, intercept)
                 self.register_parameter(slope_name, slope)
@@ -268,6 +268,8 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     _rmse = []
     epoch = 0
 
+    client = dask.distributed.get_client()
+
     while True:
         epoch += 1
         optimizer.zero_grad()  # clear previous gradients
@@ -278,11 +280,13 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         grads = []
         # Accumulation of gradients
         for index, chunk in enumerate(chunks):
-            accumulation.append(train_batches(index, chunk, targets, model,
+            accumulation.append(client.submit(train_batches, *(index, chunk, targets, model,
                                               optimizer, lossfxn,
-                                              atoms_per_image, device))
+                                              atoms_per_image, device)))
 
-        accumulation = dask.compute(*accumulation, scheduler='distributed')
+        dask.distributed.wait(accumulation)
+        #accumulation = dask.compute(*accumulation, scheduler='distributed')
+        accumulation = client.gather(accumulation)
 
         for index, chunk in enumerate(accumulation):
             outputs = chunk[0]
@@ -348,7 +352,6 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     plt.show()
 
 
-@dask.delayed
 def train_batches(index, chunk, targets, model, optimizer, lossfxn,
                   atoms_per_image, device):
     """A function that allows training per batches"""
