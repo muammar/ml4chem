@@ -344,7 +344,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     logger.info('Training finished in {} hours {} minutes {:.2f} seconds.'
                 .format(h, m, s))
     logger.info('outputs')
-    logger.info(outputs)
+    logger.info(outputs_)
     logger.info('targets')
     logger.info(targets)
 
