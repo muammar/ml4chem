@@ -280,12 +280,15 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         grads = []
         # Accumulation of gradients
         for index, chunk in enumerate(chunks):
-            accumulation.append(client.submit(train_batches, *(index, chunk, targets, model,
-                                              optimizer, lossfxn,
-                                              atoms_per_image, device)))
+            accumulation.append(client.submit(train_batches, *(index, chunk,
+                                                               targets, model,
+                                                               optimizer,
+                                                               lossfxn,
+                                                               atoms_per_image,
+                                                               device)))
 
         dask.distributed.wait(accumulation)
-        #accumulation = dask.compute(*accumulation, scheduler='distributed')
+        # accumulation = dask.compute(*accumulation, scheduler='distributed')
         accumulation = client.gather(accumulation)
 
         for index, chunk in enumerate(accumulation):
@@ -344,12 +347,6 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     logger.info(outputs)
     logger.info('targets')
     logger.info(targets)
-
-    import matplotlib.pyplot as plt
-    plt.plot(list(range(epoch)), _loss, label='loss')
-    plt.plot(list(range(epoch)), _rmse, label='rmse / image')
-    plt.legend(loc='upper left')
-    plt.show()
 
 
 def train_batches(index, chunk, targets, model, optimizer, lossfxn,
