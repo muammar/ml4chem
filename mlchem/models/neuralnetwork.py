@@ -9,7 +9,7 @@ from collections import OrderedDict
 from mlchem.data.visualization import parity
 from mlchem.models.loss import MSELoss
 from mlchem.utils import convert_elapsed_time, get_chunks
-from mlchem.optim.LBFGS import FullBatchLBFGS
+from mlchem.optim.LBFGS import LBFGS
 
 
 torch.set_printoptions(precision=10)
@@ -254,7 +254,8 @@ class train(object):
 
         # Define optimizer
         if optimizer is None:
-            self.optimizer = FullBatchLBFGS(model.parameters())
+            self.optimizer = LBFGS(model.parameters(), lr=lr, history_size=10,
+                                   line_search='Armijo', debug=True)
 
         logger.info('{:6s} {:19s} {:12s} {:8s} {:8s}'.format(
                                                        'Epoch',
@@ -288,15 +289,15 @@ class train(object):
         _rmse = []
         epoch = 0
 
-
-
         while not converged:
             epoch += 1
 
             loss = self.closure()
-            options =  {'closure': self.closure, 'current_loss': loss,
-                        'max_ls': 10}
-            self.optimizer.step(options)
+            options = {'closure': self.closure, 'current_loss': loss,
+                       'interpolate': True}
+
+            p = self.optimizer.two_loop_recursion(-self.grad_1d)
+            self.optimizer.step(p, self.grad_1d, options=options)
 
             # RMSE per image and per/atom
             rmse = []
@@ -419,7 +420,12 @@ class train(object):
 
         grads = sum(grads)
 
+        views = []
         for index, param in enumerate(self.model.parameters()):
-            param.grad = torch.tensor(grads[index])
+            grad = torch.tensor(grads[index])
+            param.grad = grad
+            views.append(grad.view(-1))
+
+        self.grad_1d = torch.cat(views, 0)
 
         return loss_fn
