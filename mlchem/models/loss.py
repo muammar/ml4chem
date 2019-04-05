@@ -1,7 +1,7 @@
 import torch
 
 
-def MSELoss(outputs, targets, optimizer, atoms_per_image, device='cpu'):
+def MSELoss(outputs, targets, atoms_per_image, device='cpu'):
     """Default loss function
 
     If user does not input loss function we provide mean-squared error loss
@@ -13,8 +13,6 @@ def MSELoss(outputs, targets, optimizer, atoms_per_image, device='cpu'):
         Outputs of the model.
     targets : tensor
         Expected value of outputs.
-    optimizer : obj
-        An optimizer object to minimize the loss function error.
     data : obj
         A data object from mlchem.
     device : str
@@ -36,7 +34,7 @@ def MSELoss(outputs, targets, optimizer, atoms_per_image, device='cpu'):
     return loss
 
 
-def MSELossAE(outputs, targets, optimizer):
+def MSELossAE(outputs, targets):
     """Default loss function
 
     If user does not input loss function we provide mean-squared error loss
@@ -48,8 +46,6 @@ def MSELossAE(outputs, targets, optimizer):
         Outputs of the model.
     targets : tensor
         Expected value of outputs.
-    optimizer : obj
-        An optimizer object to minimize the loss function error.
 
     Returns
     -------
@@ -57,13 +53,9 @@ def MSELossAE(outputs, targets, optimizer):
         The value of the loss function.
     """
 
-    optimizer.zero_grad()  # clear previous gradients
-
     criterion = torch.nn.MSELoss(reduction='mean')
     # TODO verify this is the correct form
     # loss = criterion(outputs, targets) * .5
     loss = criterion(outputs, targets)
-    loss.backward()
-    optimizer.step()
 
     return loss

@@ -1,11 +1,13 @@
+import dask
 import datetime
 import logging
 import time
 import torch
 
+import numpy as np
 from collections import OrderedDict
 from mlchem.models.loss import MSELossAE
-from mlchem.utils import convert_elapsed_time
+from mlchem.utils import convert_elapsed_time, get_chunks
 
 torch.set_printoptions(precision=10)
 logger = logging.getLogger()
@@ -217,7 +219,7 @@ class AutoEncoder(torch.nn.Module):
 
 def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
           weight_decay=None, regularization=None, epochs=100, convergence=None,
-          lossfxn=None):
+          lossfxn=None, batch_size=None, device='cpu'):
     """Train the model
 
     Parameters
@@ -244,6 +246,10 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
 
     lossfxn : obj
         A loss function object.
+    batch_size : int
+        Number of data points per batch to use for training. Default is None.
+    device : str
+        Calculation can be run in the cpu or cuda (gpu).
     """
 
     # old_state_dict = {}
@@ -251,16 +257,51 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     # for key in model.state_dict():
     #     old_state_dict[key] = model.state_dict()[key].clone()
 
-    try:
-        targets = torch.tensor(targets, requires_grad=False, dtype=torch.float)
-    # FIXME find an elegant way of doing this.
-    except TypeError:
-        _targets = []
-        for hash, target in targets.items():
-            for symbol, t in target:
-                _targets.append(t)
-        _targets = torch.stack(_targets)
-        targets = _targets
+    if device == 'cuda':
+        pass
+        """
+        logger.info('Moving data to CUDA...')
+
+        targets = targets.cuda()
+        _inputs = OrderedDict()
+
+        for hash, f in inputs.items():
+            _inputs[hash] = []
+            for features in f:
+                symbol, vector = features
+                _inputs[hash].append((symbol, vector.cuda()))
+
+        del inputs
+        inputs = _inputs
+
+        move_time = time.time() - initial_time
+        h, m, s = convert_elapsed_time(move_time)
+        logger.info('Data moved to GPU in {} hours {} minutes {:.2f} seconds.'
+                    .format(h, m, s))
+        """
+
+    if batch_size is None:
+        batch_size = len(inputs.values())
+
+    if isinstance(batch_size, int):
+        chunks = list(get_chunks(inputs, batch_size, svm=False))
+        targets_ = list(get_chunks(targets, batch_size, svm=False))
+
+    del targets
+
+    targets = []
+
+    for t in targets_:
+        t = OrderedDict(t)
+        vectors = []
+        for hash in t.keys():
+            features = t[hash]
+            for symbol, vector in features:
+                vectors.append(vector.detach().numpy())
+        vectors = torch.tensor(vectors, requires_grad=False)
+        targets.append(vectors)
+
+    logging.info('Batch size: {} elements per batch.' .format(batch_size))
 
     # Define optimizer
     if optimizer is None:
@@ -281,17 +322,51 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     _rmse = []
     epoch = 0
 
+    # Get client to send futures to the scheduler
+    client = dask.distributed.get_client()
+
     while True:
         epoch += 1
-        outputs = model(inputs)
+        optimizer.zero_grad()  # clear previous gradients
 
-        if lossfxn is None:
-            loss = MSELossAE(outputs, targets, optimizer)
-        else:
-            raise('I do not know what to do')
+        losses = []
+        outputs_ = []
+        accumulation = []
+        grads = []
+        # Accumulation of gradients
+        for index, chunk in enumerate(chunks):
+            accumulation.append(client.submit(train_batches, *(index, chunk,
+                                                               targets, model,
+                                                               lossfxn,
+                                                               device)))
 
+        dask.distributed.wait(accumulation)
+        # accumulation = dask.compute(*accumulation, scheduler='distributed')
+        accumulation = client.gather(accumulation)
 
-        rmse = torch.sqrt(torch.mean((outputs - targets).pow(2))).item()
+        for index, chunk in enumerate(accumulation):
+            outputs = chunk[0]
+            loss = chunk[1]
+            grad = np.array(chunk[2])
+            losses.append(loss)
+            outputs_.append(outputs)
+            grads.append(grad)
+
+        grads = sum(grads)
+
+        for index, param in enumerate(model.parameters()):
+            param.grad = torch.tensor(grads[index])
+
+        loss = sum(losses)
+
+        optimizer.step()
+
+        rmse = []
+        for index, chunk in enumerate(outputs_):
+            rmse.append(torch.sqrt(torch.mean((chunk -
+                        targets[index]).pow(2))).item())
+
+        rmse = sum(rmse)
 
         _loss.append(loss.item())
         _rmse.append(rmse)
@@ -316,3 +391,22 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     logger.info('targets')
     logger.info(targets)
     return epoch, _loss, _rmse
+
+
+def train_batches(index, chunk, targets, model, lossfxn, device):
+    """A function that allows training per batches"""
+    inputs = OrderedDict(chunk)
+    outputs = model(inputs)
+
+    if lossfxn is None:
+        loss = MSELossAE(outputs, targets[index])
+    else:
+        raise('I do not know what to do')
+
+    loss.backward()
+
+    gradients = []
+    for param in model.parameters():
+        gradients.append(param.grad.detach().numpy())
+
+    return outputs, loss, gradients

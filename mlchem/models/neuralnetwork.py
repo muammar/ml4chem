@@ -233,6 +233,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         atoms_per_image = atoms_per_image.cuda()
         targets = targets.cuda()
         _inputs = OrderedDict()
+
         for hash, f in inputs.items():
             _inputs[hash] = []
             for features in f:
@@ -268,6 +269,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     _rmse = []
     epoch = 0
 
+    # Get client to send futures to the scheduler
     client = dask.distributed.get_client()
 
     while True:
@@ -282,7 +284,6 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         for index, chunk in enumerate(chunks):
             accumulation.append(client.submit(train_batches, *(index, chunk,
                                                                targets, model,
-                                                               optimizer,
                                                                lossfxn,
                                                                atoms_per_image,
                                                                device)))
@@ -307,6 +308,7 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
         loss = sum(losses)
 
         optimizer.step()
+
         # RMSE per image and per/atom
         rmse = []
         rmse_atom = []
@@ -349,15 +351,15 @@ def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
     logger.info(targets)
 
 
-def train_batches(index, chunk, targets, model, optimizer, lossfxn,
-                  atoms_per_image, device):
+def train_batches(index, chunk, targets, model, lossfxn, atoms_per_image,
+                 device):
     """A function that allows training per batches"""
     inputs = OrderedDict(chunk)
     outputs = model(inputs)
 
     if lossfxn is None:
-        loss = MSELoss(outputs, targets[index], optimizer,
-                       atoms_per_image[index], device=device)
+        loss = MSELoss(outputs, targets[index], atoms_per_image[index],
+                       device=device)
         loss.backward()
     else:
         raise('I do not know what to do')

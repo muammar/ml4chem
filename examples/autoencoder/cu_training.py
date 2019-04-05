@@ -65,7 +65,7 @@ def autoencode():
     train(inputs, outputs, model=autoencoder, data=data_handler,
           optimizer=None, lr=lr, weight_decay=weight_decay,
           regularization=regularization, epochs=epochs,
-          convergence=convergence, lossfxn=None)
+          convergence=convergence, lossfxn=None, device='cpu')
     latent_space = autoencoder.get_latent_space(inputs, svm=True)
     print(latent_space)
 
