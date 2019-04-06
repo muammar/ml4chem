@@ -22,7 +22,7 @@ def train():
     # Arguments for training the potential
     convergence = {'energy': 5e-3}
     epochs = 100
-    lr = 1e-4
+    lr = 1.e-1
     weight_decay = 0.
     regularization = 0.
 
@@ -38,7 +38,7 @@ def train():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename = 'cu_training.log', level=logging.INFO,
+    logging.basicConfig(filename='cu_training.log', level=logging.INFO,
                         format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
     cluster = LocalCluster()
     client = Client(cluster, asyncronous=True)
