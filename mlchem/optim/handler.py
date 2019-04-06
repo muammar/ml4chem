@@ -24,8 +24,8 @@ def get_optimizer(optimizer, params):
     params : list
         Parameters obtained from .parameters().
 
-    Returs
-    ------
+    Returns
+    -------
     optimizer : obj
         An optimizer object.
     """
