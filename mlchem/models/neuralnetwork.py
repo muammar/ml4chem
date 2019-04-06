@@ -6,7 +6,6 @@ import torch
 
 import numpy as np
 from collections import OrderedDict
-from mlchem.data.visualization import parity
 from mlchem.models.loss import MSELoss
 from mlchem.utils import convert_elapsed_time, get_chunks
 from mlchem.optim.LBFGS import FullBatchLBFGS
@@ -204,7 +203,7 @@ class train(object):
     """
 
     def __init__(self, inputs, targets, model=None, data=None, optimizer=None,
-                 lr=None, weight_decay=None, regularization=None, epochs=100,
+                 lr=1., weight_decay=None, regularization=None, epochs=100,
                  convergence=None, lossfxn=None, device='cpu',
                  batch_size=None):
 
@@ -254,7 +253,7 @@ class train(object):
 
         # Define optimizer
         if optimizer is None:
-            self.optimizer = FullBatchLBFGS(model.parameters())
+            self.optimizer = FullBatchLBFGS(model.parameters(), lr=lr)
 
         logger.info('{:6s} {:19s} {:12s} {:8s} {:8s}'.format(
                                                        'Epoch',
@@ -288,14 +287,12 @@ class train(object):
         _rmse = []
         epoch = 0
 
-
-
         while not converged:
             epoch += 1
 
             loss = self.closure()
-            options =  {'closure': self.closure, 'current_loss': loss,
-                        'max_ls': 10}
+            options = {'closure': self.closure, 'current_loss': loss,
+                       'max_ls': 10}
             self.optimizer.step(options)
 
             # RMSE per image and per/atom
@@ -417,9 +414,13 @@ class train(object):
             self.outputs_.append(outputs)
             grads.append(grad)
 
+
         grads = sum(grads)
 
         for index, param in enumerate(self.model.parameters()):
             param.grad = torch.tensor(grads[index])
+
+        del accumulation
+        del grads
 
         return loss_fn
