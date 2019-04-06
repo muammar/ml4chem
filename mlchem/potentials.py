@@ -169,7 +169,9 @@ class Potentials(Calculator, object):
         device : str
             Calculation can be run in the cpu or cuda (gpu).
         optimizer : tuple
-            Tuple with structure ('optimizer_name', dict_of_parameters).
+            The optimizer is a tuple with the structure:
+                >>> ('adam', {lr': float, 'weight_decay'=float})
+
         lossfxn : object
             A loss function object.
         regularization : float

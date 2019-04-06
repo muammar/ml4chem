@@ -184,6 +184,10 @@ class train(object):
         The NeuralNetwork class.
     data : object
         DataSet object created from the handler.
+    optimizer : tuple
+        The optimizer is a tuple with the structure:
+            >>> ('adam', {'lr': float, 'weight_decay'=float})
+
     epochs : int
         Number of full training cycles.
     regularization : float
@@ -196,13 +200,6 @@ class train(object):
         Calculation can be run in the cpu or cuda (gpu).
     batch_size : int
         Number of data points per batch to use for training. Default is None.
-
-
-    Notes
-    ----
-
-    The optimizer is a dictionary a tuple with the structure:
-        ('optimizer_name', args={'lr': float, 'weight_decay'=float})
     """
 
     def __init__(self, inputs, targets, model=None, data=None,
