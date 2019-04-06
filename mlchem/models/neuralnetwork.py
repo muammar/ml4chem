@@ -253,9 +253,15 @@ class train(object):
             h, m, s = convert_elapsed_time(move_time)
             logger.info('Data moved to GPU in {} hours {} minutes {:.2f} \
                          seconds.' .format(h, m, s))
+            logger.info(' ')
 
         # Define optimizer
-        self.optimizer = get_optimizer(optimizer, model.parameters())
+        self.optimizer_name, self.optimizer = get_optimizer(optimizer,
+                                                            model.parameters()
+                                                            )
+        logger.info(' ')
+        logger.info('Starting training...')
+        logger.info(' ')
 
         logger.info('{:6s} {:19s} {:12s} {:8s} {:8s}'.format(
                                                        'Epoch',
@@ -293,9 +299,13 @@ class train(object):
             epoch += 1
 
             loss = self.closure()
-            options = {'closure': self.closure, 'current_loss': loss,
-                       'max_ls': 10}
-            self.optimizer.step(options)
+
+            if self.optimizer_name != 'LBFGS':
+                self.optimizer.step()
+            else:
+                options = {'closure': self.closure, 'current_loss': loss,
+                           'max_ls': 10}
+                self.optimizer.step(options)
 
             # RMSE per image and per/atom
             rmse = []
@@ -385,7 +395,11 @@ class train(object):
         return outputs, loss, gradients
 
     def closure(self):
-        """docstring for closure"""
+        """Closure
+
+        This method clears previous gradients, iterates over chunks, accumulate
+        the gradiends, update model params, and return loss.
+        """
 
         self.outputs_ = []
         # Get client to send futures to the scheduler
@@ -415,7 +429,6 @@ class train(object):
             loss_fn += loss
             self.outputs_.append(outputs)
             grads.append(grad)
-
 
         grads = sum(grads)
 

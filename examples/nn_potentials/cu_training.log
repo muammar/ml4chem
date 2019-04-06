@@ -18,85 +18,12 @@ handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
 gaussian.py:112 INFO:Fingerprinting
-gaussian.py:119 INFO:Getting unique element symbols for training
-gaussian.py:125 INFO:Unique elements: ['Cu']
-gaussian.py:466 WARNING:Making default symmetry functions
-gaussian.py:178 INFO:Preprocessing data...
-gaussian.py:222 INFO:Fingerprinting finished in 0 hours 0 minutes 8.03 seconds.
-neuralnetwork.py:60 INFO:Model Training
-neuralnetwork.py:61 INFO:==============
-neuralnetwork.py:62 INFO:Model name: PytorchPotentials.
-neuralnetwork.py:63 INFO:Number of hidden-layers: 2
-neuralnetwork.py:66 INFO:Structure of Neural Net: (input, 10, 10, output)
-neuralnetwork.py:125 INFO:ModuleDict(
-  (Cu): Sequential(
-    (0): Linear(in_features=8, out_features=10, bias=True)
-    (1): ReLU()
-    (2): Linear(in_features=10, out_features=10, bias=True)
-    (3): ReLU()
-    (4): Linear(in_features=10, out_features=1, bias=True)
-  )
-)
-neuralnetwork.py:128 WARNING:Initialization of weights with Xavier Uniform by default.
-neuralnetwork.py:229 INFO:Batch size: 10 elements per batch.
-neuralnetwork.py:264 INFO:Epoch  Time Stamp          Loss         RMSE/img RMSE/atom
-neuralnetwork.py:270 INFO:------ ------------------- ------------ -------- ---------
-neuralnetwork.py:326 INFO:     1 2019-04-05 14:22:47 8.060438e-03 0.077413 0.019353
-neuralnetwork.py:326 INFO:     2 2019-04-05 14:22:47 1.872746e-03 0.077209 0.019302
-neuralnetwork.py:326 INFO:     3 2019-04-05 14:22:47 1.862898e-03 0.075832 0.018958
-neuralnetwork.py:326 INFO:     4 2019-04-05 14:22:47 1.797030e-03 0.073240 0.018310
-neuralnetwork.py:326 INFO:     5 2019-04-05 14:22:47 1.676282e-03 0.069204 0.017301
-neuralnetwork.py:326 INFO:     6 2019-04-05 14:22:47 1.496619e-03 0.065315 0.016329
-neuralnetwork.py:326 INFO:     7 2019-04-05 14:22:48 1.333145e-03 0.061961 0.015490
-neuralnetwork.py:326 INFO:     8 2019-04-05 14:22:48 1.199742e-03 0.061182 0.015296
-neuralnetwork.py:326 INFO:     9 2019-04-05 14:22:48 1.169764e-03 0.060314 0.015078
-neuralnetwork.py:326 INFO:    10 2019-04-05 14:22:48 1.136802e-03 0.056040 0.014010
-neuralnetwork.py:326 INFO:    11 2019-04-05 14:22:48 9.813886e-04 0.048499 0.012125
-neuralnetwork.py:326 INFO:    12 2019-04-05 14:22:48 7.350428e-04 0.033953 0.008488
-neuralnetwork.py:326 INFO:    13 2019-04-05 14:22:48 3.602567e-04 0.019219 0.004805
-neuralnetwork.py:326 INFO:    14 2019-04-05 14:22:48 1.154233e-04 0.016814 0.004203
-neuralnetwork.py:326 INFO:    15 2019-04-05 14:22:48 8.834477e-05 0.013615 0.003404
-neuralnetwork.py:326 INFO:    16 2019-04-05 14:22:48 5.792981e-05 0.012048 0.003012
-neuralnetwork.py:326 INFO:    17 2019-04-05 14:22:49 4.536184e-05 0.009899 0.002475
-neuralnetwork.py:326 INFO:    18 2019-04-05 14:22:49 3.062498e-05 0.007230 0.001808
-neuralnetwork.py:326 INFO:    19 2019-04-05 14:22:49 1.633580e-05 0.006198 0.001550
-neuralnetwork.py:326 INFO:    20 2019-04-05 14:22:49 1.200510e-05 0.005365 0.001341
-neuralnetwork.py:326 INFO:    21 2019-04-05 14:22:49 8.994292e-06 0.005125 0.001281
-neuralnetwork.py:326 INFO:    22 2019-04-05 14:22:49 8.207249e-06 0.004717 0.001179
-neuralnetwork.py:338 INFO:Training finished in 0 hours 0 minutes 5.15 seconds.
-neuralnetwork.py:339 INFO:outputs
-neuralnetwork.py:340 INFO:[tensor([-14.5874929428, -14.5653991699, -14.5301513672, -14.4866943359,
-        -14.4373865128, -14.4011983871, -14.3819179535, -14.3735771179,
-        -14.3724117279, -14.3760738373], requires_grad=True)]
-neuralnetwork.py:341 INFO:targets
-neuralnetwork.py:342 INFO:tensor([[-14.5868730545, -14.5640010834, -14.5292606354, -14.4874134064,
-         -14.4443883896, -14.4063940048, -14.3788156509, -14.3651800156,
-         -14.3665180206, -14.3813629150]])
-potentials.py:52 INFO:
--------------------------------------------------------------------------------
-                _______        _______ _     _ _______ _______
-                |  |  | |      |       |_____| |______ |  |  |
-                |  |  | |_____ |_____  |     | |______ |  |  |
-
-
-
-MLChem is Machine Learning for Chemistry. This package is written in Python 3,
-and intends to offer modern and rich features to perform machine learning
-workflows for chemical physics.
-
-This software is developed by Muammar El Khatib.
--------------------------------------------------------------------------------
-
-potentials.py:53 INFO:Available backends: ['torch', 'torchvision', 'numpy'].
-handler.py:34 WARNING:Data structure is not compatible with MLChem
-handler.py:56 INFO:Preparing images...
-handler.py:87 INFO:Images hashed and processed...
-gaussian.py:112 INFO:Fingerprinting
-gaussian.py:119 INFO:Getting unique element symbols for training
-gaussian.py:125 INFO:Unique elements: ['Cu']
-gaussian.py:466 WARNING:Making default symmetry functions
-gaussian.py:178 INFO:Preprocessing data...
-gaussian.py:222 INFO:Fingerprinting finished in 0 hours 0 minutes 7.75 seconds.
+gaussian.py:113 INFO:==============
+gaussian.py:120 INFO:Getting unique element symbols for training
+gaussian.py:126 INFO:Unique elements: ['Cu']
+gaussian.py:467 WARNING:Making default symmetry functions
+gaussian.py:179 INFO:Preprocessing data...
+gaussian.py:223 INFO:Fingerprinting finished in 0 hours 0 minutes 8.73 seconds.
 neuralnetwork.py:59 INFO:Model Training
 neuralnetwork.py:60 INFO:==============
 neuralnetwork.py:61 INFO:Model name: PytorchPotentials.
@@ -112,47 +39,57 @@ neuralnetwork.py:124 INFO:ModuleDict(
   )
 )
 neuralnetwork.py:127 WARNING:Initialization of weights with Xavier Uniform by default.
-neuralnetwork.py:228 INFO:Batch size: 10 elements per batch.
-neuralnetwork.py:263 INFO:Epoch  Time Stamp          Loss         RMSE/img RMSE/atom
-neuralnetwork.py:269 INFO:------ ------------------- ------------ -------- ---------
-neuralnetwork.py:323 INFO:     1 2019-04-05 20:38:51 1.891032e-03 0.064883 0.016221
-neuralnetwork.py:323 INFO:     2 2019-04-05 20:38:51 1.315561e-03 0.056637 0.014159
-neuralnetwork.py:323 INFO:     3 2019-04-05 20:38:52 1.002436e-03 0.044500 0.011125
-neuralnetwork.py:323 INFO:     4 2019-04-05 20:38:52 6.188254e-04 0.037989 0.009497
-neuralnetwork.py:323 INFO:     5 2019-04-05 20:38:52 4.509829e-04 0.032062 0.008016
-neuralnetwork.py:323 INFO:     6 2019-04-05 20:38:52 3.212450e-04 0.027374 0.006843
-neuralnetwork.py:323 INFO:     7 2019-04-05 20:38:52 2.341608e-04 0.023791 0.005948
-neuralnetwork.py:323 INFO:     8 2019-04-05 20:38:52 1.768820e-04 0.020941 0.005235
-neuralnetwork.py:323 INFO:     9 2019-04-05 20:38:52 1.370330e-04 0.018611 0.004653
-neuralnetwork.py:323 INFO:    10 2019-04-05 20:38:52 1.082387e-04 0.016675 0.004169
-neuralnetwork.py:323 INFO:    11 2019-04-05 20:38:52 8.688720e-05 0.015049 0.003762
-neuralnetwork.py:323 INFO:    12 2019-04-05 20:38:52 7.077494e-05 0.013675 0.003419
-neuralnetwork.py:323 INFO:    13 2019-04-05 20:38:52 5.844169e-05 0.012534 0.003134
-neuralnetwork.py:323 INFO:    14 2019-04-05 20:38:53 4.909664e-05 0.011524 0.002881
-neuralnetwork.py:323 INFO:    15 2019-04-05 20:38:53 4.150373e-05 0.010701 0.002675
-neuralnetwork.py:323 INFO:    16 2019-04-05 20:38:53 3.578727e-05 0.009989 0.002497
-neuralnetwork.py:323 INFO:    17 2019-04-05 20:38:53 3.118278e-05 0.009374 0.002344
-neuralnetwork.py:323 INFO:    18 2019-04-05 20:38:53 2.746159e-05 0.008352 0.002088
-neuralnetwork.py:323 INFO:    19 2019-04-05 20:38:53 2.180012e-05 0.007586 0.001896
-neuralnetwork.py:323 INFO:    20 2019-04-05 20:38:53 1.798254e-05 0.007041 0.001760
-neuralnetwork.py:323 INFO:    21 2019-04-05 20:38:53 1.549446e-05 0.006638 0.001659
-neuralnetwork.py:323 INFO:    22 2019-04-05 20:38:53 1.376963e-05 0.006479 0.001620
-neuralnetwork.py:323 INFO:    23 2019-04-05 20:38:54 1.311758e-05 0.006315 0.001579
-neuralnetwork.py:323 INFO:    24 2019-04-05 20:38:54 1.246176e-05 0.006184 0.001546
-neuralnetwork.py:323 INFO:    25 2019-04-05 20:38:54 1.194887e-05 0.006046 0.001512
-neuralnetwork.py:323 INFO:    26 2019-04-05 20:38:54 1.142418e-05 0.005948 0.001487
-neuralnetwork.py:323 INFO:    27 2019-04-05 20:38:54 1.105679e-05 0.005847 0.001462
-neuralnetwork.py:323 INFO:    28 2019-04-05 20:38:54 1.068309e-05 0.005679 0.001420
-neuralnetwork.py:323 INFO:    29 2019-04-05 20:38:54 1.007730e-05 0.005527 0.001382
-neuralnetwork.py:323 INFO:    30 2019-04-05 20:38:54 9.547813e-06 0.005373 0.001343
-neuralnetwork.py:323 INFO:    31 2019-04-05 20:38:54 9.021712e-06 0.005017 0.001254
-neuralnetwork.py:323 INFO:    32 2019-04-05 20:38:55 7.865529e-06 0.004873 0.001218
-neuralnetwork.py:335 INFO:Training finished in 0 hours 0 minutes 6.60 seconds.
-neuralnetwork.py:336 INFO:outputs
-neuralnetwork.py:337 INFO:[tensor([-14.5829858780, -14.5599184036, -14.5354003906, -14.4956007004,
-        -14.4487380981, -14.4096755981, -14.3755645752, -14.3631267548,
-        -14.3617916107, -14.3755168915], requires_grad=True)]
-neuralnetwork.py:338 INFO:targets
-neuralnetwork.py:339 INFO:tensor([[-14.5868730545, -14.5640010834, -14.5292606354, -14.4874134064,
+neuralnetwork.py:231 INFO:Batch size: 10 elements per batch.
+handler.py:51 INFO:Optimizer
+handler.py:52 INFO:---------
+handler.py:53 INFO:Name: Adam.
+handler.py:54 INFO:Arguments:
+handler.py:56 INFO:    - lr: 0.01.
+handler.py:56 INFO:    - weight_decay: 0.0.
+handler.py:58 INFO: 
+neuralnetwork.py:262 INFO: 
+neuralnetwork.py:263 INFO:Starting training...
+neuralnetwork.py:264 INFO: 
+neuralnetwork.py:271 INFO:Epoch  Time Stamp          Loss         RMSE/img RMSE/atom
+neuralnetwork.py:277 INFO:------ ------------------- ------------ -------- ---------
+neuralnetwork.py:335 INFO:     1 2019-04-06 13:07:31 1.787652e-03 0.075634 0.018908
+neuralnetwork.py:335 INFO:     2 2019-04-06 13:07:31 1.198253e-03 0.061923 0.015481
+neuralnetwork.py:335 INFO:     3 2019-04-06 13:07:31 9.964290e-04 0.056467 0.014117
+neuralnetwork.py:335 INFO:     4 2019-04-06 13:07:31 4.884327e-04 0.039535 0.009884
+neuralnetwork.py:335 INFO:     5 2019-04-06 13:07:31 2.589084e-04 0.028784 0.007196
+neuralnetwork.py:335 INFO:     6 2019-04-06 13:07:31 4.860135e-04 0.039437 0.009859
+neuralnetwork.py:335 INFO:     7 2019-04-06 13:07:31 5.299195e-04 0.041179 0.010295
+neuralnetwork.py:335 INFO:     8 2019-04-06 13:07:31 3.866072e-04 0.035173 0.008793
+neuralnetwork.py:335 INFO:     9 2019-04-06 13:07:31 2.735297e-04 0.029585 0.007396
+neuralnetwork.py:335 INFO:    10 2019-04-06 13:07:31 2.115806e-04 0.026020 0.006505
+neuralnetwork.py:335 INFO:    11 2019-04-06 13:07:32 2.074888e-04 0.025768 0.006442
+neuralnetwork.py:335 INFO:    12 2019-04-06 13:07:32 2.492986e-04 0.028245 0.007061
+neuralnetwork.py:335 INFO:    13 2019-04-06 13:07:32 2.579764e-04 0.028732 0.007183
+neuralnetwork.py:335 INFO:    14 2019-04-06 13:07:32 1.913676e-04 0.024746 0.006187
+neuralnetwork.py:335 INFO:    15 2019-04-06 13:07:32 1.004567e-04 0.017929 0.004482
+neuralnetwork.py:335 INFO:    16 2019-04-06 13:07:32 6.191127e-05 0.014075 0.003519
+neuralnetwork.py:335 INFO:    17 2019-04-06 13:07:32 7.884009e-05 0.015884 0.003971
+neuralnetwork.py:335 INFO:    18 2019-04-06 13:07:32 8.756169e-05 0.016739 0.004185
+neuralnetwork.py:335 INFO:    19 2019-04-06 13:07:32 7.822431e-05 0.015821 0.003955
+neuralnetwork.py:335 INFO:    20 2019-04-06 13:07:32 6.483961e-05 0.014404 0.003601
+neuralnetwork.py:335 INFO:    21 2019-04-06 13:07:32 3.830603e-05 0.011072 0.002768
+neuralnetwork.py:335 INFO:    22 2019-04-06 13:07:32 2.157166e-05 0.008308 0.002077
+neuralnetwork.py:335 INFO:    23 2019-04-06 13:07:32 3.874643e-05 0.011135 0.002784
+neuralnetwork.py:335 INFO:    24 2019-04-06 13:07:32 4.960899e-05 0.012600 0.003150
+neuralnetwork.py:335 INFO:    25 2019-04-06 13:07:32 3.154280e-05 0.010047 0.002512
+neuralnetwork.py:335 INFO:    26 2019-04-06 13:07:32 1.513977e-05 0.006960 0.001740
+neuralnetwork.py:335 INFO:    27 2019-04-06 13:07:32 1.456740e-05 0.006828 0.001707
+neuralnetwork.py:335 INFO:    28 2019-04-06 13:07:32 1.670037e-05 0.007310 0.001828
+neuralnetwork.py:335 INFO:    29 2019-04-06 13:07:32 1.690435e-05 0.007355 0.001839
+neuralnetwork.py:335 INFO:    30 2019-04-06 13:07:32 1.835390e-05 0.007664 0.001916
+neuralnetwork.py:335 INFO:    31 2019-04-06 13:07:32 1.405962e-05 0.006708 0.001677
+neuralnetwork.py:335 INFO:    32 2019-04-06 13:07:33 6.472572e-06 0.004551 0.001138
+neuralnetwork.py:347 INFO:Training finished in 0 hours 0 minutes 1.52 seconds.
+neuralnetwork.py:348 INFO:outputs
+neuralnetwork.py:349 INFO:[tensor([-14.5797796249, -14.5654411316, -14.5302391052, -14.4876880646,
+        -14.4416170120, -14.4016361237, -14.3696155548, -14.3598594666,
+        -14.3687734604, -14.3836746216], requires_grad=True)]
+neuralnetwork.py:350 INFO:targets
+neuralnetwork.py:351 INFO:tensor([[-14.5868730545, -14.5640010834, -14.5292606354, -14.4874134064,
          -14.4443883896, -14.4063940048, -14.3788156509, -14.3651800156,
          -14.3665180206, -14.3813629150]])

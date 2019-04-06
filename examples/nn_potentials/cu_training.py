@@ -1,5 +1,3 @@
-
-
 import logging
 import sys
 sys.path.append('../../')
@@ -24,7 +22,7 @@ def train():
     # Arguments for training the potential
     convergence = {'energy': 5e-3}
     epochs = 100
-    lr = 1.e-1
+    lr = 1.e-2
     weight_decay = 0.
     regularization = 0.
 
@@ -34,13 +32,14 @@ def train():
                                           activation=activation),
                       label='cu_training')
 
+    optimizer = ('adam', {'lr': lr, 'weight_decay': weight_decay})
     calc.train(training_set=images, epochs=epochs,
-               regularization=regularization, convergence=convergence)
+               regularization=regularization, convergence=convergence,
+               optimizer=optimizer)
 
 
 if __name__ == '__main__':
-    #logging.basicConfig(filename='cu_training.log', level=logging.INFO,
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(filename='cu_training.log', level=logging.INFO,
                         format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
     cluster = LocalCluster()
     client = Client(cluster, asyncronous=True)

@@ -61,6 +61,7 @@ class Cartesian(object):
         """
 
         logger.info('Fingerprinting')
+        logger.info('==============')
 
         initial_time = time.time()
 
