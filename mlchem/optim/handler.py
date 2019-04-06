@@ -48,6 +48,11 @@ def get_optimizer(optimizer, params):
         optimizer = torch.optim.Adam(params, **kwargs)
         optimizer_name = 'Adam'
 
+    elif optimizer_name == 'lbfgs':
+        from mlchem.optim.LBFGS import FullBatchLBFGS
+        optimizer = FullBatchLBFGS(params, **kwargs)
+        optimizer_name = 'LBFGS'
+
     logger.info('Optimizer')
     logger.info('---------')
     logger.info('Name: {}.' .format(optimizer_name))

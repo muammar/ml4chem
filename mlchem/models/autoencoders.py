@@ -7,6 +7,7 @@ import torch
 import numpy as np
 from collections import OrderedDict
 from mlchem.models.loss import MSELossAE
+from mlchem.optim.handler import get_optimizer
 from mlchem.utils import convert_elapsed_time, get_chunks
 
 torch.set_printoptions(precision=10)
@@ -216,197 +217,271 @@ class AutoEncoder(torch.nn.Module):
 
         return latent_space
 
-
-def train(inputs, targets, model=None, data=None, optimizer=None, lr=None,
-          weight_decay=None, regularization=None, epochs=100, convergence=None,
-          lossfxn=None, batch_size=None, device='cpu'):
+class train(object):
     """Train the model
 
     Parameters
     ----------
     inputs : dict
         Dictionary with hashed feature space.
-    epochs : int
-        Number of full training cycles.
     targets : list
         The expected values that the model has to learn aka y.
     model : object
         The NeuralNetwork class.
     data : object
         DataSet object created from the handler.
-    lr : float
-        Learning rate.
-    weight_decay : float
-        Weight decay passed to the optimizer. Default is 0.
+    optimizer : tuple
+        The optimizer is a tuple with the structure:
+            >>> ('adam', {'lr': float, 'weight_decay'=float})
+
+    epochs : int
+        Number of full training cycles.
     regularization : float
         This is the L2 regularization. It is not the same as weight decay.
     convergence : dict
         Instead of using epochs, users can set a convergence criterion.
-            >>> convergence ={'rmse': 5e-3}
-
     lossfxn : obj
         A loss function object.
-    batch_size : int
-        Number of data points per batch to use for training. Default is None.
     device : str
         Calculation can be run in the cpu or cuda (gpu).
+    batch_size : int
+        Number of data points per batch to use for training. Default is None.
     """
 
-    # old_state_dict = {}
+    def __init__(self, inputs, targets, model=None, data=None,
+                 optimizer=(None, None), regularization=None, epochs=100,
+                 convergence=None, lossfxn=None, device='cpu',
+                 batch_size=None):
 
-    # for key in model.state_dict():
-    #     old_state_dict[key] = model.state_dict()[key].clone()
+        self.initial_time = time.time()
+        if device == 'cuda':
+            pass
+            """
+            logger.info('Moving data to CUDA...')
 
-    if device == 'cuda':
-        pass
-        """
-        logger.info('Moving data to CUDA...')
+            targets = targets.cuda()
+            _inputs = OrderedDict()
 
-        targets = targets.cuda()
-        _inputs = OrderedDict()
+            for hash, f in inputs.items():
+                _inputs[hash] = []
+                for features in f:
+                    symbol, vector = features
+                    _inputs[hash].append((symbol, vector.cuda()))
 
-        for hash, f in inputs.items():
-            _inputs[hash] = []
-            for features in f:
-                symbol, vector = features
-                _inputs[hash].append((symbol, vector.cuda()))
+            del inputs
+            inputs = _inputs
 
-        del inputs
-        inputs = _inputs
+            move_time = time.time() - initial_time
+            h, m, s = convert_elapsed_time(move_time)
+            logger.info('Data moved to GPU in {} hours {} minutes {:.2f} seconds.'
+                        .format(h, m, s))
+            """
 
-        move_time = time.time() - initial_time
-        h, m, s = convert_elapsed_time(move_time)
-        logger.info('Data moved to GPU in {} hours {} minutes {:.2f} seconds.'
-                    .format(h, m, s))
-        """
+        if batch_size is None:
+            batch_size = len(inputs.values())
 
-    if batch_size is None:
-        batch_size = len(inputs.values())
+        if isinstance(batch_size, int):
+            chunks = list(get_chunks(inputs, batch_size, svm=False))
+            targets_ = list(get_chunks(targets, batch_size, svm=False))
 
-    if isinstance(batch_size, int):
-        chunks = list(get_chunks(inputs, batch_size, svm=False))
-        targets_ = list(get_chunks(targets, batch_size, svm=False))
+        del targets
 
-    del targets
+        targets = []
 
-    targets = []
+        for t in targets_:
+            t = OrderedDict(t)
+            vectors = []
+            for hash in t.keys():
+                features = t[hash]
+                for symbol, vector in features:
+                    vectors.append(vector.detach().numpy())
+            vectors = torch.tensor(vectors, requires_grad=False)
+            targets.append(vectors)
 
-    for t in targets_:
-        t = OrderedDict(t)
-        vectors = []
-        for hash in t.keys():
-            features = t[hash]
-            for symbol, vector in features:
-                vectors.append(vector.detach().numpy())
-        vectors = torch.tensor(vectors, requires_grad=False)
-        targets.append(vectors)
+        logging.info('Batch size: {} elements per batch.' .format(batch_size))
 
-    logging.info('Batch size: {} elements per batch.' .format(batch_size))
+        if device == 'cuda':
+            logger.info('Moving data to CUDA...')
 
-    # Define optimizer
-    if optimizer is None:
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr,
-                                     weight_decay=weight_decay)
+            targets = targets.cuda()
+            _inputs = OrderedDict()
 
-    logger.info('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
-                                                   'Time Stamp',
-                                                   'Loss',
-                                                   'Rec Err'))
-    logger.info('{:6s} {:19s} {:12s} {:9s}'.format('------',
+            for hash, f in inputs.items():
+                _inputs[hash] = []
+                for features in f:
+                    symbol, vector = features
+                    _inputs[hash].append((symbol, vector.cuda()))
+
+            inputs = _inputs
+
+            move_time = time.time() - self.initial_time
+            h, m, s = convert_elapsed_time(move_time)
+            logger.info('Data moved to GPU in {} hours {} minutes {:.2f} \
+                         seconds.' .format(h, m, s))
+            logger.info(' ')
+
+        # Define optimizer
+        self.optimizer_name, self.optimizer = get_optimizer(optimizer,
+                                                            model.parameters()
+                                                            )
+        logger.info(' ')
+        logger.info('Starting training...')
+        logger.info(' ')
+
+        logger.info('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
+                                                       'Time Stamp',
+                                                       'Loss',
+                                                       'Rec Err'))
+        logger.info('{:6s} {:19s} {:12s} {:9s}'.format('------',
                                                    '-------------------',
                                                    '------------',
                                                    '--------'))
-    initial_time = time.time()
+        self.convergence = convergence
+        self.chunks = chunks
+        self.device = device
+        self.epochs = epochs
+        self.lossfxn = lossfxn
+        self.model = model
+        self.targets = targets
 
-    _loss = []
-    _rmse = []
-    epoch = 0
+        # Let the hunger game begin...
+        self.run()
 
-    # Get client to send futures to the scheduler
-    client = dask.distributed.get_client()
+    def run(self):
+        """Run the training class"""
 
-    while True:
-        epoch += 1
-        optimizer.zero_grad()  # clear previous gradients
+        converged = False
+        _loss = []
+        _rmse = []
+        epoch = 0
 
-        losses = []
-        outputs_ = []
+        while not converged:
+            epoch += 1
+
+            loss = self.closure()
+
+            if self.optimizer_name != 'LBFGS':
+                self.optimizer.step()
+            else:
+                options = {'closure': self.closure, 'current_loss': loss,
+                           'max_ls': 10}
+                self.optimizer.step(options)
+
+            # RMSE per image and per/atom
+            rmse = []
+
+            for index, chunk in enumerate(self.outputs_):
+                rmse.append(torch.sqrt(torch.mean((chunk -
+                            self.targets[index]).pow(2))).item())
+
+            rmse = sum(rmse)
+
+            _loss.append(loss.item())
+            _rmse.append(rmse)
+
+            ts = time.time()
+            ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
+                                                              '%H:%M:%S')
+            logger.info('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss,
+                                                             rmse))
+
+            if self.convergence is None and epoch == self.epochs:
+                converged = True
+            elif (self.convergence is not None and rmse <
+                  self.convergence['rmse']):
+                converged = True
+
+        training_time = time.time() - self.initial_time
+
+        h, m, s = convert_elapsed_time(training_time)
+        logger.info('Training finished in {} hours {} minutes {:.2f} seconds.'
+                    .format(h, m, s))
+        logger.info('outputs')
+        logger.info(self.outputs_)
+        logger.info('targets')
+        logger.info(self.targets)
+
+    def train_batches(self, index, chunk, targets, model, lossfxn, device):
+        """A function that allows training per batches
+
+
+        Parameters
+        ----------
+        index : int
+            Index of batch.
+        chunk : tensor or list
+            Tensor with input data points in batch with index.
+        targets : tensor or list
+            The targets.
+        model : obj
+            Pytorch model to perform forward() and get gradients.
+        lossfxn : obj
+            A loss function object.
+        device : str
+            Are we running cuda or cpu?
+
+        Returns
+        -------
+        loss : tensor
+            The loss function of the batch.
+        """
+        inputs = OrderedDict(chunk)
+        outputs = model(inputs)
+
+        if lossfxn is None:
+            loss = MSELossAE(outputs, targets[index])
+            loss.backward()
+        else:
+            raise('I do not know what to do')
+
+        gradients = []
+
+        for param in model.parameters():
+            gradients.append(param.grad.detach().numpy())
+
+        return outputs, loss, gradients
+
+    def closure(self):
+        """Closure
+
+        This method clears previous gradients, iterates over chunks, accumulate
+        the gradiends, update model params, and return loss.
+        """
+
+        self.outputs_ = []
+        # Get client to send futures to the scheduler
+        client = dask.distributed.get_client()
+
+        self.optimizer.zero_grad()  # clear previous gradients
+
+        loss_fn = torch.tensor(0, dtype=torch.float)
         accumulation = []
         grads = []
         # Accumulation of gradients
-        for index, chunk in enumerate(chunks):
-            accumulation.append(client.submit(train_batches, *(index, chunk,
-                                                               targets, model,
-                                                               lossfxn,
-                                                               device)))
-
+        for index, chunk in enumerate(self.chunks):
+            accumulation.append(client.submit(self.train_batches,
+                                              *(index, chunk, self.targets,
+                                                self.model, self.lossfxn,
+                                                self.device)))
         dask.distributed.wait(accumulation)
-        # accumulation = dask.compute(*accumulation, scheduler='distributed')
+        # accumulation = dask.compute(*accumulation,
+        # scheduler='distributed')
         accumulation = client.gather(accumulation)
 
         for index, chunk in enumerate(accumulation):
             outputs = chunk[0]
             loss = chunk[1]
             grad = np.array(chunk[2])
-            losses.append(loss)
-            outputs_.append(outputs)
+            loss_fn += loss
+            self.outputs_.append(outputs)
             grads.append(grad)
 
         grads = sum(grads)
 
-        for index, param in enumerate(model.parameters()):
+        for index, param in enumerate(self.model.parameters()):
             param.grad = torch.tensor(grads[index])
 
-        loss = sum(losses)
+        del accumulation
+        del grads
 
-        optimizer.step()
-
-        rmse = []
-        for index, chunk in enumerate(outputs_):
-            rmse.append(torch.sqrt(torch.mean((chunk -
-                        targets[index]).pow(2))).item())
-
-        rmse = sum(rmse)
-
-        _loss.append(loss.item())
-        _rmse.append(rmse)
-
-        ts = time.time()
-        ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
-                                                          '%H:%M:%S')
-        logger.info('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss, rmse))
-
-        if convergence is None and epoch == epochs:
-            break
-        elif (convergence is not None and rmse < convergence['rmse']):
-            break
-
-    training_time = time.time() - initial_time
-
-    h, m, s = convert_elapsed_time(training_time)
-    logger.info('Training finished in {} hours {} minutes {:.2f} seconds.'
-                .format(h, m, s))
-    logger.info('outputs')
-    logger.info(outputs)
-    logger.info('targets')
-    logger.info(targets)
-    return epoch, _loss, _rmse
-
-
-def train_batches(index, chunk, targets, model, lossfxn, device):
-    """A function that allows training per batches"""
-    inputs = OrderedDict(chunk)
-    outputs = model(inputs)
-
-    if lossfxn is None:
-        loss = MSELossAE(outputs, targets[index])
-    else:
-        raise('I do not know what to do')
-
-    loss.backward()
-
-    gradients = []
-    for param in model.parameters():
-        gradients.append(param.grad.detach().numpy())
-
-    return outputs, loss, gradients
+        return loss_fn
