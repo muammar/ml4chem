@@ -1,3 +1,5 @@
+
+
 import logging
 import sys
 sys.path.append('../../')
@@ -32,13 +34,13 @@ def train():
                                           activation=activation),
                       label='cu_training')
 
-    calc.train(training_set=images, epochs=epochs, lr=lr,
-               weight_decay=weight_decay, regularization=regularization,
-               convergence=convergence)
+    calc.train(training_set=images, epochs=epochs,
+               regularization=regularization, convergence=convergence)
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='cu_training.log', level=logging.INFO,
+    #logging.basicConfig(filename='cu_training.log', level=logging.INFO,
+    logging.basicConfig(level=logging.INFO,
                         format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
     cluster = LocalCluster()
     client = Client(cluster, asyncronous=True)

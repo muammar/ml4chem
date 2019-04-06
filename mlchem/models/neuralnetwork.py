@@ -7,8 +7,8 @@ import torch
 import numpy as np
 from collections import OrderedDict
 from mlchem.models.loss import MSELoss
+from mlchem.optim.handler import get_optimizer
 from mlchem.utils import convert_elapsed_time, get_chunks
-from mlchem.optim.LBFGS import FullBatchLBFGS
 
 
 torch.set_printoptions(precision=10)
@@ -178,18 +178,14 @@ class train(object):
     ----------
     inputs : dict
         Dictionary with hashed feature space.
-    epochs : int
-        Number of full training cycles.
     targets : list
         The expected values that the model has to learn aka y.
     model : object
         The NeuralNetwork class.
     data : object
         DataSet object created from the handler.
-    lr : float
-        Learning rate.
-    weight_decay : float
-        Weight decay passed to the optimizer. Default is 0.
+    epochs : int
+        Number of full training cycles.
     regularization : float
         This is the L2 regularization. It is not the same as weight decay.
     convergence : dict
@@ -200,10 +196,17 @@ class train(object):
         Calculation can be run in the cpu or cuda (gpu).
     batch_size : int
         Number of data points per batch to use for training. Default is None.
+
+
+    Notes
+    ----
+
+    The optimizer is a dictionary a tuple with the structure:
+        ('optimizer_name', args={'lr': float, 'weight_decay'=float})
     """
 
-    def __init__(self, inputs, targets, model=None, data=None, optimizer=None,
-                 lr=1., weight_decay=None, regularization=None, epochs=100,
+    def __init__(self, inputs, targets, model=None, data=None,
+                 optimizer=(None, None), regularization=None, epochs=100,
                  convergence=None, lossfxn=None, device='cpu',
                  batch_size=None):
 
@@ -252,8 +255,7 @@ class train(object):
                          seconds.' .format(h, m, s))
 
         # Define optimizer
-        if optimizer is None:
-            self.optimizer = FullBatchLBFGS(model.parameters(), lr=lr)
+        self.optimizer = get_optimizer(optimizer, model.parameters())
 
         logger.info('{:6s} {:19s} {:12s} {:8s} {:8s}'.format(
                                                        'Epoch',

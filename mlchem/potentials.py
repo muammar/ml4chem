@@ -152,7 +152,7 @@ class Potentials(Calculator, object):
                       ensure_ascii=False, indent=4)
 
     def train(self, training_set, epochs=100, lr=0.001, convergence=None,
-              device='cpu',  optimizer=None, lossfxn=None, weight_decay=0.,
+              device='cpu',  optimizer=(None, None), lossfxn=None,
               regularization=0., batch_size=None):
         """Method to train models
 
@@ -168,12 +168,10 @@ class Potentials(Calculator, object):
             Instead of using epochs, users can set a convergence criterion.
         device : str
             Calculation can be run in the cpu or cuda (gpu).
-        optimizer : object
-            An optimizer class.
+        optimizer : tuple
+            Tuple with structure ('optimizer_name', dict_of_parameters).
         lossfxn : object
             A loss function object.
-        weight_decay : float
-            Weight decay passed to the optimizer. Default is 0.
         regularization : float
             This is the L2 regularization. It is not the same as weight decay.
         batch_size : int
@@ -238,10 +236,9 @@ class Potentials(Calculator, object):
             # This is something specific of pytorch.
             from mlchem.models.neuralnetwork import train
             train(feature_space, targets, model=self.model, data=data_handler,
-                  optimizer=optimizer, lr=lr, weight_decay=weight_decay,
-                  regularization=regularization, epochs=epochs,
-                  convergence=convergence, lossfxn=lossfxn, device=device,
-                  batch_size=batch_size)
+                  optimizer=optimizer, regularization=regularization,
+                  epochs=epochs, convergence=convergence, lossfxn=lossfxn,
+                  device=device, batch_size=batch_size)
 
         self.save(self.model, features=self.fingerprints, path=self.path,
                   label=self.label)
