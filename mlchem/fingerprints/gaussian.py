@@ -48,7 +48,7 @@ class Gaussian(object):
         return cls.NAME
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
-                 scaler='MinMaxScaler', defaults=None, save_scaler='mlchem',
+                 scaler='MinMaxScaler', defaults=True, save_scaler='mlchem',
                  scheduler='distributed', filename='fingerprints.db'):
 
         self.cutoff = cutoff
@@ -78,8 +78,7 @@ class Gaussian(object):
             if v is not None:
                 self.params[k] = v
 
-        if defaults is None:
-            self.defaults = True
+        self.defaults = defaults
 
         if cutofffxn is None:
             self.cutofffxn = Cosine(cutoff=cutoff)
@@ -123,12 +122,42 @@ class Gaussian(object):
                 data.get_unique_element_symbols(images, purpose=purpose)
             unique_element_symbols = unique_element_symbols[purpose]
 
-            logger.info('Unique elements: {}' .format(unique_element_symbols))
+            logger.info('Unique chemical elements: {}' .format(unique_element_symbols))
 
         # If self.defaults is True we create default symmetry functions.
         if self.defaults:
             self.GP = self.make_symmetry_functions(unique_element_symbols,
-                                                   defaults=True)
+                                                   defaults=self.defaults)
+
+        logger.info('Number of features per chemical element:')
+        for symbol, v in self.GP.items():
+            logger.info('    - {}: {}.' .format(symbol, len(v)))
+
+        logger.info('Symmetry function parameters:')
+        logger.info('-----------------------------')
+        logging.info('{:^5} {:^12} {:4} {}' .format('#', 'Symbol', 'Type',
+                                                    'Parameters'))
+
+        _symbols = []
+        for symbol, value in self.GP.items():
+            if symbol not in _symbols:
+                _symbols.append(symbol)
+                for i, v in enumerate(value):
+                    type_ = v['type']
+                    eta = v['eta']
+                    if type_ == 'G2':
+                        symbol = v['symbol']
+                        params = '{:^5} {:12.2} {:^4} eta: {:.4f}' \
+                            .format(i, symbol, type_, eta)
+                    else:
+                        symbol = v['symbols']
+                        gamma = v['gamma']
+                        zeta = v['zeta']
+                        params = '{:^5} {} {:^4} eta: {:.4f} gamma: {:7.4f}' \
+                            ' zeta: {}' .format(i, symbol, type_, eta, gamma,
+                                              zeta)
+
+                    logging.info(params)
 
         if self.scaler == 'minmaxscaler' and purpose == 'training':
             from dask_ml.preprocessing import MinMaxScaler

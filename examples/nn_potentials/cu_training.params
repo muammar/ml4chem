@@ -13,6 +13,7 @@
         "cutoff": 6.5,
         "normalized": true,
         "scaler": "MinMaxScaler",
+        "defaults": true,
         "save_scaler": "cu_training.scaler",
         "filename": "fingerprints.db"
     }
