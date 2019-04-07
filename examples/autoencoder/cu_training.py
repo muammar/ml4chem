@@ -6,6 +6,7 @@ from dask.distributed import Client, LocalCluster
 from mlchem.data.handler import DataSet
 from mlchem.fingerprints import Cartesian, Gaussian
 from mlchem.models.autoencoders import AutoEncoder, train
+from mlchem.data.serialization import dump
 
 
 def autoencode():
@@ -68,6 +69,7 @@ def autoencode():
           optimizer=optimizer, regularization=regularization, epochs=epochs,
           convergence=convergence, lossfxn=None, device='cpu')
     latent_space = autoencoder.get_latent_space(inputs, svm=True)
+    dump(latent_space, filename='cu_training.latent')
     print(latent_space)
 
     return latent_space, energy_targets, data_handler
