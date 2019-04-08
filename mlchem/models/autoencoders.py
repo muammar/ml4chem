@@ -337,12 +337,13 @@ class train(object):
                                                    '------------',
                                                    '--------'))
         self.convergence = convergence
-        self.chunks = chunks
+        client = dask.distributed.get_client()
+        self.chunks = [client.scatter(chunk) for chunk in chunks]
+        self.targets = [client.scatter(target) for target in targets]
         self.device = device
         self.epochs = epochs
         self.lossfxn = lossfxn
         self.model = model
-        self.targets = targets
 
         # Let the hunger game begin...
         self.run()
@@ -370,10 +371,12 @@ class train(object):
             # RMSE per image and per/atom
             rmse = []
 
-            for index, chunk in enumerate(self.outputs_):
-                rmse.append(torch.sqrt(torch.mean((chunk -
-                            self.targets[index]).pow(2))).item())
+            client = dask.distributed.get_client()
 
+            for index, chunk in enumerate(self.outputs_):
+                rmse.append(client.submit(self.compute_rmse,
+                                          *(chunk, self.targets[index])))
+            rmse = client.gather(rmse)
             rmse = sum(rmse)
 
             _loss.append(loss.item())
@@ -383,7 +386,7 @@ class train(object):
             ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
                                                               '%H:%M:%S')
             logger.info('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss,
-                                                             rmse))
+                                                       rmse))
 
             if self.convergence is None and epoch == self.epochs:
                 converged = True
@@ -485,3 +488,30 @@ class train(object):
         del grads
 
         return loss_fn
+
+    def compute_rmse(self, predictions, outputs, atoms_per_image=None):
+        """Compute RMSE
+
+        Useful when using futures.
+
+        Parameters
+        ----------
+        predictions : list
+            List of predictions.
+        outputs : list
+            List if outputs.
+        atoms_per_image : list
+            List of atoms per image.
+
+        Returns
+        -------
+        rmse : float
+            Root-mean squared error.
+        """
+
+        if atoms_per_image is not None:
+            predictions = predictions / atoms_per_image
+            outputs = outputs / atoms_per_image
+
+        rmse = torch.sqrt(torch.mean((predictions - outputs).pow(2))).item()
+        return rmse

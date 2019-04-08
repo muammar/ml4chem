@@ -18,7 +18,7 @@ def dump(arr, filename='data.db'):
     """
 
     with open(filename, 'wb') as f:
-        f.write(msgpack.packb(arr, default=m.encode))
+        f.write(msgpack.packb(arr, default=m.encode, use_bin_type=True))
 
 
 def load(filename):
@@ -32,4 +32,5 @@ def load(filename):
 
     with open(filename, 'rb') as f:
         content = msgpack.unpackb(f.read(), object_hook=m.decode)
+
     return content

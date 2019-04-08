@@ -64,7 +64,11 @@ class NeuralNetwork(torch.nn.Module):
                         .format('(input, ' + str(self.hiddenlayers)[1:-1] +
                                 ', output)'))
         layers = range(len(self.hiddenlayers) + 1)
-        unique_element_symbols = data.unique_element_symbols[purpose]
+        try:
+            unique_element_symbols = data.unique_element_symbols[purpose]
+        except TypeError:
+            unique_element_symbols = data.get_unique_element_symbols(purpose=purpose)
+            unique_element_symbols = unique_element_symbols[purpose]
 
         symbol_model_pair = []
 
@@ -154,6 +158,10 @@ class NeuralNetwork(torch.nn.Module):
             atomic_energies = []
 
             for symbol, x in image:
+                # TODO this conditional can be removed after de/serialization
+                # is fixed.
+                if isinstance(symbol, bytes):
+                    symbol = symbol.decode('utf-8')
                 x = self.linears[symbol](x)
 
                 intercept_name = 'intercept_' + symbol

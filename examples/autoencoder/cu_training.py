@@ -57,7 +57,7 @@ def autoencode():
     # Arguments for training the potential
     convergence = {'rmse': 5e-2}
     epochs = 2000
-    lr = 1e-1
+    lr = 1e-0
     weight_decay = 0
     regularization = None
 

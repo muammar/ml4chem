@@ -106,7 +106,7 @@ class DataSet(object):
 
         return valid
 
-    def get_unique_element_symbols(self, images, purpose=None):
+    def get_unique_element_symbols(self, images=None, purpose=None):
         """Unique element symbol in data set
 
 
@@ -117,6 +117,9 @@ class DataSet(object):
         purpose : str
             The supported categories are: 'training', 'inference'.
         """
+
+        if images is None:
+            images = self.images
 
         supported_categories = ['training', 'inference']
 
