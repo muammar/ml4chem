@@ -1,0 +1,18 @@
+#!/usr/bin/python3
+import sys
+sys.path.append('../')
+from mlchem.data.visualization import read_log
+import click
+
+@click.command()
+@click.option('--plot', default=None, help='Plot information from file.')
+@click.option('--file', default=None, help='Path to log.')
+
+def main(**args):
+    """ML4Chem command line tool"""
+    if args['plot'] is not None:
+        read_log(args['file'], metric=args['plot'])
+
+
+if __name__ == '__main__':
+    main()

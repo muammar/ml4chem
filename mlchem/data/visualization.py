@@ -47,14 +47,18 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
         plt.savefig(filename, **kwargs)
 
 
-def read_log(logfile):
+def read_log(logfile, metric='loss'):
     """Read the logfile
 
     Parameters
     ----------
     logfile : str
         Path to logfile.
+    metric : str
+        Metric to plot. Supported are loss and rmse.
     """
+
+    metric = metric.lower()
 
     f = open(logfile, 'r')
 
@@ -75,9 +79,16 @@ def read_log(logfile):
                 epochs.append(int(line[0]))
                 loss.append(float(line[3]))
                 rmse.append(float(line[4]))
-            except TypeError:
+            except ValueError:
                 pass
 
-    plt.plot(epochs, rmse, label='rmse')
+    if metric == 'loss':
+        plt.plot(epochs, loss, label='loss')
+    elif metric == 'rmse':
+        plt.plot(epochs, rmse, label='rmse')
+    else:
+        plt.plot(epochs, loss, label='loss')
+        plt.plot(epochs, rmse, label='rmse')
+
     plt.legend(loc='upper left')
     plt.show()
