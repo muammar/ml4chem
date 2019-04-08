@@ -122,7 +122,8 @@ class Gaussian(object):
                 data.get_unique_element_symbols(images, purpose=purpose)
             unique_element_symbols = unique_element_symbols[purpose]
 
-            logger.info('Unique chemical elements: {}' .format(unique_element_symbols))
+            logger.info('Unique chemical elements: {}'
+                        .format(unique_element_symbols))
 
         # If self.defaults is True we create default symmetry functions.
         if self.defaults:
@@ -154,8 +155,8 @@ class Gaussian(object):
                         gamma = v['gamma']
                         zeta = v['zeta']
                         params = '{:^5} {} {:^4} eta: {:.4f} gamma: {:7.4f}' \
-                            ' zeta: {}' .format(i, symbol, type_, eta, gamma,
-                                              zeta)
+                            ' zeta: {:.4f}' .format(i, symbol, type_, eta,
+                                                    gamma, zeta)
 
                     logging.info(params)
 

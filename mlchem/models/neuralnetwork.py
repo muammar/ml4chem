@@ -274,12 +274,13 @@ class train(object):
                                                        '---------'))
         self.atoms_per_image = atoms_per_image
         self.convergence = convergence
-        self.chunks = chunks
+        client = dask.distributed.get_client()
+        self.chunks = [client.scatter(chunk) for chunk in chunks]
+        self.targets = [client.scatter(target) for target in targets]
         self.device = device
         self.epochs = epochs
         self.lossfxn = lossfxn
         self.model = model
-        self.targets = targets
 
         # Let the hunger game begin...
         self.run()
@@ -308,17 +309,20 @@ class train(object):
             rmse = []
             rmse_atom = []
 
+            client = dask.distributed.get_client()
+
             for index, chunk in enumerate(self.outputs_):
-                rmse.append(torch.sqrt(torch.mean((chunk -
-                            self.targets[index]).pow(2))).item())
+                rmse.append(client.submit(self.compute_rmse,
+                                          *(chunk, self.targets[index])))
 
                 # RMSE per atom
                 atoms_per_image_ = self.atoms_per_image[index]
-                outputs_atom = chunk / atoms_per_image_
-                targets_atom = self.targets[index] / atoms_per_image_
-                rmse_atom.append(torch.sqrt(torch.mean((outputs_atom -
-                                 targets_atom).pow(2))).item())
+                rmse_atom.append(client.submit(self.compute_rmse,
+                                               *(chunk, self.targets[index],
+                                                 atoms_per_image_)))
 
+            rmse = client.gather(rmse)
+            rmse_atom = client.gather(rmse_atom)
             rmse = sum(rmse)
             rmse_atom = sum(rmse_atom)
 
@@ -342,10 +346,6 @@ class train(object):
         h, m, s = convert_elapsed_time(training_time)
         logger.info('Training finished in {} hours {} minutes {:.2f} seconds.'
                     .format(h, m, s))
-        logger.info('outputs')
-        logger.info(self.outputs_)
-        logger.info('targets')
-        logger.info(self.targets)
 
     def train_batches(self, index, chunk, targets, model, lossfxn,
                       atoms_per_image, device):
@@ -436,3 +436,30 @@ class train(object):
         del grads
 
         return loss_fn
+
+    def compute_rmse(self, predictions, outputs, atoms_per_image=None):
+        """Compute RMSE
+
+        Useful when using futures.
+
+        Parameters
+        ----------
+        predictions : list
+            List of predictions.
+        outputs : list
+            List if outputs.
+        atoms_per_image : list
+            List of atoms per image.
+
+        Returns
+        -------
+        rmse : float
+            Root-mean squared error.
+        """
+
+        if atoms_per_image is not None:
+            predictions = predictions / atoms_per_image
+            outputs = outputs / atoms_per_image
+
+        rmse = torch.sqrt(torch.mean((predictions - outputs).pow(2))).item()
+        return rmse

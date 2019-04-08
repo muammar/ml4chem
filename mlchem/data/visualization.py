@@ -58,7 +58,7 @@ def read_log(logfile):
 
     f = open(logfile, 'r')
 
-    check = "------ ------------------- ------------ -------- ---------"
+    check = 'Epoch'
     start = False
     epochs = []
     loss = []
@@ -75,7 +75,7 @@ def read_log(logfile):
                 epochs.append(int(line[0]))
                 loss.append(float(line[3]))
                 rmse.append(float(line[4]))
-            except:
+            except TypeError:
                 pass
 
     plt.plot(epochs, rmse, label='rmse')
