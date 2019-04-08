@@ -329,6 +329,8 @@ class train(object):
                                                *(chunk, self.targets[index],
                                                  atoms_per_image_)))
 
+            dask.distributed.wait(rmse)
+            dask.distributed.wait(rmse_atom)
             rmse = client.gather(rmse)
             rmse_atom = client.gather(rmse_atom)
             rmse = sum(rmse)

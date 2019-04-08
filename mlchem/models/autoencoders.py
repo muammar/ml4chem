@@ -376,6 +376,7 @@ class train(object):
             for index, chunk in enumerate(self.outputs_):
                 rmse.append(client.submit(self.compute_rmse,
                                           *(chunk, self.targets[index])))
+            dask.distributed.wait(rmse)
             rmse = client.gather(rmse)
             rmse = sum(rmse)
 
