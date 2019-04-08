@@ -47,7 +47,7 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
         plt.savefig(filename, **kwargs)
 
 
-def read_log(logfile, metric='loss'):
+def read_log(logfile, metric='loss', interval=None):
     """Read the logfile
 
     Parameters
@@ -56,8 +56,13 @@ def read_log(logfile, metric='loss'):
         Path to logfile.
     metric : str
         Metric to plot. Supported are loss and rmse.
+    interval : float
+        Interval in seconds before reading log file again.
     """
 
+    if interval is not None:
+        plt.ion()
+        plt.show(block=False)
     metric = metric.lower()
 
     f = open(logfile, 'r')
@@ -68,27 +73,63 @@ def read_log(logfile, metric='loss'):
     loss = []
     rmse = []
 
-    for line in f.readlines():
+    initiliazed = False
+    while interval is not None:
+        for line in f.readlines():
+            if check in line:
+                start = True
 
-        if check in line:
-            start = True
+            if start:
+                try:
+                    line = line.split()
+                    epochs.append(int(line[0]))
+                    loss.append(float(line[3]))
+                    rmse.append(float(line[4]))
+                except ValueError:
+                    pass
 
-        if start:
-            try:
-                line = line.split()
-                epochs.append(int(line[0]))
-                loss.append(float(line[3]))
-                rmse.append(float(line[4]))
-            except ValueError:
-                pass
+        if initiliazed is False:
+            if metric == 'loss':
+                fig, = plt.plot(epochs, loss, label='loss')
 
-    if metric == 'loss':
-        plt.plot(epochs, loss, label='loss')
-    elif metric == 'rmse':
-        plt.plot(epochs, rmse, label='rmse')
+            elif metric == 'rmse':
+                fig, = plt.plot(epochs, rmse, label='rmse')
+            else:
+                fig, = plt.plot(epochs, loss, label='loss')
+                fig, = plt.plot(epochs, rmse, label='rmse')
+        else:
+            if metric == 'loss':
+                fig.set_data(epochs, loss)
+            elif metric == 'rmse':
+                fig.set_data(epochs, rmse)
+            else:
+                fig.set_data(epochs, loss)
+                fig.set_data(epochs, rmse)
+
+        plt.legend(loc='upper left')
+        plt.draw()
+        plt.pause(interval)
+        initiliazed = True
     else:
-        plt.plot(epochs, loss, label='loss')
-        plt.plot(epochs, rmse, label='rmse')
+        for line in f.readlines():
+            if check in line:
+                start = True
 
-    plt.legend(loc='upper left')
-    plt.show()
+            if start:
+                try:
+                    line = line.split()
+                    epochs.append(int(line[0]))
+                    loss.append(float(line[3]))
+                    rmse.append(float(line[4]))
+                except ValueError:
+                    pass
+        if metric == 'loss':
+            fig, = plt.plot(epochs, loss, label='loss')
+
+        elif metric == 'rmse':
+            fig, = plt.plot(epochs, rmse, label='rmse')
+        else:
+            fig, = plt.plot(epochs, loss, label='loss')
+            fig, = plt.plot(epochs, rmse, label='rmse')
+
+        plt.show(block=True)
