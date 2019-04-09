@@ -61,8 +61,17 @@ def read_log(logfile, metric='loss', interval=None):
     """
 
     if interval is not None:
+        # This means that there is no dynamic update of the plot
+        # We create an interactive plot
         plt.ion()
+        fig = plt.figure()
+        axes = fig.add_subplot(111)
+        # This is for autoscale
+        axes.set_autoscale_on(True)
+        axes.autoscale_view(True, True, True)
+        axes.set_xlabel('# of Epochs')
         plt.show(block=False)
+
     metric = metric.lower()
 
     f = open(logfile, 'r')
@@ -94,19 +103,24 @@ def read_log(logfile, metric='loss', interval=None):
 
             elif metric == 'rmse':
                 fig, = plt.plot(epochs, rmse, label='rmse')
+
             else:
                 fig, = plt.plot(epochs, loss, label='loss')
                 fig, = plt.plot(epochs, rmse, label='rmse')
         else:
             if metric == 'loss':
                 fig.set_data(epochs, loss)
+
             elif metric == 'rmse':
                 fig.set_data(epochs, rmse)
+
             else:
                 fig.set_data(epochs, loss)
                 fig.set_data(epochs, rmse)
 
         plt.legend(loc='upper left')
+        axes.relim()
+        axes.autoscale_view(True, True, True)
         plt.draw()
         plt.pause(interval)
         initiliazed = True
@@ -128,6 +142,7 @@ def read_log(logfile, metric='loss', interval=None):
 
         elif metric == 'rmse':
             fig, = plt.plot(epochs, rmse, label='rmse')
+
         else:
             fig, = plt.plot(epochs, loss, label='loss')
             fig, = plt.plot(epochs, rmse, label='rmse')
