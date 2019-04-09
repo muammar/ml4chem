@@ -80,6 +80,7 @@ class Potentials(Calculator, object):
                 del model_params['type']   # delete unneeded key, value
                 from mlchem.models.kernelridge import KernelRidge
                 weights = load(model)
+                # TODO remove after de/serialization is fixed.
                 weights = {key.decode('utf-8'): value for key, value in
                            weights.items()}
                 model_params.update({'weights': weights})
@@ -92,7 +93,7 @@ class Potentials(Calculator, object):
                 from mlchem.models.neuralnetwork import NeuralNetwork
                 model = NeuralNetwork(**model_params)
 
-        # Instatiation of fingerprint class
+        # Instantiation of fingerprint class
         from mlchem.fingerprints import Gaussian
         fingerprint_params = mlchem_params['fingerprints']
         del fingerprint_params['name']

@@ -3,12 +3,12 @@ import logging
 import time
 import torch
 import numpy as np
-from mlchem.utils import get_neighborlist, convert_elapsed_time
-from mlchem.data.serialization import dump
-from sklearn.externals import joblib
-from .cutoff import Cosine
-from collections import OrderedDict
 from ase.data import atomic_numbers
+from collections import OrderedDict
+from .cutoff import Cosine
+from mlchem.data.serialization import dump
+from mlchem.fingerprints.scalers import Scaler
+from mlchem.utils import get_neighborlist, convert_elapsed_time
 
 logger = logging.getLogger()
 
@@ -130,47 +130,12 @@ class Gaussian(object):
             self.GP = self.make_symmetry_functions(unique_element_symbols,
                                                    defaults=self.defaults)
 
-        logger.info('Number of features per chemical element:')
-        for symbol, v in self.GP.items():
-            logger.info('    - {}: {}.' .format(symbol, len(v)))
+        self.print_fingerprint_params(self.GP)
 
-        logger.info('Symmetry function parameters:')
-        logger.info('-----------------------------')
-        logging.info('{:^5} {:^12} {:4} {}' .format('#', 'Symbol', 'Type',
-                                                    'Parameters'))
+        scaler = Scaler(self.scaler)
+        scaler.set_scaler(purpose=purpose)
 
-        _symbols = []
-        for symbol, value in self.GP.items():
-            if symbol not in _symbols:
-                _symbols.append(symbol)
-                for i, v in enumerate(value):
-                    type_ = v['type']
-                    eta = v['eta']
-                    if type_ == 'G2':
-                        symbol = v['symbol']
-                        params = '{:^5} {:12.2} {:^4} eta: {:.4f}' \
-                            .format(i, symbol, type_, eta)
-                    else:
-                        symbol = v['symbols']
-                        gamma = v['gamma']
-                        zeta = v['zeta']
-                        params = '{:^5} {} {:^4} eta: {:.4f} gamma: {:7.4f}' \
-                            ' zeta: {:.4f}' .format(i, symbol, type_, eta,
-                                                    gamma, zeta)
-
-                    logging.info(params)
-
-        if self.scaler == 'minmaxscaler' and purpose == 'training':
-            from dask_ml.preprocessing import MinMaxScaler
-            scaler = MinMaxScaler(feature_range=(-1, 1))
-        elif purpose == 'inference':
-            scaler = joblib.load(self.scaler)
-        else:
-            logger.warning('{} is not supported.' .format(self.scaler))
-            self.scaler = None
-
-        # We start populating computations with delayed functions to operate
-        # with dask's scheduler. These computations get fingerprints.
+        # We start populating computations to get fingerprints.
         computations = []
         for image in images.items():
             key, image = image
@@ -193,7 +158,7 @@ class Gaussian(object):
                                                   self.scaler)
                 feature_vectors.append(afp)
 
-        # In this block we compute the delayed functions in computations.
+        # In this block we compute the fingerprints.
         if self.scaler is None:
             feature_space = dask.compute(*computations,
                                          scheduler=self.scheduler)
@@ -205,19 +170,18 @@ class Gaussian(object):
             d1, d2, d3 = stacked_features.shape
             stacked_features = stacked_features.reshape(d1 * d2, d3)
 
-        if self.scaler == 'minmaxscaler' and purpose == 'training':
+        if self.scaler is not None and purpose == 'training':
             logger.info('Preprocessing data...')
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
             stacked_features = dask.array.from_array(stacked_features,
                                                      chunks=(d1 * d2, d3))
-            scaler.fit(stacked_features.compute(scheduler=self.scheduler))
-            stacked_features = scaler.transform(stacked_features.compute(
-                scheduler=self.scheduler))
+            stacked_features = scaler.fit(stacked_features,
+                                          scheduler=self.scheduler)
 
             scaled_feature_space = stacked_features.reshape(d1, d2, d3)
 
-            # Populate computations list with delayed functions
+            # More data processing depending on the method used.
             computations = []
 
             if svm:
@@ -244,7 +208,7 @@ class Gaussian(object):
 
             feature_space = OrderedDict(feature_space)
 
-            save_scaler_to_file(scaler, self.save_scaler)
+            scaler.save_scaler_to_file(scaler, self.save_scaler)
 
             fp_time = time.time() - initial_time
 
@@ -559,6 +523,39 @@ class Gaussian(object):
             logger.error('The requested type of angular symmetry function is '
                          'not supported.')
 
+    def print_fingerprint_params(self, GP):
+        """Print fingerprint parameters"""
+
+        logger.info('Number of features per chemical element:')
+        for symbol, v in GP.items():
+            logger.info('    - {}: {}.' .format(symbol, len(v)))
+
+        logger.info('Symmetry function parameters:')
+        logger.info('-----------------------------')
+        logging.info('{:^5} {:^12} {:4} {}' .format('#', 'Symbol', 'Type',
+                                                    'Parameters'))
+
+        _symbols = []
+        for symbol, value in GP.items():
+            if symbol not in _symbols:
+                _symbols.append(symbol)
+                for i, v in enumerate(value):
+                    type_ = v['type']
+                    eta = v['eta']
+                    if type_ == 'G2':
+                        symbol = v['symbol']
+                        params = '{:^5} {:12.2} {:^4} eta: {:.4f}' \
+                            .format(i, symbol, type_, eta)
+                    else:
+                        symbol = v['symbols']
+                        gamma = v['gamma']
+                        zeta = v['zeta']
+                        params = '{:^5} {} {:^4} eta: {:.4f} gamma: {:7.4f}' \
+                            ' zeta: {:.4f}' .format(i, symbol, type_, eta,
+                                                    gamma, zeta)
+
+                    logging.info(params)
+
 
 def calculate_G2(n_numbers, neighborsymbols, neighborpositions, center_symbol,
                  eta, cutoff, cutofffxn, Ri, normalized=True):
@@ -675,14 +672,3 @@ def calculate_G3(n_numbers, neighborsymbols, neighborpositions, G_elements,
             feature += term
     feature *= 2. ** (1. - zeta)
     return feature
-
-
-def save_scaler_to_file(scaler, path):
-    """Save the scaler object to file
-
-    Parameter
-    ---------
-    path : str
-        Path to save .scaler file.
-    """
-    joblib.dump(scaler, path)
