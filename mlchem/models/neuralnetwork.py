@@ -67,7 +67,8 @@ class NeuralNetwork(torch.nn.Module):
         try:
             unique_element_symbols = data.unique_element_symbols[purpose]
         except TypeError:
-            unique_element_symbols = data.get_unique_element_symbols(purpose=purpose)
+            unique_element_symbols = \
+                    data.get_unique_element_symbols(purpose=purpose)
             unique_element_symbols = unique_element_symbols[purpose]
 
         symbol_model_pair = []
@@ -314,27 +315,15 @@ class train(object):
                 self.optimizer.step(options)
 
             # RMSE per image and per/atom
-            rmse = []
-            rmse_atom = []
 
             client = dask.distributed.get_client()
 
-            for index, chunk in enumerate(self.outputs_):
-                rmse.append(client.submit(self.compute_rmse,
-                                          *(chunk, self.targets[index])))
-
-                # RMSE per atom
-                atoms_per_image_ = self.atoms_per_image[index]
-                rmse_atom.append(client.submit(self.compute_rmse,
-                                               *(chunk, self.targets[index],
-                                                 atoms_per_image_)))
-
-            dask.distributed.wait(rmse)
-            dask.distributed.wait(rmse_atom)
-            rmse = client.gather(rmse)
-            rmse_atom = client.gather(rmse_atom)
-            rmse = sum(rmse)
-            rmse_atom = sum(rmse_atom)
+            rmse = client.submit(self.compute_rmse, *(self.outputs_,
+                                                      self.targets))
+            rmse_atom = client.submit(self.compute_rmse, *(self.outputs_,
+                                      self.targets, self.atoms_per_image))
+            rmse = rmse.result()
+            rmse_atom = rmse_atom.result()
 
             _loss.append(loss.item())
             _rmse.append(rmse)
@@ -467,7 +456,14 @@ class train(object):
             Root-mean squared error.
         """
 
+        if isinstance(predictions, list):
+            predictions = torch.cat(predictions)
+
+        if isinstance(outputs, list):
+            outputs = torch.cat(outputs)
+
         if atoms_per_image is not None:
+            atoms_per_image = atoms_per_image.view(1, -1)
             predictions = predictions / atoms_per_image
             outputs = outputs / atoms_per_image
 
