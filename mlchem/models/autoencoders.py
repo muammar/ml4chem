@@ -6,7 +6,7 @@ import torch
 
 import numpy as np
 from collections import OrderedDict
-from mlchem.models.loss import MSELossAE
+from mlchem.models.loss import SumSquareDiff
 from mlchem.optim.handler import get_optimizer
 from mlchem.utils import convert_elapsed_time, get_chunks
 
@@ -373,12 +373,9 @@ class train(object):
 
             client = dask.distributed.get_client()
 
-            for index, chunk in enumerate(self.outputs_):
-                rmse.append(client.submit(self.compute_rmse,
-                                          *(chunk, self.targets[index])))
-            dask.distributed.wait(rmse)
-            rmse = client.gather(rmse)
-            rmse = sum(rmse)
+            rmse = client.submit(self.compute_rmse, *(self.outputs_,
+                                                      self.targets))
+            rmse = rmse.result()
 
             _loss.append(loss.item())
             _rmse.append(rmse)
@@ -433,7 +430,7 @@ class train(object):
         outputs = model(inputs)
 
         if lossfxn is None:
-            loss = MSELossAE(outputs, targets[index])
+            loss = SumSquareDiff(outputs, targets[index])
             loss.backward()
         else:
             raise('I do not know what to do')
@@ -509,6 +506,12 @@ class train(object):
         rmse : float
             Root-mean squared error.
         """
+
+        if isinstance(predictions, list):
+            predictions = torch.cat(predictions)
+
+        if isinstance(outputs, list):
+            outputs = torch.cat(outputs)
 
         if atoms_per_image is not None:
             predictions = predictions / atoms_per_image

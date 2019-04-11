@@ -45,8 +45,8 @@ class Scaler(object):
     def save_scaler_to_file(self, scaler, path):
         """Save the scaler object to file
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         scaler : obj
             Scaler object
         path : str

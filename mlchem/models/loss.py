@@ -34,11 +34,10 @@ def MSELoss(outputs, targets, atoms_per_image, device='cpu'):
     return loss
 
 
-def MSELossAE(outputs, targets):
-    """Default loss function
+def SumSquareDiff(outputs, targets):
+    """Sum of squared differences loss function
 
-    If user does not input loss function we provide mean-squared error loss
-    function.
+    This is the default loss function for a real-valued autoencoder.
 
     Parameters
     ----------
@@ -51,11 +50,11 @@ def MSELossAE(outputs, targets):
     -------
     loss : tensor
         The value of the loss function.
+
+    Notes
+    -----
+    In the literature it is mentioned that for real-valued autoencoders the
+    reconstruction loss function is the sum of squared differences.
     """
-
-    criterion = torch.nn.MSELoss(reduction='mean')
-    # TODO verify this is the correct form
-    # loss = criterion(outputs, targets) * .5
-    loss = criterion(outputs, targets)
-
+    loss = (outputs - targets).pow(2).sum() * .5
     return loss
