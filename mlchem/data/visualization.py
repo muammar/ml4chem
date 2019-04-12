@@ -69,7 +69,7 @@ def read_log(logfile, metric='loss', interval=None):
         # This is for autoscale
         axes.set_autoscale_on(True)
         axes.autoscale_view(True, True, True)
-        axes.set_xlabel('# of Epochs')
+        axes.set_xlabel('Epochs')
         plt.show(block=False)
 
     metric = metric.lower()

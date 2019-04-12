@@ -6,8 +6,8 @@ import torch
 
 import numpy as np
 from collections import OrderedDict
-from mlchem.models.loss import MSELoss
-from mlchem.optim.handler import get_optimizer
+from mlchem.models.loss import AtomicMSELoss
+from mlchem.optim.handler import get_optimizer, get_lr_scheduler
 from mlchem.utils import convert_elapsed_time, get_chunks
 
 
@@ -209,12 +209,17 @@ class train(object):
         Calculation can be run in the cpu or cuda (gpu).
     batch_size : int
         Number of data points per batch to use for training. Default is None.
+    lr_scheduler : tuple
+        Tuple with structure: scheduler's name and a dictionary with keyword
+        arguments.
+
+        >>> lr_scheduler = ('ReduceLROnPlateau', {mode='min', patience=10})
     """
 
     def __init__(self, inputs, targets, model=None, data=None,
                  optimizer=(None, None), regularization=None, epochs=100,
                  convergence=None, lossfxn=None, device='cpu',
-                 batch_size=None):
+                 batch_size=None, lr_scheduler=None):
 
         self.initial_time = time.time()
 
@@ -265,6 +270,9 @@ class train(object):
         self.optimizer_name, self.optimizer = get_optimizer(optimizer,
                                                             model.parameters()
                                                             )
+        if lr_scheduler is not None:
+            self.scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
+
         logger.info(' ')
         logger.info('Starting training...')
         logger.info(' ')
@@ -290,6 +298,7 @@ class train(object):
         self.epochs = epochs
         self.lossfxn = lossfxn
         self.model = model
+        self.lr_scheduler = lr_scheduler
 
         # Let the hunger game begin...
         self.run()
@@ -327,6 +336,9 @@ class train(object):
 
             _loss.append(loss.item())
             _rmse.append(rmse)
+
+            if self.lr_scheduler is not None:
+                self.scheduler.step(loss)
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
@@ -377,8 +389,8 @@ class train(object):
         outputs = model(inputs)
 
         if lossfxn is None:
-            loss = MSELoss(outputs, targets[index], atoms_per_image[index],
-                           device=device)
+            loss = AtomicMSELoss(outputs, targets[index], atoms_per_image[index],
+                                 device=device)
             loss.backward()
         else:
             raise('I do not know what to do')

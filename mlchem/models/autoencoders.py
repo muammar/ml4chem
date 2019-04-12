@@ -6,7 +6,7 @@ import torch
 
 import numpy as np
 from collections import OrderedDict
-from mlchem.models.loss import SumSquareDiff
+from mlchem.models.loss import MSELoss
 from mlchem.optim.handler import get_optimizer
 from mlchem.utils import convert_elapsed_time, get_chunks
 
@@ -217,6 +217,7 @@ class AutoEncoder(torch.nn.Module):
 
         return latent_space
 
+
 class train(object):
     """Train the model
 
@@ -273,8 +274,8 @@ class train(object):
 
             move_time = time.time() - initial_time
             h, m, s = convert_elapsed_time(move_time)
-            logger.info('Data moved to GPU in {} hours {} minutes {:.2f} seconds.'
-                        .format(h, m, s))
+            logger.info('Data moved to GPU in {} hours {} minutes {:.2f}
+                         seconds.' .format(h, m, s))
             """
 
         if batch_size is None:
@@ -332,10 +333,11 @@ class train(object):
                                                        'Time Stamp',
                                                        'Loss',
                                                        'Rec Err'))
-        logger.info('{:6s} {:19s} {:12s} {:9s}'.format('------',
-                                                   '-------------------',
-                                                   '------------',
-                                                   '--------'))
+        logger.info('{:6s} {:19s} {:12s} {:9s}'.format(
+            '------',
+            '-------------------',
+            '------------',
+            '--------'))
         self.convergence = convergence
         client = dask.distributed.get_client()
         self.chunks = [client.scatter(chunk) for chunk in chunks]
@@ -397,10 +399,6 @@ class train(object):
         h, m, s = convert_elapsed_time(training_time)
         logger.info('Training finished in {} hours {} minutes {:.2f} seconds.'
                     .format(h, m, s))
-        logger.info('outputs')
-        logger.info(self.outputs_)
-        logger.info('targets')
-        logger.info(self.targets)
 
     def train_batches(self, index, chunk, targets, model, lossfxn, device):
         """A function that allows training per batches
@@ -430,7 +428,7 @@ class train(object):
         outputs = model(inputs)
 
         if lossfxn is None:
-            loss = SumSquareDiff(outputs, targets[index])
+            loss = MSELoss(outputs, targets[index])
             loss.backward()
         else:
             raise('I do not know what to do')

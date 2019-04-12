@@ -1,7 +1,7 @@
 import torch
 
 
-def MSELoss(outputs, targets, atoms_per_image, device='cpu'):
+def AtomicMSELoss(outputs, targets, atoms_per_image):
     """Default loss function
 
     If user does not input loss function we provide mean-squared error loss
@@ -13,17 +13,13 @@ def MSELoss(outputs, targets, atoms_per_image, device='cpu'):
         Outputs of the model.
     targets : tensor
         Expected value of outputs.
-    data : obj
-        A data object from mlchem.
-    device : str
-        Calculation can be run in the cpu or cuda (gpu).
+
 
     Returns
     -------
     loss : tensor
         The value of the loss function.
     """
-
 
     criterion = torch.nn.MSELoss(reduction='sum')
     outputs_atom = torch.div(outputs, atoms_per_image)
@@ -34,7 +30,7 @@ def MSELoss(outputs, targets, atoms_per_image, device='cpu'):
     return loss
 
 
-def SumSquareDiff(outputs, targets):
+def SumSquaredDiff(outputs, targets):
     """Sum of squared differences loss function
 
     This is the default loss function for a real-valued autoencoder.
@@ -57,4 +53,30 @@ def SumSquareDiff(outputs, targets):
     reconstruction loss function is the sum of squared differences.
     """
     loss = (outputs - targets).pow(2).sum() * .5
+    return loss
+
+
+def MSELoss(outputs, targets):
+    """Default loss function
+
+    If user does not input loss function we provide mean-squared error loss
+    function.
+
+    Parameters
+    ----------
+    outputs : tensor
+        Outputs of the model.
+    targets : tensor
+        Expected value of outputs.
+    device : str
+        Calculation can be run in the cpu or cuda (gpu).
+
+    Returns
+    -------
+    loss : tensor
+        The value of the loss function.
+    """
+
+    criterion = torch.nn.MSELoss()
+    loss = criterion(outputs, targets) * .5
     return loss

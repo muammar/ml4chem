@@ -63,3 +63,42 @@ def get_optimizer(optimizer, params):
     logger.info(' ')
 
     return optimizer_name, optimizer
+
+
+def get_lr_scheduler(optimizer, lr_scheduler):
+    """Get a learning rate scheduler
+
+
+    With a learning rate scheduler it is possible to perform training with an
+    adaptative learning rate.
+
+
+    Parameters
+    ----------
+    optimizer : obj
+        An optimizer object.
+    lr_scheduler : tuple
+        Tuple with structure: scheduler's name and a dictionary with keyword
+        arguments.
+
+        >>> scheduler = ('ReduceLROnPlateau', {mode='min', patience=10})
+
+    Returns
+    -------
+    scheduler : obj
+        A learning rate scheduler object that can be used to train models.
+
+    Notes
+    -----
+    For a list of schedulers and respective keyword arguments, please refer to
+    https://pytorch.org/docs/stable/_modules/torch/optim/lr_scheduler.html
+    """
+
+    scheduler_name, kwargs = scheduler
+    scheduler_name = scheduler_name.lower()
+
+    if scheduler_name == 'reducelronplateau':
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                               **kwargs)
+
+    return scheduler
