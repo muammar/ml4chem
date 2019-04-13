@@ -81,7 +81,7 @@ def get_lr_scheduler(optimizer, lr_scheduler):
         Tuple with structure: scheduler's name and a dictionary with keyword
         arguments.
 
-        >>> scheduler = ('ReduceLROnPlateau', {mode='min', patience=10})
+        >>> scheduler = ('ReduceLROnPlateau', {'mode': 'min', 'patience': 10})
 
     Returns
     -------
@@ -94,11 +94,20 @@ def get_lr_scheduler(optimizer, lr_scheduler):
     https://pytorch.org/docs/stable/_modules/torch/optim/lr_scheduler.html
     """
 
-    scheduler_name, kwargs = scheduler
+    scheduler_name, kwargs = lr_scheduler
     scheduler_name = scheduler_name.lower()
 
     if scheduler_name == 'reducelronplateau':
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                                **kwargs)
+
+        name = 'ReduceLROnPlateau'
+
+
+    logger.info('Learning Rate Scheduler')
+    logger.info('-----------------------')
+    logger.info('    - Name: {}.' .format(name))
+    logger.info('    - Args: {}.' .format(kwargs))
+    logger.info('')
 
     return scheduler

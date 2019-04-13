@@ -319,6 +319,30 @@ class KernelRidge(object):
                     _LT.append(0.)
         return _LT
 
+    def get_sigma(self, sigma, forcetraining=False):
+        """Function to build sigma
+
+        Parameters
+        ----------
+        sigma : float, list or dict.
+            This is user's raw input for sigma.
+        forcetraining : bool
+            Whether or not force training is set to true.
+
+        Returns
+        -------
+        _sigma : dict
+            Universal sigma dictionary for KernelRidge.
+        """
+
+        _sigma = {}
+
+        if isinstance(sigma, int):
+            for symbol in unique_element_symbols:
+                _sigma[symbol] = sigma
+
+        return _sigma
+
 
 """
 Auxiliary functions to compute kernels

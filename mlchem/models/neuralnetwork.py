@@ -213,7 +213,7 @@ class train(object):
         Tuple with structure: scheduler's name and a dictionary with keyword
         arguments.
 
-        >>> lr_scheduler = ('ReduceLROnPlateau', {mode='min', patience=10})
+        >>> lr_scheduler = ('ReduceLROnPlateau', {'mode': 'min', 'patience': 10})
     """
 
     def __init__(self, inputs, targets, model=None, data=None,
@@ -389,8 +389,7 @@ class train(object):
         outputs = model(inputs)
 
         if lossfxn is None:
-            loss = AtomicMSELoss(outputs, targets[index], atoms_per_image[index],
-                                 device=device)
+            loss = AtomicMSELoss(outputs, targets[index], atoms_per_image[index])
             loss.backward()
         else:
             raise('I do not know what to do')
