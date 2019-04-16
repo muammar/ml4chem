@@ -12,7 +12,7 @@ def get_optimizer(optimizer, params):
     different parameters. This function takes as arguments an optimizer tuple
     with the following structure:
 
-        >>> optimizer = ('adam', kwargs={'lr': 1e-2, 'weight_decay': 1e-6})
+        >>> optimizer = ('adam', {'lr': 1e-2, 'weight_decay': 1e-6})
 
     and returns an optimizer object.
 
@@ -28,6 +28,12 @@ def get_optimizer(optimizer, params):
     -------
     optimizer : obj
         An optimizer object.
+
+    Notes
+    -----
+    For a list of all supported optimizers please check:
+
+    https://pytorch.org/docs/stable/optim.html
     """
 
     optimizer_name, kwargs = optimizer
@@ -52,6 +58,38 @@ def get_optimizer(optimizer, params):
         from mlchem.optim.LBFGS import FullBatchLBFGS
         optimizer = FullBatchLBFGS(params, **kwargs)
         optimizer_name = 'LBFGS'
+
+    elif optimizer_name == 'adagrad':
+        optimizer = torch.optim.Adagrad(params, **kwargs)
+        optimizer_name = 'Adagrad'
+
+    elif optimizer_name == 'adadelta':
+        optimizer = torch.optim.Adadelta(params, **kwargs)
+        optimizer_name = 'Adadelta'
+
+    elif optimizer_name == 'sparseadam':
+        optimizer = torch.optim.SparseAdam(params, **kwargs)
+        optimizer_name = 'SparseAdam'
+
+    elif optimizer_name == 'adamax':
+        optimizer = torch.optim.Adamax(params, **kwargs)
+        optimizer_name = 'Adamax'
+
+    elif optimizer_name == 'asgd':
+        optimizer = torch.optim.ASGD(params, **kwargs)
+        optimizer_name = 'ASGD'
+
+    elif optimizer_name == 'rmsprop':
+        optimizer = torch.optim.RMSprop(params, **kwargs)
+        optimizer_name = 'RMSprop'
+
+    elif optimizer_name == 'rprop':
+        optimizer = torch.optim.Rprop(params, **kwargs)
+        optimizer_name = 'Rprop'
+
+    elif optimizer_name == 'sgd':
+        optimizer = torch.optim.SGD(params, **kwargs)
+        optimizer_name = 'SGD'
 
     logger.info('Optimizer')
     logger.info('---------')
@@ -100,9 +138,7 @@ def get_lr_scheduler(optimizer, lr_scheduler):
     if scheduler_name == 'reducelronplateau':
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                                **kwargs)
-
         name = 'ReduceLROnPlateau'
-
 
     logger.info('Learning Rate Scheduler')
     logger.info('-----------------------')

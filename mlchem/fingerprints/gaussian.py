@@ -222,7 +222,6 @@ class Gaussian(object):
                         index += 1
                     scaled_feature_space.append(features)
 
-
             # More data processing depending on the method used.
             computations = []
 
@@ -576,7 +575,7 @@ class Gaussian(object):
         logger.info('Symmetry function parameters:')
         logger.info('-----------------------------')
         logging.info('{:^5} {:^12} {:4.4} {}' .format('#', 'Symbol', 'Type',
-                                                    'Parameters'))
+                                                      'Parameters'))
 
         _symbols = []
         for symbol, value in GP.items():
@@ -593,9 +592,9 @@ class Gaussian(object):
                         symbol = str(v['symbols'])[1:-1].replace("'", "")
                         gamma = v['gamma']
                         zeta = v['zeta']
-                        params = '{:^5} {:12} {:^4.5} eta: {:.4f} gamma: {:7.4f}' \
-                                ' zeta: {:.4f}' .format(i, symbol, type_, eta,
-                                                        gamma, zeta)
+                        params = '{:^5} {:12} {:^4.5} eta: {:.4f} ' \
+                                 'gamma: {:7.4f} zeta: {:.4f}' \
+                                 .format(i, symbol, type_, eta, gamma, zeta)
 
                     logging.info(params)
 
