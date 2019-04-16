@@ -56,7 +56,7 @@ def get_optimizer(optimizer, params):
     logger.info('Optimizer')
     logger.info('---------')
     logger.info('Name: {}.' .format(optimizer_name))
-    logger.info('Arguments:')
+    logger.info('Options:')
     for k, v in kwargs.items():
         logger.info('    - {}: {}.' .format(k, v))
 

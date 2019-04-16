@@ -56,6 +56,7 @@ class NeuralNetwork(torch.nn.Module):
 
         hl = len(self.hiddenlayers)
         if purpose == 'training':
+            logger.info(' ')
             logger.info('Model Training')
             logger.info('==============')
             logger.info('Model name: {}.'.format(self.name()))
@@ -63,6 +64,7 @@ class NeuralNetwork(torch.nn.Module):
             logger.info('Structure of Neural Net: {}'
                         .format('(input, ' + str(self.hiddenlayers)[1:-1] +
                                 ', output)'))
+            logger.info(' ')
         layers = range(len(self.hiddenlayers) + 1)
         try:
             unique_element_symbols = data.unique_element_symbols[purpose]
@@ -239,7 +241,12 @@ class train(object):
             atoms_per_image = list(get_chunks(atoms_per_image, batch_size,
                                               svm=False))
 
+        logger.info(' ')
+        logging.info('Batch Information')
+        logging.info('-----------------')
+        logging.info('Number of batches: {}.' .format(len(chunks)))
         logging.info('Batch size: {} elements per batch.' .format(batch_size))
+        logger.info(' ')
 
         atoms_per_image = torch.tensor(atoms_per_image, requires_grad=False,
                                        dtype=torch.float)

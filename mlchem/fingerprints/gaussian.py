@@ -108,6 +108,7 @@ class Gaussian(object):
             structure: {'hash': [('H', [vector]]}
         """
 
+        logger.info(' ')
         logger.info('Fingerprinting')
         logger.info('==============')
 
@@ -135,7 +136,9 @@ class Gaussian(object):
         scaler = Scaler(self.scaler)
         scaler.set_scaler(purpose=purpose)
 
-        # We start populating computations to get fingerprints.
+        # We start populating computations to get atomic fingerprints.
+        logger.info('')
+        logger.info('Adding atomic fingerprint calculations to scheduler...')
         computations = []
         for image in images.items():
             key, image = image
@@ -158,6 +161,11 @@ class Gaussian(object):
                                                   self.scaler)
                 feature_vectors.append(afp)
 
+        scheduler_time = time.time() - initial_time
+
+        h, m, s = convert_elapsed_time(scheduler_time)
+        logger.info('... finished in {} hours {} minutes {:.2f}'
+                    ' seconds.' .format(h, m, s))
         # In this block we compute the fingerprints.
         if self.scaler is None:
             feature_space = dask.compute(*computations,
@@ -167,19 +175,53 @@ class Gaussian(object):
                                             scheduler=self.scheduler)
 
             stacked_features = np.array(stacked_features)
-            d1, d2, d3 = stacked_features.shape
-            stacked_features = stacked_features.reshape(d1 * d2, d3)
+            dim = stacked_features.shape
+
+            if len(dim) > 1:
+                d1, d2, d3 = stacked_features.shape
+                stacked_features = stacked_features.reshape(d1 * d2, d3)
+            else:
+
+                atoms_map = []
+                stack = []
+                for i in stacked_features:
+                    atoms_map.append(len(i))
+                    for j in i:
+                        stack.append(j)
+
+                stacked_features = np.array(stack)
+                d1 = sum(atoms_map)
+                d2 = len(stack[0])
+                del stack
 
         if self.scaler is not None and purpose == 'training':
+            logger.info('')
             logger.info('Preprocessing data...')
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
-            stacked_features = dask.array.from_array(stacked_features,
-                                                     chunks=(d1 * d2, d3))
-            stacked_features = scaler.fit(stacked_features,
-                                          scheduler=self.scheduler)
+            if len(dim) > 1:
+                stacked_features = dask.array.from_array(stacked_features,
+                                                         chunks=(d1 * d2, d3))
+                stacked_features = scaler.fit(stacked_features,
+                                              scheduler=self.scheduler)
 
-            scaled_feature_space = stacked_features.reshape(d1, d2, d3)
+                scaled_feature_space = stacked_features.reshape(d1, d2, d3)
+            else:
+                stacked_features = dask.array.from_array(stacked_features,
+                                                         chunks=(d1, d2))
+
+                stacked_features = scaler.fit(stacked_features,
+                                              scheduler=self.scheduler)
+                scaled_feature_space = []
+                index = 0
+
+                for atoms in atoms_map:
+                    features = []
+                    for atom in range(atoms):
+                        features.append(stacked_features[index])
+                        index += 1
+                    scaled_feature_space.append(features)
+
 
             # More data processing depending on the method used.
             computations = []
@@ -530,9 +572,10 @@ class Gaussian(object):
         for symbol, v in GP.items():
             logger.info('    - {}: {}.' .format(symbol, len(v)))
 
+        logger.info(' ')
         logger.info('Symmetry function parameters:')
         logger.info('-----------------------------')
-        logging.info('{:^5} {:^12} {:4} {}' .format('#', 'Symbol', 'Type',
+        logging.info('{:^5} {:^12} {:4.4} {}' .format('#', 'Symbol', 'Type',
                                                     'Parameters'))
 
         _symbols = []
@@ -544,15 +587,15 @@ class Gaussian(object):
                     eta = v['eta']
                     if type_ == 'G2':
                         symbol = v['symbol']
-                        params = '{:^5} {:12.2} {:^4} eta: {:.4f}' \
+                        params = '{:^5} {:12.2} {:^4.4} eta: {:.4f}' \
                             .format(i, symbol, type_, eta)
                     else:
-                        symbol = v['symbols']
+                        symbol = str(v['symbols'])[1:-1].replace("'", "")
                         gamma = v['gamma']
                         zeta = v['zeta']
-                        params = '{:^5} {} {:^4} eta: {:.4f} gamma: {:7.4f}' \
-                            ' zeta: {:.4f}' .format(i, symbol, type_, eta,
-                                                    gamma, zeta)
+                        params = '{:^5} {:12} {:^4.5} eta: {:.4f} gamma: {:7.4f}' \
+                                ' zeta: {:.4f}' .format(i, symbol, type_, eta,
+                                                        gamma, zeta)
 
                     logging.info(params)
 
