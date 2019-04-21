@@ -12,15 +12,19 @@ features to perform machine learning workflows for chemical physics.
 
 A list of features and methods are shown below.
 
-- Atom-centered Neural Networks, and Kernel Ridge Regression for the prediction of total energies.
+- Atom-centered Neural Networks, and Kernel Ridge Regression for the prediction
+  of total energies.
 - PyTorch backend.
 - GPU support.
 - ASE interface.
 - Completely modular. You can use any part of this package in your project.
-- Free software <3. No secrets! Pull requests and additions are more than welcome!
+- Free software <3. No secrets! Pull requests and additions are more than
+  welcome!
 - Good documentation (I hope!).
 - Explicit and idiomatic: `mlchem.get_me_a_coffee()`.
-- Scalability. Powered by Dask <3.
+- Distributed training in a data parallelism paradigm (mini-batches).
+- Scalability and distributed computations are powered by Dask <3.
+- Real-time tools to track status of your computations.
 - [Messagepack serialization](https://msgpack.org/index.html).
 
 

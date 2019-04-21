@@ -17,7 +17,7 @@ def train():
     batch_size = 160
 
     calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
-                                            save_scaler='cu_training.scaler'),
+                                            save_preprocessor='cu_training.scaler'),
                       model=KernelRidge(batch_size=batch_size),
                       label='cu_training')
 
@@ -26,7 +26,7 @@ def train():
 
 if __name__ == '__main__':
 
-    logging.basicConfig(filename = 'cu_training.log', level=logging.INFO,
+    logging.basicConfig(filename='cu_training.log', level=logging.INFO,
                         format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
     cluster = LocalCluster(n_workers=8, threads_per_worker=2)
     client = Client(cluster, asyncronous=True)

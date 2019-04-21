@@ -13,7 +13,7 @@ def main():
 
     calc = Potentials.load(model='cu_training.mlchem',
                            params='cu_training.params',
-                           scaler='cu_training.scaler')
+                           preprocessor='cu_training.scaler')
 
     # Passage of fingerprint database with reference space
     calc.reference_space = 'fingerprints.db'

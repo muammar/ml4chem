@@ -17,230 +17,280 @@ potentials.py:53 INFO:Available backends: ['torch', 'torchvision', 'numpy'].
 handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
-gaussian.py:111 INFO:Fingerprinting
-gaussian.py:112 INFO:==============
-gaussian.py:119 INFO:Getting unique element symbols for inference
-gaussian.py:126 INFO:Unique chemical elements: ['Cu']
-gaussian.py:461 WARNING:Making default symmetry functions
-gaussian.py:529 INFO:Number of features per chemical element:
-gaussian.py:531 INFO:    - Cu: 8.
-gaussian.py:533 INFO:Symmetry function parameters:
-gaussian.py:534 INFO:-----------------------------
-gaussian.py:536 INFO:  #      Symbol    Type Parameters
-gaussian.py:557 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:557 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:557 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:557 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:557 INFO:  4   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  5   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  6   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:557 INFO:  7   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-gaussian.py:259 INFO:Fingerprinting finished in 0 hours 0 minutes 0.75 seconds.
+gaussian.py:107 INFO: 
+gaussian.py:108 INFO:Fingerprinting
+gaussian.py:109 INFO:==============
+gaussian.py:116 INFO:Getting unique element symbols for inference
+gaussian.py:123 INFO:Unique chemical elements: ['Cu']
+gaussian.py:513 WARNING:Making default symmetry functions
+gaussian.py:581 INFO:Number of features per chemical element:
+gaussian.py:583 INFO:    - Cu: 8.
+gaussian.py:585 INFO: 
+gaussian.py:586 INFO:Symmetry function parameters:
+gaussian.py:587 INFO:-----------------------------
+gaussian.py:589 INFO:  #      Symbol    Type Parameters
+gaussian.py:610 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:610 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:610 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:610 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:610 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:610 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:136 INFO:
+gaussian.py:137 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:164 INFO:... finished in 0 hours 0 minutes 0.78 seconds.
+gaussian.py:302 INFO:Fingerprinting finished in 0 hours 0 minutes 2.66 seconds.
 potentials.py:277 INFO:Calculating energy
 handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
-gaussian.py:111 INFO:Fingerprinting
-gaussian.py:112 INFO:==============
-gaussian.py:119 INFO:Getting unique element symbols for inference
-gaussian.py:126 INFO:Unique chemical elements: ['Cu']
-gaussian.py:461 WARNING:Making default symmetry functions
-gaussian.py:529 INFO:Number of features per chemical element:
-gaussian.py:531 INFO:    - Cu: 8.
-gaussian.py:533 INFO:Symmetry function parameters:
-gaussian.py:534 INFO:-----------------------------
-gaussian.py:536 INFO:  #      Symbol    Type Parameters
-gaussian.py:557 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:557 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:557 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:557 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:557 INFO:  4   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  5   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  6   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:557 INFO:  7   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-gaussian.py:259 INFO:Fingerprinting finished in 0 hours 0 minutes 0.41 seconds.
+gaussian.py:107 INFO: 
+gaussian.py:108 INFO:Fingerprinting
+gaussian.py:109 INFO:==============
+gaussian.py:116 INFO:Getting unique element symbols for inference
+gaussian.py:123 INFO:Unique chemical elements: ['Cu']
+gaussian.py:513 WARNING:Making default symmetry functions
+gaussian.py:581 INFO:Number of features per chemical element:
+gaussian.py:583 INFO:    - Cu: 8.
+gaussian.py:585 INFO: 
+gaussian.py:586 INFO:Symmetry function parameters:
+gaussian.py:587 INFO:-----------------------------
+gaussian.py:589 INFO:  #      Symbol    Type Parameters
+gaussian.py:610 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:610 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:610 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:610 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:610 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:610 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:136 INFO:
+gaussian.py:137 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:164 INFO:... finished in 0 hours 0 minutes 0.12 seconds.
+gaussian.py:302 INFO:Fingerprinting finished in 0 hours 0 minutes 0.99 seconds.
 potentials.py:277 INFO:Calculating energy
 handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
-gaussian.py:111 INFO:Fingerprinting
-gaussian.py:112 INFO:==============
-gaussian.py:119 INFO:Getting unique element symbols for inference
-gaussian.py:126 INFO:Unique chemical elements: ['Cu']
-gaussian.py:461 WARNING:Making default symmetry functions
-gaussian.py:529 INFO:Number of features per chemical element:
-gaussian.py:531 INFO:    - Cu: 8.
-gaussian.py:533 INFO:Symmetry function parameters:
-gaussian.py:534 INFO:-----------------------------
-gaussian.py:536 INFO:  #      Symbol    Type Parameters
-gaussian.py:557 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:557 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:557 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:557 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:557 INFO:  4   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  5   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  6   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:557 INFO:  7   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-gaussian.py:259 INFO:Fingerprinting finished in 0 hours 0 minutes 0.42 seconds.
+gaussian.py:107 INFO: 
+gaussian.py:108 INFO:Fingerprinting
+gaussian.py:109 INFO:==============
+gaussian.py:116 INFO:Getting unique element symbols for inference
+gaussian.py:123 INFO:Unique chemical elements: ['Cu']
+gaussian.py:513 WARNING:Making default symmetry functions
+gaussian.py:581 INFO:Number of features per chemical element:
+gaussian.py:583 INFO:    - Cu: 8.
+gaussian.py:585 INFO: 
+gaussian.py:586 INFO:Symmetry function parameters:
+gaussian.py:587 INFO:-----------------------------
+gaussian.py:589 INFO:  #      Symbol    Type Parameters
+gaussian.py:610 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:610 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:610 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:610 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:610 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:610 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:136 INFO:
+gaussian.py:137 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:164 INFO:... finished in 0 hours 0 minutes 0.05 seconds.
+gaussian.py:302 INFO:Fingerprinting finished in 0 hours 0 minutes 1.83 seconds.
 potentials.py:277 INFO:Calculating energy
 handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
-gaussian.py:111 INFO:Fingerprinting
-gaussian.py:112 INFO:==============
-gaussian.py:119 INFO:Getting unique element symbols for inference
-gaussian.py:126 INFO:Unique chemical elements: ['Cu']
-gaussian.py:461 WARNING:Making default symmetry functions
-gaussian.py:529 INFO:Number of features per chemical element:
-gaussian.py:531 INFO:    - Cu: 8.
-gaussian.py:533 INFO:Symmetry function parameters:
-gaussian.py:534 INFO:-----------------------------
-gaussian.py:536 INFO:  #      Symbol    Type Parameters
-gaussian.py:557 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:557 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:557 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:557 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:557 INFO:  4   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  5   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  6   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:557 INFO:  7   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-gaussian.py:259 INFO:Fingerprinting finished in 0 hours 0 minutes 0.43 seconds.
+gaussian.py:107 INFO: 
+gaussian.py:108 INFO:Fingerprinting
+gaussian.py:109 INFO:==============
+gaussian.py:116 INFO:Getting unique element symbols for inference
+gaussian.py:123 INFO:Unique chemical elements: ['Cu']
+gaussian.py:513 WARNING:Making default symmetry functions
+gaussian.py:581 INFO:Number of features per chemical element:
+gaussian.py:583 INFO:    - Cu: 8.
+gaussian.py:585 INFO: 
+gaussian.py:586 INFO:Symmetry function parameters:
+gaussian.py:587 INFO:-----------------------------
+gaussian.py:589 INFO:  #      Symbol    Type Parameters
+gaussian.py:610 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:610 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:610 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:610 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:610 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:610 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:136 INFO:
+gaussian.py:137 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:164 INFO:... finished in 0 hours 0 minutes 0.18 seconds.
+gaussian.py:302 INFO:Fingerprinting finished in 0 hours 0 minutes 2.09 seconds.
 potentials.py:277 INFO:Calculating energy
 handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
-gaussian.py:111 INFO:Fingerprinting
-gaussian.py:112 INFO:==============
-gaussian.py:119 INFO:Getting unique element symbols for inference
-gaussian.py:126 INFO:Unique chemical elements: ['Cu']
-gaussian.py:461 WARNING:Making default symmetry functions
-gaussian.py:529 INFO:Number of features per chemical element:
-gaussian.py:531 INFO:    - Cu: 8.
-gaussian.py:533 INFO:Symmetry function parameters:
-gaussian.py:534 INFO:-----------------------------
-gaussian.py:536 INFO:  #      Symbol    Type Parameters
-gaussian.py:557 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:557 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:557 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:557 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:557 INFO:  4   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  5   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  6   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:557 INFO:  7   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-gaussian.py:259 INFO:Fingerprinting finished in 0 hours 0 minutes 0.43 seconds.
+gaussian.py:107 INFO: 
+gaussian.py:108 INFO:Fingerprinting
+gaussian.py:109 INFO:==============
+gaussian.py:116 INFO:Getting unique element symbols for inference
+gaussian.py:123 INFO:Unique chemical elements: ['Cu']
+gaussian.py:513 WARNING:Making default symmetry functions
+gaussian.py:581 INFO:Number of features per chemical element:
+gaussian.py:583 INFO:    - Cu: 8.
+gaussian.py:585 INFO: 
+gaussian.py:586 INFO:Symmetry function parameters:
+gaussian.py:587 INFO:-----------------------------
+gaussian.py:589 INFO:  #      Symbol    Type Parameters
+gaussian.py:610 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:610 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:610 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:610 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:610 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:610 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:136 INFO:
+gaussian.py:137 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:164 INFO:... finished in 0 hours 0 minutes 0.08 seconds.
+gaussian.py:302 INFO:Fingerprinting finished in 0 hours 0 minutes 1.57 seconds.
 potentials.py:277 INFO:Calculating energy
 handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
-gaussian.py:111 INFO:Fingerprinting
-gaussian.py:112 INFO:==============
-gaussian.py:119 INFO:Getting unique element symbols for inference
-gaussian.py:126 INFO:Unique chemical elements: ['Cu']
-gaussian.py:461 WARNING:Making default symmetry functions
-gaussian.py:529 INFO:Number of features per chemical element:
-gaussian.py:531 INFO:    - Cu: 8.
-gaussian.py:533 INFO:Symmetry function parameters:
-gaussian.py:534 INFO:-----------------------------
-gaussian.py:536 INFO:  #      Symbol    Type Parameters
-gaussian.py:557 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:557 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:557 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:557 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:557 INFO:  4   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  5   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  6   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:557 INFO:  7   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-gaussian.py:259 INFO:Fingerprinting finished in 0 hours 0 minutes 0.42 seconds.
+gaussian.py:107 INFO: 
+gaussian.py:108 INFO:Fingerprinting
+gaussian.py:109 INFO:==============
+gaussian.py:116 INFO:Getting unique element symbols for inference
+gaussian.py:123 INFO:Unique chemical elements: ['Cu']
+gaussian.py:513 WARNING:Making default symmetry functions
+gaussian.py:581 INFO:Number of features per chemical element:
+gaussian.py:583 INFO:    - Cu: 8.
+gaussian.py:585 INFO: 
+gaussian.py:586 INFO:Symmetry function parameters:
+gaussian.py:587 INFO:-----------------------------
+gaussian.py:589 INFO:  #      Symbol    Type Parameters
+gaussian.py:610 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:610 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:610 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:610 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:610 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:610 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:136 INFO:
+gaussian.py:137 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:164 INFO:... finished in 0 hours 0 minutes 0.08 seconds.
+gaussian.py:302 INFO:Fingerprinting finished in 0 hours 0 minutes 0.74 seconds.
 potentials.py:277 INFO:Calculating energy
 handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
-gaussian.py:111 INFO:Fingerprinting
-gaussian.py:112 INFO:==============
-gaussian.py:119 INFO:Getting unique element symbols for inference
-gaussian.py:126 INFO:Unique chemical elements: ['Cu']
-gaussian.py:461 WARNING:Making default symmetry functions
-gaussian.py:529 INFO:Number of features per chemical element:
-gaussian.py:531 INFO:    - Cu: 8.
-gaussian.py:533 INFO:Symmetry function parameters:
-gaussian.py:534 INFO:-----------------------------
-gaussian.py:536 INFO:  #      Symbol    Type Parameters
-gaussian.py:557 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:557 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:557 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:557 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:557 INFO:  4   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  5   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  6   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:557 INFO:  7   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-gaussian.py:259 INFO:Fingerprinting finished in 0 hours 0 minutes 0.43 seconds.
+gaussian.py:107 INFO: 
+gaussian.py:108 INFO:Fingerprinting
+gaussian.py:109 INFO:==============
+gaussian.py:116 INFO:Getting unique element symbols for inference
+gaussian.py:123 INFO:Unique chemical elements: ['Cu']
+gaussian.py:513 WARNING:Making default symmetry functions
+gaussian.py:581 INFO:Number of features per chemical element:
+gaussian.py:583 INFO:    - Cu: 8.
+gaussian.py:585 INFO: 
+gaussian.py:586 INFO:Symmetry function parameters:
+gaussian.py:587 INFO:-----------------------------
+gaussian.py:589 INFO:  #      Symbol    Type Parameters
+gaussian.py:610 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:610 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:610 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:610 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:610 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:610 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:136 INFO:
+gaussian.py:137 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:164 INFO:... finished in 0 hours 0 minutes 0.19 seconds.
+gaussian.py:302 INFO:Fingerprinting finished in 0 hours 0 minutes 2.59 seconds.
 potentials.py:277 INFO:Calculating energy
 handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
-gaussian.py:111 INFO:Fingerprinting
-gaussian.py:112 INFO:==============
-gaussian.py:119 INFO:Getting unique element symbols for inference
-gaussian.py:126 INFO:Unique chemical elements: ['Cu']
-gaussian.py:461 WARNING:Making default symmetry functions
-gaussian.py:529 INFO:Number of features per chemical element:
-gaussian.py:531 INFO:    - Cu: 8.
-gaussian.py:533 INFO:Symmetry function parameters:
-gaussian.py:534 INFO:-----------------------------
-gaussian.py:536 INFO:  #      Symbol    Type Parameters
-gaussian.py:557 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:557 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:557 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:557 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:557 INFO:  4   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  5   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  6   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:557 INFO:  7   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-gaussian.py:259 INFO:Fingerprinting finished in 0 hours 0 minutes 0.42 seconds.
+gaussian.py:107 INFO: 
+gaussian.py:108 INFO:Fingerprinting
+gaussian.py:109 INFO:==============
+gaussian.py:116 INFO:Getting unique element symbols for inference
+gaussian.py:123 INFO:Unique chemical elements: ['Cu']
+gaussian.py:513 WARNING:Making default symmetry functions
+gaussian.py:581 INFO:Number of features per chemical element:
+gaussian.py:583 INFO:    - Cu: 8.
+gaussian.py:585 INFO: 
+gaussian.py:586 INFO:Symmetry function parameters:
+gaussian.py:587 INFO:-----------------------------
+gaussian.py:589 INFO:  #      Symbol    Type Parameters
+gaussian.py:610 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:610 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:610 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:610 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:610 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:610 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:136 INFO:
+gaussian.py:137 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:164 INFO:... finished in 0 hours 0 minutes 0.15 seconds.
+gaussian.py:302 INFO:Fingerprinting finished in 0 hours 0 minutes 2.32 seconds.
 potentials.py:277 INFO:Calculating energy
 handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
-gaussian.py:111 INFO:Fingerprinting
-gaussian.py:112 INFO:==============
-gaussian.py:119 INFO:Getting unique element symbols for inference
-gaussian.py:126 INFO:Unique chemical elements: ['Cu']
-gaussian.py:461 WARNING:Making default symmetry functions
-gaussian.py:529 INFO:Number of features per chemical element:
-gaussian.py:531 INFO:    - Cu: 8.
-gaussian.py:533 INFO:Symmetry function parameters:
-gaussian.py:534 INFO:-----------------------------
-gaussian.py:536 INFO:  #      Symbol    Type Parameters
-gaussian.py:557 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:557 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:557 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:557 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:557 INFO:  4   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  5   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  6   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:557 INFO:  7   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-gaussian.py:259 INFO:Fingerprinting finished in 0 hours 0 minutes 0.43 seconds.
+gaussian.py:107 INFO: 
+gaussian.py:108 INFO:Fingerprinting
+gaussian.py:109 INFO:==============
+gaussian.py:116 INFO:Getting unique element symbols for inference
+gaussian.py:123 INFO:Unique chemical elements: ['Cu']
+gaussian.py:513 WARNING:Making default symmetry functions
+gaussian.py:581 INFO:Number of features per chemical element:
+gaussian.py:583 INFO:    - Cu: 8.
+gaussian.py:585 INFO: 
+gaussian.py:586 INFO:Symmetry function parameters:
+gaussian.py:587 INFO:-----------------------------
+gaussian.py:589 INFO:  #      Symbol    Type Parameters
+gaussian.py:610 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:610 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:610 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:610 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:610 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:610 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:136 INFO:
+gaussian.py:137 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:164 INFO:... finished in 0 hours 0 minutes 0.20 seconds.
+gaussian.py:302 INFO:Fingerprinting finished in 0 hours 0 minutes 1.68 seconds.
 potentials.py:277 INFO:Calculating energy
 handler.py:34 WARNING:Data structure is not compatible with MLChem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
-gaussian.py:111 INFO:Fingerprinting
-gaussian.py:112 INFO:==============
-gaussian.py:119 INFO:Getting unique element symbols for inference
-gaussian.py:126 INFO:Unique chemical elements: ['Cu']
-gaussian.py:461 WARNING:Making default symmetry functions
-gaussian.py:529 INFO:Number of features per chemical element:
-gaussian.py:531 INFO:    - Cu: 8.
-gaussian.py:533 INFO:Symmetry function parameters:
-gaussian.py:534 INFO:-----------------------------
-gaussian.py:536 INFO:  #      Symbol    Type Parameters
-gaussian.py:557 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:557 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:557 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:557 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:557 INFO:  4   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  5   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:557 INFO:  6   ['Cu', 'Cu']  G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:557 INFO:  7   ['Cu', 'Cu']  G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-gaussian.py:259 INFO:Fingerprinting finished in 0 hours 0 minutes 0.41 seconds.
+gaussian.py:107 INFO: 
+gaussian.py:108 INFO:Fingerprinting
+gaussian.py:109 INFO:==============
+gaussian.py:116 INFO:Getting unique element symbols for inference
+gaussian.py:123 INFO:Unique chemical elements: ['Cu']
+gaussian.py:513 WARNING:Making default symmetry functions
+gaussian.py:581 INFO:Number of features per chemical element:
+gaussian.py:583 INFO:    - Cu: 8.
+gaussian.py:585 INFO: 
+gaussian.py:586 INFO:Symmetry function parameters:
+gaussian.py:587 INFO:-----------------------------
+gaussian.py:589 INFO:  #      Symbol    Type Parameters
+gaussian.py:610 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:610 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:610 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:610 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:610 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:610 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:610 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:136 INFO:
+gaussian.py:137 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:164 INFO:... finished in 0 hours 0 minutes 0.05 seconds.
+gaussian.py:302 INFO:Fingerprinting finished in 0 hours 0 minutes 1.80 seconds.
 potentials.py:277 INFO:Calculating energy

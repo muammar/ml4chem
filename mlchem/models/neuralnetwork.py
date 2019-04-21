@@ -411,8 +411,9 @@ class train(object):
     def closure(self):
         """Closure
 
-        This method clears previous gradients, iterates over chunks, accumulate
-        the gradiends, update model params, and return loss.
+        This method clears previous gradients, iterates over batches,
+        accumulates the gradiends, reduces the gradients,  update model params,
+        and return loss.
         """
 
         self.outputs_ = []

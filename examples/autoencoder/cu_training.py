@@ -23,24 +23,17 @@ def autoencode():
     data_handler = DataSet(images, purpose=purpose)
     training_set, energy_targets = data_handler.get_images(purpose=purpose)
 
-    #"""
-    #Let's create the outputs of the model
-    #"""
+    """
+    Let's create the targets of the model
+    """
     fingerprints = Gaussian(cutoff=6.5, normalized=normalized,
-                            save_scaler='cu_training.scaler')
+                            save_preprocessor='cu_training.scaler')
 
-    outputs = fingerprints.calculate_features(training_set,
+    targets = fingerprints.calculate_features(training_set,
                                               data=data_handler,
                                               purpose=purpose,
                                               svm=False)
-    output_dimension = len(list(outputs.values())[0][0][1])
-
-    """
-    Input
-    """
-
-    features = Cartesian()
-    inputs = features.calculate_features(training_set, data=data_handler)
+    output_dimension = len(list(targets.values())[0][0][1])
 
     """
     Building AutoEncoder
@@ -53,7 +46,8 @@ def autoencode():
                               activation=activation)
 
     data_handler.get_unique_element_symbols(images, purpose=purpose)
-    autoencoder.prepare_model(3, output_dimension, data=data_handler)
+    autoencoder.prepare_model(output_dimension, output_dimension,
+                              data=data_handler)
     # Arguments for training the potential
     convergence = {'rmse': 5e-2}
     epochs = 2000
@@ -61,35 +55,25 @@ def autoencode():
     weight_decay = 0
     regularization = None
 
-
     opt_kwars = {'lr': lr}
     optimizer = ('lbfgs', opt_kwars)
 
-    train(inputs, outputs, model=autoencoder, data=data_handler,
+    inputs = targets
+    train(inputs, targets, model=autoencoder, data=data_handler,
           optimizer=optimizer, regularization=regularization, epochs=epochs,
           convergence=convergence, lossfxn=None, device='cpu')
-    latent_space = autoencoder.get_latent_space(inputs, svm=True)
+
+    latent_space = autoencoder.get_latent_space(targets, svm=True)
+
     dump(latent_space, filename='cu_training.latent')
     print(latent_space)
 
     return latent_space, energy_targets, data_handler
 
-def neural(inputs, targets, data_handler):
-    from mlchem.models.neuralnetwork import NeuralNetwork, train
-    model = NeuralNetwork(hiddenlayers=(10, 10), activation='relu')
-    model.prepare_model(5, data=data_handler, purpose='training')
-
-    lr = 1e-2
-    convergence = {'energy': 5e-3}
-    weight_decay = 0
-    train(inputs, targets, model=model, data=data_handler, lr=lr,
-          convergence=convergence, weight_decay=weight_decay)
 
 if __name__ == '__main__':
-    #logging.basicConfig(filename = 'cu_training.log', level=logging.INFO,
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(filename='cu_training.log', level=logging.INFO,
                         format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
     cluster = LocalCluster()
     client = Client(cluster, asyncronous=True)
     inputs, outputs, data_handler = autoencode()
-    #neural(inputs, outputs, data_handler)

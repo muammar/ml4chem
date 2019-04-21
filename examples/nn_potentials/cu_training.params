@@ -12,9 +12,9 @@
         "name": "Gaussian",
         "cutoff": 6.5,
         "normalized": true,
-        "scaler": "MinMaxScaler",
+        "preprocessor": "MinMaxScaler",
         "defaults": true,
-        "save_scaler": "cu_training.scaler",
+        "save_preprocessor": "model.scaler",
         "filename": "fingerprints.db"
     }
 }

@@ -38,7 +38,7 @@ class Potentials(Calculator, object):
     svm_models = ['KernelRidge']
 
     def __init__(self, fingerprints=None, model=None, path=None,
-                 label='mlchem', atoms=None, mlchem_path=None, scaler=None):
+                 label='mlchem', atoms=None, mlchem_path=None, preprocessor=None):
 
         Calculator.__init__(self, label=label, atoms=atoms)
         self.fingerprints = fingerprints
@@ -47,7 +47,7 @@ class Potentials(Calculator, object):
         self.label = label
         self.model = model
         self.mlchem_path = mlchem_path
-        self.scaler = scaler
+        self.preprocessor = preprocessor
 
         logger.info(get_header_message())
         logger.info('Available backends: {}.' .format(self.available_backends))
@@ -55,7 +55,7 @@ class Potentials(Calculator, object):
         self.reference_space = None
 
     @classmethod
-    def load(Cls, model=None, params=None, scaler=None, **kwargs):
+    def load(Cls, model=None, params=None, preprocessor=None, **kwargs):
         """Load a model
 
         Parameters
@@ -64,11 +64,11 @@ class Potentials(Calculator, object):
             The path to load the model from the .mlchem file for inference.
         params : srt
             The path to load .params file with users' inputs.
-        scaler : str
-            The path to load the .scaler file with the sklearn scaler object.
+        preprocessor : str
+            The path to load the file with the sklearn preprocessor object.
         """
         kwargs['mlchem_path'] = model
-        kwargs['scaler'] = scaler
+        kwargs['preprocessor'] = preprocessor
 
         with open(params) as mlchem_params:
             mlchem_params = json.load(mlchem_params)
@@ -265,7 +265,7 @@ class Potentials(Calculator, object):
 
         # We copy the loaded fingerprint class
         fingerprints = copy.deepcopy(self.fingerprints)
-        fingerprints.scaler = self.scaler
+        fingerprints.preprocessor = self.preprocessor
         kwargs = {'data': data_handler, 'purpose': purpose}
 
         if model_name in Potentials.svm_models:

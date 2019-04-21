@@ -1,8 +1,8 @@
-import logging
 import sys
-sys.path.append('../../')
+import logging
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
+sys.path.append('../../')
 from mlchem import Potentials
 from mlchem.fingerprints import Gaussian
 from mlchem.models.neuralnetwork import NeuralNetwork
@@ -27,7 +27,7 @@ def train():
     regularization = 0.
 
     calc = Potentials(fingerprints=Gaussian(cutoff=6.5, normalized=normalized,
-                                            save_scaler='cu_training.scaler'),
+                                            save_preprocessor='model.scaler'),
                       model=NeuralNetwork(hiddenlayers=(n, n),
                                           activation=activation),
                       label='cu_training')

@@ -7,7 +7,7 @@ from ase.data import atomic_numbers
 from collections import OrderedDict
 from .cutoff import Cosine
 from mlchem.data.serialization import dump
-from mlchem.fingerprints.scalers import Scaler
+from mlchem.data.preprocessing import Preprocessing
 from mlchem.utils import get_neighborlist, convert_elapsed_time
 
 logger = logging.getLogger()
@@ -30,12 +30,12 @@ class Gaussian(object):
     normalized : bool
         Set it to true if the features are being normalized with respect to the
         cutoff radius.
-    scaler : str
+    preprocessor : str
         Use some scaling method to preprocess the data. Default MinMaxScaler.
     defaults : bool
         Are we creating default symmetry functions?
-    save_scaler : str
-        Save scaler with name save_scaler.
+    save_preprocessor : str
+        Save preprocessor to file.
     scheduler : str
         The scheduler to be used with the dask backend.
     """
@@ -48,19 +48,15 @@ class Gaussian(object):
         return cls.NAME
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
-                 scaler='MinMaxScaler', defaults=True, save_scaler='mlchem',
+                 preprocessor='MinMaxScaler', defaults=True, save_preprocessor='mlchem',
                  scheduler='distributed', filename='fingerprints.db'):
 
         self.cutoff = cutoff
         self.normalized = normalized
         self.filename = filename
         self.scheduler = scheduler
-        if scaler is None:
-            self.scaler = scaler
-        else:
-            self.scaler = scaler.lower()
-
-        self.save_scaler = save_scaler
+        self.preprocessor = preprocessor
+        self.save_preprocessor = save_preprocessor
 
         # Let's add parameters that are going to be stored in the .params json
         # file.
@@ -133,8 +129,8 @@ class Gaussian(object):
 
         self.print_fingerprint_params(self.GP)
 
-        scaler = Scaler(self.scaler)
-        scaler.set_scaler(purpose=purpose)
+        preprocessor = Preprocessing(self.preprocessor)
+        preprocessor.set(purpose=purpose)
 
         # We start populating computations to get atomic fingerprints.
         logger.info('')
@@ -158,7 +154,7 @@ class Gaussian(object):
                 afp = self.get_atomic_fingerprint(atom, index,
                                                   symbol, n_symbols,
                                                   neighborpositions,
-                                                  self.scaler)
+                                                  self.preprocessor)
                 feature_vectors.append(afp)
 
         scheduler_time = time.time() - initial_time
@@ -167,7 +163,7 @@ class Gaussian(object):
         logger.info('... finished in {} hours {} minutes {:.2f}'
                     ' seconds.' .format(h, m, s))
         # In this block we compute the fingerprints.
-        if self.scaler is None:
+        if self.preprocessor is None:
             feature_space = dask.compute(*computations,
                                          scheduler=self.scheduler)
         else:
@@ -182,44 +178,50 @@ class Gaussian(object):
                 stacked_features = stacked_features.reshape(d1 * d2, d3)
             else:
 
-                atoms_map = []
+                atoms_index_map = []
                 stack = []
+
+                d1 = ini = end = 0
+
                 for i in stacked_features:
-                    atoms_map.append(len(i))
+                    end = ini + len(i)
+                    atoms_index_map.append(list(range(ini, end)))
+                    ini = end
+
                     for j in i:
                         stack.append(j)
+                        d1 += 1
 
                 stacked_features = np.array(stack)
-                d1 = sum(atoms_map)
+
                 d2 = len(stack[0])
                 del stack
 
-        if self.scaler is not None and purpose == 'training':
-            logger.info('')
-            logger.info('Preprocessing data...')
+        if self.preprocessor is not None and purpose == 'training':
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
             if len(dim) > 1:
                 stacked_features = dask.array.from_array(stacked_features,
                                                          chunks=(d1 * d2, d3))
-                stacked_features = scaler.fit(stacked_features,
-                                              scheduler=self.scheduler)
+                stacked_features = preprocessor.fit(stacked_features,
+                                                    scheduler=self.scheduler)
 
                 scaled_feature_space = stacked_features.reshape(d1, d2, d3)
             else:
                 stacked_features = dask.array.from_array(stacked_features,
                                                          chunks=(d1, d2))
 
-                stacked_features = scaler.fit(stacked_features,
-                                              scheduler=self.scheduler)
+                stacked_features = preprocessor.fit(stacked_features,
+                                                     scheduler=self.scheduler)
                 scaled_feature_space = []
-                index = 0
 
-                for atoms in atoms_map:
-                    features = []
-                    for atom in range(atoms):
-                        features.append(stacked_features[index])
-                        index += 1
+                client = dask.distributed.get_client()
+                atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
+                self.stacked_features = client.scatter(stacked_features)
+
+                for indices in atoms_index_map:
+                    features = client.submit(self.stack_features,
+                                             *(indices, stacked_features))
                     scaled_feature_space.append(features)
 
             # More data processing depending on the method used.
@@ -249,7 +251,7 @@ class Gaussian(object):
 
             feature_space = OrderedDict(feature_space)
 
-            scaler.save_scaler_to_file(scaler, self.save_scaler)
+            preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             fp_time = time.time() - initial_time
 
@@ -268,7 +270,7 @@ class Gaussian(object):
 
         elif purpose == 'inference':
             feature_space = OrderedDict()
-            scaled_feature_space = scaler.transform(stacked_features)
+            scaled_feature_space = preprocessor.transform(stacked_features)
             # TODO this has to be parallelized.
             for key, image in images.items():
                 if key not in feature_space.keys():
@@ -300,6 +302,15 @@ class Gaussian(object):
                         ' seconds.' .format(h, m, s))
 
             return feature_space
+
+    def stack_features(self, indices, stacked_features):
+        """docstring for stack_features"""
+
+        features = []
+        for index in indices:
+            features.append(stacked_features[index])
+
+        return features
 
     @dask.delayed
     def restack_atom(self, image_index, atom, scaled_feature_space):
