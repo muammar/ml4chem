@@ -53,3 +53,21 @@ class SE3Net(torch.nn.Module):
             output = layer(output)
 
         return output
+
+
+class torch_default_dtype:
+    def __init__(self, dtype):
+        self.saved_dtype = None
+        self.dtype = dtype
+
+    def __enter__(self):
+        self.saved_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(self.dtype)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        torch.set_default_dtype(self.saved_dtype)
+
+
+class AvgSpacial(torch.nn.Module):
+    def forward(self, inp):
+        return inp.view(inp.size(0), inp.size(1), -1).mean(-1)

@@ -242,7 +242,8 @@ class Gaussian(object):
 
                 for i, image in enumerate(images.items()):
                     computations.append(self.restack_image(
-                        i, image, scaled_feature_space, svm=svm))
+                        i, image, scaled_feature_space=scaled_feature_space,
+                        svm=svm))
 
                     # image = (hash, ase_image) -> tuple
                     for atom in image[1]:
