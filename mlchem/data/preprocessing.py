@@ -1,4 +1,5 @@
 import logging
+import numpy as np
 from sklearn.externals import joblib
 
 logger = logging.getLogger()
@@ -37,7 +38,7 @@ class Preprocessing(object):
             preprocessor_name = 'MinMaxScaler'
 
         elif self.preprocessing == 'normalizer' and purpose == 'training':
-            from dask_ml.preprocessing import Normalizer
+            from sklearn.preprocessing import Normalizer
             self.preprocessor = Normalizer()
             preprocessor_name = 'Normalizer'
 
@@ -47,6 +48,7 @@ class Preprocessing(object):
             logger.warning('{} is not supported.' .format(self.preprocessor))
             self.preprocessor = None
 
+        logger.info(' ')
         logger.info('Data preprocessing')
         logger.info('------------------')
         logger.info('Preprocessor: {}.' .format(preprocessor_name))
@@ -55,7 +57,7 @@ class Preprocessing(object):
         return self.preprocessor
 
     def save_to_file(self, preprocessor, path):
-        """Save the scaler object to file
+        """Save the preprocessor object to file
 
         Parameters
         ----------
@@ -82,10 +84,16 @@ class Preprocessing(object):
             Scaled features using requested preprocesor.
         """
 
-        self.preprocessor.fit(stacked_features.compute(scheduler=scheduler))
-        scaled_features = \
-            self.preprocessor.transform(
-                stacked_features.compute(scheduler=scheduler))
+        if isinstance(stacked_features, np.ndarray):
+            # The Normalizer() is not supported by dask_ml.
+            self.preprocessor.fit(stacked_features)
+            scaled_features = self.preprocessor.transform(stacked_features)
+        else:
+            self.preprocessor.fit(stacked_features.compute(
+                scheduler=scheduler))
+            scaled_features = \
+                self.preprocessor.transform(
+                    stacked_features.compute(scheduler=scheduler))
 
         return scaled_features
 
@@ -102,7 +110,7 @@ class Preprocessing(object):
         Returns
         -------
         scaled_features : list
-            Scaled features using the scaler set in self.set_scaler.
+            Scaled features using the scaler set in self.set().
         """
         scaled_features = self.preprocessor.transform(raw_features)
 

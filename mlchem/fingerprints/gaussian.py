@@ -48,8 +48,9 @@ class Gaussian(object):
         return cls.NAME
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
-                 preprocessor='MinMaxScaler', defaults=True, save_preprocessor='mlchem',
-                 scheduler='distributed', filename='fingerprints.db'):
+                 preprocessor='MinMaxScaler', defaults=True,
+                 save_preprocessor='mlchem', scheduler='distributed',
+                 filename='fingerprints.db'):
 
         self.cutoff = cutoff
         self.normalized = normalized
@@ -135,6 +136,7 @@ class Gaussian(object):
         # We start populating computations to get atomic fingerprints.
         logger.info('')
         logger.info('Adding atomic fingerprint calculations to scheduler...')
+
         computations = []
         for image in images.items():
             key, image = image
@@ -171,13 +173,13 @@ class Gaussian(object):
                                             scheduler=self.scheduler)
 
             stacked_features = np.array(stacked_features)
+
             dim = stacked_features.shape
 
             if len(dim) > 1:
-                d1, d2, d3 = stacked_features.shape
+                d1, d2, d3 = dim
                 stacked_features = stacked_features.reshape(d1 * d2, d3)
             else:
-
                 atoms_index_map = []
                 stack = []
 
@@ -212,11 +214,13 @@ class Gaussian(object):
                                                          chunks=(d1, d2))
 
                 stacked_features = preprocessor.fit(stacked_features,
-                                                     scheduler=self.scheduler)
+                                                    scheduler=self.scheduler)
                 scaled_feature_space = []
 
                 client = dask.distributed.get_client()
-                atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
+                atoms_index_map = [client.scatter(chunk) for chunk in
+                                   atoms_index_map]
+
                 self.stacked_features = client.scatter(stacked_features)
 
                 for indices in atoms_index_map:
@@ -304,7 +308,7 @@ class Gaussian(object):
             return feature_space
 
     def stack_features(self, indices, stacked_features):
-        """docstring for stack_features"""
+        """Stack features """
 
         features = []
         for index in indices:
@@ -402,21 +406,21 @@ class Gaussian(object):
             feature_vector = self.get_atomic_fingerprint(atom, index,
                                                          symbol, n_symbols,
                                                          neighborpositions,
-                                                         self.scaler)
+                                                         self.preprocessor)
 
-            if self.scaler is not None:
+            if self.preprocessor is not None:
                 feature_space.append(feature_vector[1])
             else:
                 feature_space.append(feature_vector)
 
-        if self.scaler is not None:
+        if self.preprocessor is not None:
             return feature_space
         else:
             return key, feature_space
 
     @dask.delayed
     def get_atomic_fingerprint(self, atom, index, symbol, n_symbols,
-                               neighborpositions, scaler):
+                               neighborpositions, preprocessor):
         """Delayed class method to compute atomic fingerprints
 
 
@@ -430,8 +434,8 @@ class Gaussian(object):
             Index of atom in atoms object.
         symbol : str
             Chemical symbol of atom in atoms object.
-        scaler : str
-            Feature scaler.
+        preprocessor : str
+            Feature preprocessor.
         n_symbols : ndarray of str
             Array of neighbors' symbols.
         neighborpositions : ndarray of float
@@ -466,11 +470,11 @@ class Gaussian(object):
                 logger.error('not implemented')
             fingerprint[count] = feature
 
-        if scaler is None:
+        if preprocessor is None:
             fingerprint = torch.tensor(fingerprint, requires_grad=True,
                                        dtype=torch.float)
 
-        if scaler is None:
+        if preprocessor is None:
             return symbol, fingerprint
         else:
             return fingerprint
