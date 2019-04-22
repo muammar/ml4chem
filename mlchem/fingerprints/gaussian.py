@@ -48,7 +48,7 @@ class Gaussian(object):
         return cls.NAME
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
-                 preprocessor='MinMaxScaler', defaults=True,
+                 preprocessor=('MinMaxScaler', None), defaults=True,
                  save_preprocessor='mlchem', scheduler='distributed',
                  filename='fingerprints.db'):
 
@@ -118,6 +118,7 @@ class Gaussian(object):
 
             unique_element_symbols = \
                 data.get_unique_element_symbols(images, purpose=purpose)
+
             unique_element_symbols = unique_element_symbols[purpose]
 
             logger.info('Unique chemical elements: {}'
@@ -130,7 +131,7 @@ class Gaussian(object):
 
         self.print_fingerprint_params(self.GP)
 
-        preprocessor = Preprocessing(self.preprocessor)
+        preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
         preprocessor.set(purpose=purpose)
 
         # We start populating computations to get atomic fingerprints.
@@ -164,7 +165,10 @@ class Gaussian(object):
         h, m, s = convert_elapsed_time(scheduler_time)
         logger.info('... finished in {} hours {} minutes {:.2f}'
                     ' seconds.' .format(h, m, s))
+
         # In this block we compute the fingerprints.
+        logger.info('')
+        logger.info('Computing fingerprints...')
         if self.preprocessor is None:
             feature_space = dask.compute(*computations,
                                          scheduler=self.scheduler)
@@ -199,34 +203,36 @@ class Gaussian(object):
                 d2 = len(stack[0])
                 del stack
 
-        if self.preprocessor is not None and purpose == 'training':
+        if purpose == 'training':
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
-            if len(dim) > 1:
-                stacked_features = dask.array.from_array(stacked_features,
-                                                         chunks=(d1 * d2, d3))
-                stacked_features = preprocessor.fit(stacked_features,
-                                                    scheduler=self.scheduler)
+            if self.preprocessor is not None:
+                if len(dim) > 1:
+                    stacked_features = dask.array.from_array(stacked_features,
+                                                             chunks=(d1 * d2,
+                                                                     d3))
+                    stacked_features = preprocessor.fit(stacked_features,
+                                                        scheduler=self.scheduler)
 
-                scaled_feature_space = stacked_features.reshape(d1, d2, d3)
-            else:
-                stacked_features = dask.array.from_array(stacked_features,
-                                                         chunks=(d1, d2))
+                    scaled_feature_space = stacked_features.reshape(d1, d2, d3)
+                else:
+                    stacked_features = dask.array.from_array(stacked_features,
+                                                             chunks=(d1, d2))
 
-                stacked_features = preprocessor.fit(stacked_features,
-                                                    scheduler=self.scheduler)
-                scaled_feature_space = []
+                    stacked_features = preprocessor.fit(stacked_features,
+                                                        scheduler=self.scheduler)
+                    scaled_feature_space = []
 
-                client = dask.distributed.get_client()
-                atoms_index_map = [client.scatter(chunk) for chunk in
-                                   atoms_index_map]
+                    client = dask.distributed.get_client()
+                    atoms_index_map = [client.scatter(chunk) for chunk in
+                                       atoms_index_map]
 
-                self.stacked_features = client.scatter(stacked_features)
+                    self.stacked_features = client.scatter(stacked_features)
 
-                for indices in atoms_index_map:
-                    features = client.submit(self.stack_features,
-                                             *(indices, stacked_features))
-                    scaled_feature_space.append(features)
+                    for indices in atoms_index_map:
+                        features = client.submit(self.stack_features,
+                                                 *(indices, stacked_features))
+                        scaled_feature_space.append(features)
 
             # More data processing depending on the method used.
             computations = []
@@ -246,13 +252,22 @@ class Gaussian(object):
                 reference_space = dask.compute(*reference_space,
                                                scheduler=self.scheduler)
             else:
-                for i, image in enumerate(images.items()):
-                    computations.append(self.restack_image(
-                        i, image, scaled_feature_space, svm=svm))
+                try:
+                    for i, image in enumerate(images.items()):
+                        computations.append(self.restack_image(i, image,
+                            scaled_feature_space=scaled_feature_space,
+                            svm=svm))
+
+                except UnboundLocalError:
+                # scaled_feature_space does not exist.
+                    for i, image in enumerate(images.items()):
+                        computations.append(self.restack_image(i, image,
+                            feature_space=feature_space,
+                            svm=svm))
+
 
             feature_space = dask.compute(*computations,
                                          scheduler=self.scheduler)
-
             feature_space = OrderedDict(feature_space)
 
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
@@ -341,7 +356,8 @@ class Gaussian(object):
         return symbol, features
 
     @dask.delayed
-    def restack_image(self, index, image, scaled_feature_space, svm=False):
+    def restack_image(self, index, image, feature_space=None,
+                      scaled_feature_space=None, svm=False):
         """Restack images to correct dictionary's structure to train
 
         Parameters
@@ -350,27 +366,37 @@ class Gaussian(object):
             Index of original hashed image.
         image : obj
             An ASE image object.
+        feature_space : np.array
+            A numpy array with raw features.
         scaled_feature_space : np.array
-            A numpy array with the scaled features
+            A numpy array with scaled features.
 
         Returns
         -------
-        key, features : tuple
-            The hashed key image and its corresponding features.
+        hash, features : tuple
+            Hash of image and its corresponding features.
         """
-        key, image = image
-        features = []
-        for j, atom in enumerate(image):
-            symbol = atom.symbol
-            if svm:
-                scaled = scaled_feature_space[index][j]
-            else:
-                scaled = torch.tensor(scaled_feature_space[index][j],
-                                      requires_grad=True,
-                                      dtype=torch.float)
-            features.append((symbol, scaled))
+        hash, image = image
 
-        return key, features
+        if scaled_feature_space is not None:
+            features = []
+            for j, atom in enumerate(image):
+                symbol = atom.symbol
+                if svm:
+                    scaled = scaled_feature_space[index][j]
+                else:
+                    scaled = torch.tensor(scaled_feature_space[index][j],
+                                          requires_grad=True,
+                                          dtype=torch.float)
+                features.append((symbol, scaled))
+
+            return hash, features
+
+        elif feature_space is not None:
+            features = feature_space[index]
+
+            return hash, features
+
 
     @dask.delayed
     def fingerprints_per_image(self, image):

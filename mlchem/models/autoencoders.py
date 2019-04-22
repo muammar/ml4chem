@@ -15,7 +15,7 @@ logger = logging.getLogger()
 
 
 class AutoEncoder(torch.nn.Module):
-    """A Vanilla autoencoder with Pytorch
+    """Fully connected atomic autoencoder
 
 
     AutoEncoders are very intersting models where usually the input is

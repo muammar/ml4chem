@@ -13,11 +13,23 @@ class Preprocessing(object):
 
     Parameters
     ----------
-    name : str
-        Name of preprocessor to be used. Supported are:
+    preprocesor : tuple
+        Tuple with structure: ('name', {kwargs}).
+    purpose : str
+        Supported purposes are : 'training', 'inference'.
     """
-    def __init__(self, name):
-        self.preprocessing = name.lower()
+    def __init__(self, preprocesor, purpose):
+
+        # preprocesor has to be a tuple, but it might be the case that user
+        # input is not that.
+        if preprocesor is None:
+            self.preprocessing = None
+            self.kwargs = None
+        elif preprocesor is not None and purpose == 'training':
+            self.preprocessing, self.kwargs = preprocesor
+            self.preprocessing = self.preprocessing.lower()
+        else:
+            self.preprocessing = preprocesor
 
     def set(self, purpose):
         """Set a preprocessing method
@@ -32,12 +44,18 @@ class Preprocessing(object):
             Preprocessor object.
         """
 
+        logger.info(' ')
+
         if self.preprocessing == 'minmaxscaler' and purpose == 'training':
             from dask_ml.preprocessing import MinMaxScaler
-            self.preprocessor = MinMaxScaler(feature_range=(-1, 1))
+            if self.kwargs is None:
+                self.kwargs = {'feature_range': (-1, 1)}
+            self.preprocessor = MinMaxScaler(**self.kwargs)
             preprocessor_name = 'MinMaxScaler'
 
         elif self.preprocessing == 'normalizer' and purpose == 'training':
+            if self.kwargs is None:
+                self.kwargs = {'norm': 'l2'}
             from sklearn.preprocessing import Normalizer
             self.preprocessor = Normalizer()
             preprocessor_name = 'Normalizer'
@@ -45,14 +63,18 @@ class Preprocessing(object):
         elif purpose == 'inference':
             self.preprocessor = joblib.load(self.preprocessing)
         else:
-            logger.warning('{} is not supported.' .format(self.preprocessor))
-            self.preprocessor = None
+            logger.warning('Preprocessor is not supported.')
+            self.preprocessor = preprocessor_name = None
 
-        logger.info(' ')
-        logger.info('Data preprocessing')
-        logger.info('------------------')
-        logger.info('Preprocessor: {}.' .format(preprocessor_name))
-        logger.info(' ')
+        if purpose == 'training' and preprocessor_name is not None:
+            logger.info('Data preprocessing')
+            logger.info('------------------')
+            logger.info('Preprocessor: {}.' .format(preprocessor_name))
+            logger.info('Options:')
+            for k, v in self.kwargs.items():
+                logger.info('    - {}: {}.' .format(k, v))
+
+            logger.info(' ')
 
         return self.preprocessor
 

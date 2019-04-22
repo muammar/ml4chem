@@ -12,7 +12,10 @@
         "name": "Gaussian",
         "cutoff": 6.5,
         "normalized": true,
-        "preprocessor": "MinMaxScaler",
+        "preprocessor": [
+            "MinMaxScaler",
+            null
+        ],
         "defaults": true,
         "save_preprocessor": "model.scaler",
         "filename": "fingerprints.db"

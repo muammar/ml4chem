@@ -25,8 +25,8 @@ class Cartesian(object):
         The scheduler to be used with the dask backend.
     filename : str
         Name to save on disk of serialized database.
-    preprocessor : str
-        Use some scaling method to preprocess the data. Default MinMaxScaler.
+    preprocessor : tuple
+        Use some scaling method to preprocess the data. Default Normalizer.
     save_preprocessor : str
         Save preprocessor to file.
     """
@@ -38,7 +38,7 @@ class Cartesian(object):
         return cls.NAME
 
     def __init__(self, scheduler='distributed', filename='cartesians.db',
-                 preprocessor='Normalizer', save_preprocessor='mlchem'):
+                 preprocessor=('Normalizer',), save_preprocessor='mlchem'):
 
         self.filename = filename
         self.scheduler = scheduler
@@ -121,7 +121,8 @@ class Cartesian(object):
             if len(dim) > 1:
                 d1, d2, d3 = dim
                 feature_space = feature_space.reshape(d1 * d2, d3)
-                preprocessor = Preprocessing(self.preprocessor)
+                preprocessor = Preprocessing(self.preprocessor,
+                                             purpose=purpose)
                 preprocessor.set(purpose=purpose)
                 feature_space = preprocessor.fit(feature_space,
                                                  scheduler=self.scheduler)
