@@ -11,14 +11,14 @@ except FileNotFoundError:
 
 
 setuptools.setup(
-    name="mlchem",
+    name="ml4chem",
     version="0.0.0",
     author="Muammar El Khatib",
     author_email="muammarelkhatib@gmail.com",
     description="Machine learning for chemistry",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/muammar/mlchem",
+    url="https://github.com/muammar/ml4chem",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

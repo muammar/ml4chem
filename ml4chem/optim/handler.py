@@ -46,7 +46,7 @@ def get_optimizer(optimizer, params):
     if optimizer_name is None:
         kwargs = {'lr': 1, 'history_size': 10, 'line_search': 'Wolfe', 'dtype':
                   torch.float, 'debug': False}
-        from mlchem.optim.LBFGS import FullBatchLBFGS
+        from ml4chem.optim.LBFGS import FullBatchLBFGS
         optimizer_name = 'LBFGS'
         optimizer = FullBatchLBFGS(params, **kwargs)
 
@@ -55,7 +55,7 @@ def get_optimizer(optimizer, params):
         optimizer_name = 'Adam'
 
     elif optimizer_name == 'lbfgs':
-        from mlchem.optim.LBFGS import FullBatchLBFGS
+        from ml4chem.optim.LBFGS import FullBatchLBFGS
         optimizer = FullBatchLBFGS(params, **kwargs)
         optimizer_name = 'LBFGS'
 

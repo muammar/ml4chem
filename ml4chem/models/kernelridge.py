@@ -2,7 +2,7 @@ import dask
 import logging
 import time
 import numpy as np
-from mlchem.utils import convert_elapsed_time, get_chunks
+from ml4chem.utils import convert_elapsed_time, get_chunks
 from collections import OrderedDict
 from scipy.linalg import cholesky
 

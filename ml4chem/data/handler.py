@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from mlchem.utils import get_hash
+from ml4chem.utils import get_hash
 import dask
 import logging
 
@@ -31,11 +31,11 @@ class DataSet(object):
         self.unique_element_symbols = None
 
         if self.is_valid_structure(images) is False:
-            logger.warning('Data structure is not compatible with MLChem')
+            logger.warning('Data structure is not compatible with ML4Chem')
             self.prepare_images(images, purpose=purpose)
 
     def prepare_images(self, images, purpose=None):
-        """Function to prepare images to operate with mlchem
+        """Function to prepare images to operate with ML4Chem
 
         Parameters
         ----------

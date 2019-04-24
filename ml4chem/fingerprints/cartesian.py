@@ -4,9 +4,9 @@ import time
 import torch
 import numpy as np
 from collections import OrderedDict
-from mlchem.data.preprocessing import Preprocessing
-from mlchem.data.serialization import dump
-from mlchem.utils import convert_elapsed_time
+from ml4chem.data.preprocessing import Preprocessing
+from ml4chem.data.serialization import dump
+from ml4chem.utils import convert_elapsed_time
 
 logger = logging.getLogger()
 
@@ -16,7 +16,7 @@ class Cartesian(object):
 
     Cartesian coordinates are features, too (not very useful ones though). This
     class takes images in ASE format and return them hashed to be used by
-    mlchem.
+    ML4Chem.
 
 
     Parameters
@@ -38,7 +38,7 @@ class Cartesian(object):
         return cls.NAME
 
     def __init__(self, scheduler='distributed', filename='cartesians.db',
-                 preprocessor=('Normalizer',), save_preprocessor='mlchem'):
+                 preprocessor=('Normalizer',), save_preprocessor='ml4chem'):
 
         self.filename = filename
         self.scheduler = scheduler
@@ -171,8 +171,11 @@ class Cartesian(object):
 
             feature_space = dask.compute(*computations,
                                          scheduler=self.scheduler)
+
+            feature_space = OrderedDict(feature_space)
         else:
             feature_space = OrderedDict(zip(hashes, feature_space))
+
 
         fp_time = time.time() - initial_time
 

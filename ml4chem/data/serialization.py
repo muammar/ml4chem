@@ -5,8 +5,8 @@ import msgpack_numpy as m
 def dump(arr, filename='data.db'):
     """Dump array or dictionary to file using msgpack
 
-    This function allows to dump arrays and mlchem dictionaries serialized with
-    msgpack.
+    This function allows to dump arrays and ML4Chem dictionaries serialized
+    with msgpack.
 
     Parameters
     ----------

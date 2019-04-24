@@ -6,9 +6,9 @@ import torch
 
 import numpy as np
 from collections import OrderedDict
-from mlchem.models.loss import AtomicMSELoss
-from mlchem.optim.handler import get_optimizer, get_lr_scheduler
-from mlchem.utils import convert_elapsed_time, get_chunks
+from ml4chem.models.loss import AtomicMSELoss
+from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
+from ml4chem.utils import convert_elapsed_time, get_chunks
 
 
 torch.set_printoptions(precision=10)
@@ -307,7 +307,7 @@ class train(object):
         self.model = model
         self.lr_scheduler = lr_scheduler
 
-        # Let the hunger game begin...
+        # Let the hunger games begin...
         self.run()
 
     def run(self):

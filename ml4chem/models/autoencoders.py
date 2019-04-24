@@ -6,9 +6,9 @@ import torch
 
 import numpy as np
 from collections import OrderedDict
-from mlchem.models.loss import MSELoss
-from mlchem.optim.handler import get_optimizer, get_lr_scheduler
-from mlchem.utils import convert_elapsed_time, get_chunks
+from ml4chem.models.loss import MSELoss
+from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
+from ml4chem.utils import convert_elapsed_time, get_chunks
 
 torch.set_printoptions(precision=10)
 logger = logging.getLogger()
@@ -182,10 +182,10 @@ class AutoEncoder(torch.nn.Module):
         return outputs
 
     def get_latent_space(self, X, svm=False):
-        """Get latent space for training MLChem
+        """Get latent space for training ML4Chem
 
         This method takes an input and use the encoder to return latent space
-        in the structure needed for training MLChem.
+        in the structure needed for training ML4Chem.
 
         Parameters
         ----------
@@ -199,6 +199,13 @@ class AutoEncoder(torch.nn.Module):
         -------
         latent_space : dict
             Latent space with structure: {'hash': [('H', [latent_vector]]}
+
+        Notes
+        -----
+        The latent space saved with this function creates a dictionary that can
+        operate with other parts of this package. Note that if you would need
+        to get the latent space for an unseen structure then you will have to
+        forward propagate and get the latent_space.
         """
 
         latent_space = OrderedDict()

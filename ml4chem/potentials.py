@@ -4,10 +4,10 @@ import json
 import logging
 import torch
 from ase.calculators.calculator import Calculator
-from mlchem.backends.available import available_backends
-from mlchem.data.handler import DataSet
-from mlchem.data.serialization import dump, load
-from mlchem.utils import get_header_message
+from ml4chem.backends.available import available_backends
+from ml4chem.data.handler import DataSet
+from ml4chem.data.serialization import dump, load
+from ml4chem.utils import get_header_message
 
 
 logger = logging.getLogger()
@@ -28,7 +28,7 @@ class Potentials(Calculator, object):
     path : str
         PATH where to save files.
     label : str
-        Name for files. Default mlchem.
+        Name for files. Default ml4chem.
     """
     # This is needed by ASE
     implemented_properties = ['energy', 'forces']
@@ -38,7 +38,7 @@ class Potentials(Calculator, object):
     svm_models = ['KernelRidge']
 
     def __init__(self, fingerprints=None, model=None, path=None,
-                 label='mlchem', atoms=None, mlchem_path=None, preprocessor=None):
+                 label='ml4chem', atoms=None, ml4chem_path=None, preprocessor=None):
 
         Calculator.__init__(self, label=label, atoms=atoms)
         self.fingerprints = fingerprints
@@ -46,7 +46,7 @@ class Potentials(Calculator, object):
         self.path = path
         self.label = label
         self.model = model
-        self.mlchem_path = mlchem_path
+        self.ml4chem_path = ml4chem_path
         self.preprocessor = preprocessor
 
         logger.info(get_header_message())
@@ -61,24 +61,24 @@ class Potentials(Calculator, object):
         Parameters
         ----------
         model : str
-            The path to load the model from the .mlchem file for inference.
+            The path to load the model from the .ml4c file for inference.
         params : srt
             The path to load .params file with users' inputs.
         preprocessor : str
             The path to load the file with the sklearn preprocessor object.
         """
-        kwargs['mlchem_path'] = model
+        kwargs['ml4chem_path'] = model
         kwargs['preprocessor'] = preprocessor
 
-        with open(params) as mlchem_params:
-            mlchem_params = json.load(mlchem_params)
-            model_type = mlchem_params['model'].get('type')
+        with open(params) as ml4chem_params:
+            ml4chem_params = json.load(ml4chem_params)
+            model_type = ml4chem_params['model'].get('type')
 
             if model_type == 'svm':
-                model_params = mlchem_params['model']
+                model_params = ml4chem_params['model']
                 del model_params['name']   # delete unneeded key, value
                 del model_params['type']   # delete unneeded key, value
-                from mlchem.models.kernelridge import KernelRidge
+                from ml4chem.models.kernelridge import KernelRidge
                 weights = load(model)
                 # TODO remove after de/serialization is fixed.
                 weights = {key.decode('utf-8'): value for key, value in
@@ -87,15 +87,15 @@ class Potentials(Calculator, object):
                 model = KernelRidge(**model_params)
             else:
                 # Instantiate the model class
-                model_params = mlchem_params['model']
+                model_params = ml4chem_params['model']
                 del model_params['name']   # delete unneeded key, value
                 del model_params['type']   # delete unneeded key, value
-                from mlchem.models.neuralnetwork import NeuralNetwork
+                from ml4chem.models.neuralnetwork import NeuralNetwork
                 model = NeuralNetwork(**model_params)
 
         # Instantiation of fingerprint class
-        from mlchem.fingerprints import Gaussian
-        fingerprint_params = mlchem_params['fingerprints']
+        from ml4chem.fingerprints import Gaussian
+        fingerprint_params = ml4chem_params['fingerprints']
         del fingerprint_params['name']
         fingerprints = Gaussian(**fingerprint_params)
 
@@ -116,7 +116,7 @@ class Potentials(Calculator, object):
         path : str
             The path where to save the model.
         label : str
-            Name for files. Default mlchem.
+            Name for files. Default ml4chem.
         """
 
         model_name = model.name()
@@ -132,7 +132,7 @@ class Potentials(Calculator, object):
             params = {'model': model.params}
 
             # Save model weigths to file
-            dump(model.weights, path + '.mlchem')
+            dump(model.weights, path + '.ml4c')
         else:
 
             params = {'model': {'name': model_name,
@@ -140,7 +140,7 @@ class Potentials(Calculator, object):
                                 'activation': model.activation,
                                 'type': 'nn'}}
 
-            torch.save(model.state_dict(), path + '.mlchem')
+            torch.save(model.state_dict(), path + '.ml4c')
 
         if features is not None:
             # Adding fingerprints to .params json file.
@@ -217,7 +217,7 @@ class Potentials(Calculator, object):
                 use_cuda = torch.cuda.is_available()
                 if use_cuda:
                     count = torch.cuda.device_count()
-                    logger.info('MLChem found {} CUDA devices available.'
+                    logger.info('ML4Chem found {} CUDA devices available.'
                                 .format(count))
 
                     for index in range(count):
@@ -237,7 +237,7 @@ class Potentials(Calculator, object):
             self.model.to(device_)
 
             # This is something specific of pytorch.
-            from mlchem.models.neuralnetwork import train
+            from ml4chem.models.neuralnetwork import train
             train(feature_space, targets, model=self.model, data=data_handler,
                   optimizer=optimizer, regularization=regularization,
                   epochs=epochs, convergence=convergence, lossfxn=lossfxn,
@@ -289,7 +289,7 @@ class Potentials(Calculator, object):
                 model = copy.deepcopy(self.model)
                 model.prepare_model(input_dimension, data=data_handler,
                                     purpose=purpose)
-                model.load_state_dict(torch.load(self.mlchem_path),
+                model.load_state_dict(torch.load(self.ml4chem_path),
                                       strict=True)
                 model.eval()
                 energy = model(fingerprints).item()

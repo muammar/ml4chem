@@ -1,4 +1,4 @@
-name: mlchem
+name: ml4chem
 
 channels:
     - anaconda

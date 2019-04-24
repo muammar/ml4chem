@@ -5,7 +5,7 @@ import os
 import sys
 path = os.path.dirname(os.path.abspath(__file__)).strip('bin')
 sys.path.append(path)
-from mlchem.data.visualization import read_log
+from ml4chem.data.visualization import read_log
 
 @click.command()
 @click.option('--plot', default=None, help='Plot information from file.')

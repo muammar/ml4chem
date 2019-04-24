@@ -3,10 +3,10 @@ import sys
 sys.path.append('../../')
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
-from mlchem.data.handler import DataSet
-from mlchem.fingerprints import Cartesian, Gaussian
-from mlchem.models.autoencoders import AutoEncoder, train
-from mlchem.data.serialization import dump
+from ml4chem.data.handler import DataSet
+from ml4chem.fingerprints import Cartesian, Gaussian
+from ml4chem.models.autoencoders import AutoEncoder, train
+from ml4chem.data.serialization import dump
 
 
 def autoencode():

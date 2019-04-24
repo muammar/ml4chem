@@ -3,9 +3,9 @@ import sys
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
 sys.path.append('../../')
-from mlchem import Potentials
-from mlchem.fingerprints import Gaussian
-from mlchem.models.kernelridge import KernelRidge
+from ml4chem import Potentials
+from ml4chem.fingerprints import Gaussian
+from ml4chem.models.kernelridge import KernelRidge
 
 
 def train():

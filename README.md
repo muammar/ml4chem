@@ -1,11 +1,11 @@
-MLChem
+ML4Chem
 ===========
 
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mlchem.svg)
-[![Build Status](https://travis-ci.com/muammar/mlchem.svg?branch=master)](https://travis-ci.com/muammar/mlchem)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ml4chem.svg)
+[![Build Status](https://travis-ci.com/muammar/ml4chem.svg?branch=master)](https://travis-ci.com/muammar/ml4chem)
 
 
-**MLChem** is machine learning for chemistry.
+**ML4Chem** is machine learning for chemistry.
 
 This package is written in Python 3, and intends to offer modern and rich
 features to perform machine learning workflows for chemical physics.
@@ -21,7 +21,7 @@ A list of features and methods are shown below.
 - Free software <3. No secrets! Pull requests and additions are more than
   welcome!
 - Good documentation (I hope!).
-- Explicit and idiomatic: `mlchem.get_me_a_coffee()`.
+- Explicit and idiomatic: `ml4chem.get_me_a_coffee()`.
 - Distributed training in a data parallelism paradigm (mini-batches).
 - Scalability and distributed computations are powered by Dask <3.
 - Real-time tools to track status of your computations.
@@ -29,6 +29,6 @@ A list of features and methods are shown below.
 
 
 ## Dask dashboard
-![](https://raw.githubusercontent.com/muammar/mlchem/master/docs/source/_static/dask_dashboard.png)
+![](https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/dask_dashboard.png)
 
 Note: This package is under development.

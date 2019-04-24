@@ -3,7 +3,7 @@ import sys
 sys.path.append('../../')
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
-from mlchem import Potentials
+from ml4chem import Potentials
 
 def main():
     """docstring for main"""
@@ -11,7 +11,7 @@ def main():
     # Load the images with ASE
     images = Trajectory('cu_training.traj')
 
-    calc = Potentials.load(model='cu_training.mlchem',
+    calc = Potentials.load(model='cu_training.ml4c',
                            params='cu_training.params',
                            preprocessor='cu_training.scaler')
 
@@ -20,8 +20,8 @@ def main():
 
     for atoms in images:
         energy = calc.get_potential_energy(atoms)
-        print('mlchem predicted energy = {}' .format(energy))
-        print('             DFT energy = {}' .format(atoms.get_potential_energy()))
+        print('ML4Chem predicted energy = {}' .format(energy))
+        print('              DFT energy = {}' .format(atoms.get_potential_energy()))
 
 if __name__ == '__main__':
     logging.basicConfig(filename = 'cu_inference.log', level=logging.INFO,

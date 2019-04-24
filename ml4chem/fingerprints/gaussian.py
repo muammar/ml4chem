@@ -6,9 +6,9 @@ import numpy as np
 from ase.data import atomic_numbers
 from collections import OrderedDict
 from .cutoff import Cosine
-from mlchem.data.serialization import dump
-from mlchem.data.preprocessing import Preprocessing
-from mlchem.utils import get_neighborlist, convert_elapsed_time
+from ml4chem.data.serialization import dump
+from ml4chem.data.preprocessing import Preprocessing
+from ml4chem.utils import get_neighborlist, convert_elapsed_time
 
 logger = logging.getLogger()
 
@@ -49,7 +49,7 @@ class Gaussian(object):
 
     def __init__(self, cutoff=6.5, cutofffxn=None, normalized=True,
                  preprocessor=('MinMaxScaler', None), defaults=True,
-                 save_preprocessor='mlchem', scheduler='distributed',
+                 save_preprocessor='ml4chem', scheduler='distributed',
                  filename='fingerprints.db'):
 
         self.cutoff = cutoff

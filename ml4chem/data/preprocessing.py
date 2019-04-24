@@ -8,8 +8,8 @@ logger = logging.getLogger()
 class Preprocessing(object):
     """A wrap for preprocessing data with sklearn
 
-    This intends to be a wrapper around sklearn as implemented by dask. The
-    idea is to make easier to preprocess data without too much burden to users.
+    This intends to be a wrapper around sklearn. The idea is to make easier to
+    preprocess data without too much burden to users.
 
     Parameters
     ----------
@@ -17,6 +17,17 @@ class Preprocessing(object):
         Tuple with structure: ('name', {kwargs}).
     purpose : str
         Supported purposes are : 'training', 'inference'.
+
+    Notes
+    -----
+    The list of preprocessing modules available on sklearn and options can be
+    found at:
+
+    https://scikit-learn.org/stable/modules/classes.html#module-sklearn.preprocessing
+
+    If you need a preprocessor that is not implemented yet, just create a bug
+    report or follow the structure shown below to implement it yourself (PR are
+    very welcomed). In principle, all preprocessors can be implemented.
     """
     def __init__(self, preprocesor, purpose):
 
@@ -52,6 +63,13 @@ class Preprocessing(object):
                 self.kwargs = {'feature_range': (-1, 1)}
             self.preprocessor = MinMaxScaler(**self.kwargs)
             preprocessor_name = 'MinMaxScaler'
+
+        elif self.preprocessing == 'standardscaler' and purpose == 'training':
+            from dask_ml.preprocessing import StandardScaler
+            if self.kwargs is None:
+                self.kwargs = {}
+            self.preprocessor = StandardScaler(**self.kwargs)
+            preprocessor_name = 'StandardScaler'
 
         elif self.preprocessing == 'normalizer' and purpose == 'training':
             if self.kwargs is None:
