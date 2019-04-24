@@ -1,11 +1,11 @@
-MLChem
+ML4Chem
 ===========
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mlchem.svg)
 [![Build Status](https://travis-ci.com/muammar/mlchem.svg?branch=master)](https://travis-ci.com/muammar/mlchem)
 
 
-**MLChem** is machine learning for chemistry.
+**ML4Chem** is machine learning for chemistry.
 
 This package is written in Python 3, and intends to offer modern and rich
 features to perform machine learning workflows for chemical physics.
