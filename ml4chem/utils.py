@@ -1,4 +1,5 @@
 import hashlib
+import importlib
 import logging
 from ase.neighborlist import NeighborList
 
@@ -47,7 +48,7 @@ def get_neighborlist(image, cutoff):
 
 
 def convert_elapsed_time(seconds):
-    """Convert elapsed time in seconds to HH:MM:SS format """
+    """Convert elapsed time in seconds to HH:MM:SS format"""
 
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
@@ -56,7 +57,17 @@ def convert_elapsed_time(seconds):
 
 
 def get_chunks(sequence, chunk_size, svm=True):
-    """A function that yields a list in chunks"""
+    """A function that yields a list in chunks
+
+    Parameters
+    ----------
+    sequence : list or dictionary
+        A list or a dictionary to be split.
+    chunk_size : int
+        Number of elements in each group.
+    svm : bool
+        Whether or not these chunks are going to be used for kernel methods.
+    """
     res = []
 
     if svm is False and isinstance(sequence, dict):
@@ -70,6 +81,32 @@ def get_chunks(sequence, chunk_size, svm=True):
             res = []
     if res:
         yield res  # yield the last, incomplete, portion
+
+
+def dynamic_import(name, package, alt_name=None):
+    """A dynamic module importer
+
+    Parameters
+    ----------
+    name : str
+        Name of the module to be imported
+    package : str
+        Path to package. Example: ml4chem.fingerprints
+
+    Returns
+    -------
+    _class : obj
+        An class object.
+    """
+
+    if alt_name is None:
+        module_name = '.{}' .format(name.lower())
+    else:
+        module_name = '.{}' .format(alt_name.lower())
+    module = importlib.import_module(module_name, package=package)
+    imported_class = getattr(module, name)
+
+    return imported_class
 
 
 def get_header_message():

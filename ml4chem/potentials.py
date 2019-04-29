@@ -7,7 +7,7 @@ from ase.calculators.calculator import Calculator
 from ml4chem.backends.available import available_backends
 from ml4chem.data.handler import DataSet
 from ml4chem.data.serialization import dump, load
-from ml4chem.utils import get_header_message
+from ml4chem.utils import get_header_message, dynamic_import
 
 
 logger = logging.getLogger()
@@ -38,7 +38,8 @@ class Potentials(Calculator, object):
     svm_models = ['KernelRidge']
 
     def __init__(self, fingerprints=None, model=None, path=None,
-                 label='ml4chem', atoms=None, ml4chem_path=None, preprocessor=None):
+                 label='ml4chem', atoms=None, ml4chem_path=None,
+                 preprocessor=None):
 
         Calculator.__init__(self, label=label, atoms=atoms)
         self.fingerprints = fingerprints
@@ -94,10 +95,16 @@ class Potentials(Calculator, object):
                 model = NeuralNetwork(**model_params)
 
         # Instantiation of fingerprint class
-        from ml4chem.fingerprints import Gaussian
-        fingerprint_params = ml4chem_params['fingerprints']
-        del fingerprint_params['name']
-        fingerprints = Gaussian(**fingerprint_params)
+        fingerprint_params = ml4chem_params.get('fingerprints', None)
+
+        if fingerprint_params is None:
+            fingerprints = fingerprint_params
+        else:
+            name = fingerprint_params.get('name')
+            del fingerprint_params['name']
+
+            fingerprints = dynamic_import(name, 'ml4chem.fingerprints')
+            fingerprints = fingerprints(**fingerprint_params)
 
         calc = Cls(fingerprints=fingerprints, model=model, **kwargs)
 
@@ -171,7 +178,8 @@ class Potentials(Calculator, object):
             Calculation can be run in the cpu or cuda (gpu).
         optimizer : tuple
             The optimizer is a tuple with the structure:
-                >>> ('adam', {lr': float, 'weight_decay'=float})
+
+                >>> ('adam', {'lr': float, 'weight_decay'=float})
 
         lossfxn : object
             A loss function object.

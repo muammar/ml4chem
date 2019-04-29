@@ -30,10 +30,10 @@ preprocessing.py:93 INFO:    - feature_range: (-1, 1).
 preprocessing.py:95 INFO: 
 gaussian.py:138 INFO:
 gaussian.py:139 INFO:Adding atomic fingerprint calculations to scheduler...
-gaussian.py:167 INFO:... finished in 0 hours 0 minutes 0.65 seconds.
+gaussian.py:167 INFO:... finished in 0 hours 0 minutes 0.52 seconds.
 gaussian.py:170 INFO:
 gaussian.py:171 INFO:Computing fingerprints...
-gaussian.py:280 INFO:Fingerprinting finished in 0 hours 0 minutes 10.52 seconds.
+gaussian.py:280 INFO:Fingerprinting finished in 0 hours 0 minutes 8.93 seconds.
 autoencoders.py:85 INFO:Model Training
 autoencoders.py:86 INFO:==============
 autoencoders.py:87 INFO:Model name: AutoEncoder.
@@ -70,109 +70,277 @@ autoencoders.py:344 INFO:Starting training...
 autoencoders.py:345 INFO: 
 autoencoders.py:350 INFO:Epoch  Time Stamp          Loss         Rec Err  
 autoencoders.py:355 INFO:------ ------------------- ------------ -------- 
-autoencoders.py:408 INFO:     1 2019-04-24 13:55:25 2.570809e-01 0.563151
-autoencoders.py:408 INFO:     2 2019-04-24 13:55:25 1.585693e-01 0.474713
-autoencoders.py:408 INFO:     3 2019-04-24 13:55:25 1.126761e-01 0.474472
-autoencoders.py:408 INFO:     4 2019-04-24 13:55:25 1.126761e-01 0.474713
-autoencoders.py:408 INFO:     5 2019-04-24 13:55:25 1.126761e-01 0.378902
-autoencoders.py:408 INFO:     6 2019-04-24 13:55:26 7.178323e-02 0.373130
-autoencoders.py:408 INFO:     7 2019-04-24 13:55:26 7.178323e-02 0.367291
-autoencoders.py:408 INFO:     8 2019-04-24 13:55:26 7.178323e-02 0.378902
-autoencoders.py:408 INFO:     9 2019-04-24 13:55:26 7.178323e-02 0.373130
-autoencoders.py:408 INFO:    10 2019-04-24 13:55:26 7.178323e-02 0.344930
-autoencoders.py:408 INFO:    11 2019-04-24 13:55:27 5.948830e-02 0.344930
-autoencoders.py:408 INFO:    12 2019-04-24 13:55:27 5.948830e-02 0.343831
-autoencoders.py:408 INFO:    13 2019-04-24 13:55:27 5.948830e-02 0.344930
-autoencoders.py:408 INFO:    14 2019-04-24 13:55:27 5.948830e-02 0.344930
-autoencoders.py:408 INFO:    15 2019-04-24 13:55:27 5.948830e-02 0.223232
-autoencoders.py:408 INFO:    16 2019-04-24 13:55:27 2.491632e-02 0.199609
-autoencoders.py:408 INFO:    17 2019-04-24 13:55:28 1.992188e-02 0.177118
-autoencoders.py:408 INFO:    18 2019-04-24 13:55:28 1.568531e-02 0.158224
-autoencoders.py:408 INFO:    19 2019-04-24 13:55:28 1.251749e-02 0.158224
-autoencoders.py:408 INFO:    20 2019-04-24 13:55:28 1.251750e-02 0.158225
-autoencoders.py:408 INFO:    21 2019-04-24 13:55:28 1.251750e-02 0.153672
-autoencoders.py:408 INFO:    22 2019-04-24 13:55:28 1.180759e-02 0.153672
-autoencoders.py:408 INFO:    23 2019-04-24 13:55:29 1.180759e-02 0.153672
-autoencoders.py:408 INFO:    24 2019-04-24 13:55:29 1.180759e-02 0.139627
-autoencoders.py:408 INFO:    25 2019-04-24 13:55:29 9.747814e-03 0.139627
-autoencoders.py:408 INFO:    26 2019-04-24 13:55:29 9.747813e-03 0.134231
-autoencoders.py:408 INFO:    27 2019-04-24 13:55:29 9.008980e-03 0.133960
-autoencoders.py:408 INFO:    28 2019-04-24 13:55:29 9.008981e-03 0.132802
-autoencoders.py:408 INFO:    29 2019-04-24 13:55:30 9.008980e-03 0.133893
-autoencoders.py:408 INFO:    30 2019-04-24 13:55:30 9.008978e-03 0.122760
-autoencoders.py:408 INFO:    31 2019-04-24 13:55:30 7.534962e-03 0.122376
-autoencoders.py:408 INFO:    32 2019-04-24 13:55:30 7.534960e-03 0.116397
-autoencoders.py:408 INFO:    33 2019-04-24 13:55:30 6.774165e-03 0.108369
-autoencoders.py:408 INFO:    34 2019-04-24 13:55:30 5.871959e-03 0.098903
-autoencoders.py:408 INFO:    35 2019-04-24 13:55:31 4.890895e-03 0.098903
-autoencoders.py:408 INFO:    36 2019-04-24 13:55:31 4.890895e-03 0.098903
-autoencoders.py:408 INFO:    37 2019-04-24 13:55:31 4.890895e-03 0.097885
-autoencoders.py:408 INFO:    38 2019-04-24 13:55:31 4.790712e-03 0.097885
-autoencoders.py:408 INFO:    39 2019-04-24 13:55:31 4.790711e-03 0.097869
-autoencoders.py:408 INFO:    40 2019-04-24 13:55:32 4.790712e-03 0.097885
-autoencoders.py:408 INFO:    41 2019-04-24 13:55:32 4.790712e-03 0.097869
-autoencoders.py:408 INFO:    42 2019-04-24 13:55:32 4.790712e-03 0.092964
-autoencoders.py:408 INFO:    43 2019-04-24 13:55:32 4.321126e-03 0.092946
-autoencoders.py:408 INFO:    44 2019-04-24 13:55:32 4.321126e-03 0.089492
-autoencoders.py:408 INFO:    45 2019-04-24 13:55:32 4.004409e-03 0.088881
-autoencoders.py:408 INFO:    46 2019-04-24 13:55:33 4.004409e-03 0.085385
-autoencoders.py:408 INFO:    47 2019-04-24 13:55:33 3.645323e-03 0.085385
-autoencoders.py:408 INFO:    48 2019-04-24 13:55:33 3.645323e-03 0.085385
-autoencoders.py:408 INFO:    49 2019-04-24 13:55:33 3.645323e-03 0.082125
-autoencoders.py:408 INFO:    50 2019-04-24 13:55:33 3.372267e-03 0.081620
-autoencoders.py:408 INFO:    51 2019-04-24 13:55:33 3.372266e-03 0.077413
-autoencoders.py:408 INFO:    52 2019-04-24 13:55:33 2.996357e-03 0.076110
-autoencoders.py:408 INFO:    53 2019-04-24 13:55:34 2.896345e-03 0.076070
-autoencoders.py:408 INFO:    54 2019-04-24 13:55:34 2.896345e-03 0.073845
-autoencoders.py:408 INFO:    55 2019-04-24 13:55:34 2.726529e-03 0.072987
-autoencoders.py:408 INFO:    56 2019-04-24 13:55:34 2.663573e-03 0.072987
-autoencoders.py:408 INFO:    57 2019-04-24 13:55:34 2.663573e-03 0.070373
-autoencoders.py:408 INFO:    58 2019-04-24 13:55:34 2.476178e-03 0.068775
-autoencoders.py:408 INFO:    59 2019-04-24 13:55:35 2.364983e-03 0.068656
-autoencoders.py:408 INFO:    60 2019-04-24 13:55:35 2.364983e-03 0.068767
-autoencoders.py:408 INFO:    61 2019-04-24 13:55:35 2.364983e-03 0.068431
-autoencoders.py:408 INFO:    62 2019-04-24 13:55:35 2.341413e-03 0.065305
-autoencoders.py:408 INFO:    63 2019-04-24 13:55:35 2.132359e-03 0.065305
-autoencoders.py:408 INFO:    64 2019-04-24 13:55:36 2.132359e-03 0.065183
-autoencoders.py:408 INFO:    65 2019-04-24 13:55:36 2.132358e-03 0.064574
-autoencoders.py:408 INFO:    66 2019-04-24 13:55:36 2.084904e-03 0.062829
-autoencoders.py:408 INFO:    67 2019-04-24 13:55:36 1.973760e-03 0.062829
-autoencoders.py:408 INFO:    68 2019-04-24 13:55:36 1.973760e-03 0.062814
-autoencoders.py:408 INFO:    69 2019-04-24 13:55:36 1.973760e-03 0.062134
-autoencoders.py:408 INFO:    70 2019-04-24 13:55:37 1.930318e-03 0.062134
-autoencoders.py:408 INFO:    71 2019-04-24 13:55:37 1.930317e-03 0.062129
-autoencoders.py:408 INFO:    72 2019-04-24 13:55:37 1.930316e-03 0.062108
-autoencoders.py:408 INFO:    73 2019-04-24 13:55:37 1.930316e-03 0.061940
-autoencoders.py:408 INFO:    74 2019-04-24 13:55:37 1.918268e-03 0.060940
-autoencoders.py:408 INFO:    75 2019-04-24 13:55:37 1.856814e-03 0.060661
-autoencoders.py:408 INFO:    76 2019-04-24 13:55:38 1.839899e-03 0.060537
-autoencoders.py:408 INFO:    77 2019-04-24 13:55:38 1.839899e-03 0.059585
-autoencoders.py:408 INFO:    78 2019-04-24 13:55:38 1.775164e-03 0.059577
-autoencoders.py:408 INFO:    79 2019-04-24 13:55:38 1.775164e-03 0.059031
-autoencoders.py:408 INFO:    80 2019-04-24 13:55:38 1.742335e-03 0.059031
-autoencoders.py:408 INFO:    81 2019-04-24 13:55:39 1.742335e-03 0.057385
-autoencoders.py:408 INFO:    82 2019-04-24 13:55:39 1.646542e-03 0.056317
-autoencoders.py:408 INFO:    83 2019-04-24 13:55:39 1.585826e-03 0.056317
-autoencoders.py:408 INFO:    84 2019-04-24 13:55:39 1.585826e-03 0.055500
-autoencoders.py:408 INFO:    85 2019-04-24 13:55:39 1.540101e-03 0.055500
-autoencoders.py:408 INFO:    86 2019-04-24 13:55:39 1.540101e-03 0.055015
-autoencoders.py:408 INFO:    87 2019-04-24 13:55:39 1.513326e-03 0.054606
-autoencoders.py:408 INFO:    88 2019-04-24 13:55:40 1.490899e-03 0.054600
-autoencoders.py:408 INFO:    89 2019-04-24 13:55:40 1.490899e-03 0.053934
-autoencoders.py:408 INFO:    90 2019-04-24 13:55:40 1.454420e-03 0.053934
-autoencoders.py:408 INFO:    91 2019-04-24 13:55:40 1.454419e-03 0.053758
-autoencoders.py:408 INFO:    92 2019-04-24 13:55:40 1.454420e-03 0.053934
-autoencoders.py:408 INFO:    93 2019-04-24 13:55:41 1.454419e-03 0.053874
-autoencoders.py:408 INFO:    94 2019-04-24 13:55:41 1.454420e-03 0.053934
-autoencoders.py:408 INFO:    95 2019-04-24 13:55:41 1.454419e-03 0.053929
-autoencoders.py:408 INFO:    96 2019-04-24 13:55:41 1.454419e-03 0.053326
-autoencoders.py:408 INFO:    97 2019-04-24 13:55:41 1.421818e-03 0.053272
-autoencoders.py:408 INFO:    98 2019-04-24 13:55:42 1.421818e-03 0.051733
-autoencoders.py:408 INFO:    99 2019-04-24 13:55:42 1.338177e-03 0.051733
-autoencoders.py:408 INFO:   100 2019-04-24 13:55:42 1.338177e-03 0.051585
-autoencoders.py:408 INFO:   101 2019-04-24 13:55:42 1.330485e-03 0.051577
-autoencoders.py:408 INFO:   102 2019-04-24 13:55:42 1.330485e-03 0.051585
-autoencoders.py:408 INFO:   103 2019-04-24 13:55:43 1.330485e-03 0.051585
-autoencoders.py:408 INFO:   104 2019-04-24 13:55:43 1.330485e-03 0.051214
-autoencoders.py:408 INFO:   105 2019-04-24 13:55:43 1.311422e-03 0.049908
-autoencoders.py:420 INFO:Training finished in 0 hours 0 minutes 22.90 seconds.
+autoencoders.py:408 INFO:     1 2019-04-24 14:55:24 3.314589e-01 0.588333
+autoencoders.py:408 INFO:     2 2019-04-24 14:55:24 1.730679e-01 0.588333
+autoencoders.py:408 INFO:     3 2019-04-24 14:55:24 1.730679e-01 0.587627
+autoencoders.py:408 INFO:     4 2019-04-24 14:55:25 1.730679e-01 0.584637
+autoencoders.py:408 INFO:     5 2019-04-24 14:55:25 1.730679e-01 0.580883
+autoencoders.py:408 INFO:     6 2019-04-24 14:55:25 1.730679e-01 0.508884
+autoencoders.py:408 INFO:     7 2019-04-24 14:55:25 1.294817e-01 0.498488
+autoencoders.py:408 INFO:     8 2019-04-24 14:55:26 1.294817e-01 0.501133
+autoencoders.py:408 INFO:     9 2019-04-24 14:55:26 1.294817e-01 0.450753
+autoencoders.py:408 INFO:    10 2019-04-24 14:55:26 1.015892e-01 0.397496
+autoencoders.py:408 INFO:    11 2019-04-24 14:55:26 7.900155e-02 0.376507
+autoencoders.py:408 INFO:    12 2019-04-24 14:55:26 7.087873e-02 0.369431
+autoencoders.py:408 INFO:    13 2019-04-24 14:55:26 7.087872e-02 0.302311
+autoencoders.py:408 INFO:    14 2019-04-24 14:55:27 4.569585e-02 0.299405
+autoencoders.py:408 INFO:    15 2019-04-24 14:55:27 4.569585e-02 0.296225
+autoencoders.py:408 INFO:    16 2019-04-24 14:55:27 4.569585e-02 0.266570
+autoencoders.py:408 INFO:    17 2019-04-24 14:55:27 3.552967e-02 0.259472
+autoencoders.py:408 INFO:    18 2019-04-24 14:55:28 3.552967e-02 0.194335
+autoencoders.py:408 INFO:    19 2019-04-24 14:55:28 1.888312e-02 0.182114
+autoencoders.py:408 INFO:    20 2019-04-24 14:55:28 1.658278e-02 0.162677
+autoencoders.py:408 INFO:    21 2019-04-24 14:55:28 1.323194e-02 0.157894
+autoencoders.py:408 INFO:    22 2019-04-24 14:55:28 1.246531e-02 0.157894
+autoencoders.py:408 INFO:    23 2019-04-24 14:55:28 1.246531e-02 0.136513
+autoencoders.py:408 INFO:    24 2019-04-24 14:55:29 9.317848e-03 0.136513
+autoencoders.py:408 INFO:    25 2019-04-24 14:55:29 9.317848e-03 0.135837
+autoencoders.py:408 INFO:    26 2019-04-24 14:55:29 9.317846e-03 0.136440
+autoencoders.py:408 INFO:    27 2019-04-24 14:55:30 9.317847e-03 0.136513
+autoencoders.py:408 INFO:    28 2019-04-24 14:55:30 9.317848e-03 0.131642
+autoencoders.py:408 INFO:    29 2019-04-24 14:55:30 8.664849e-03 0.131642
+autoencoders.py:408 INFO:    30 2019-04-24 14:55:30 8.664851e-03 0.130466
+autoencoders.py:408 INFO:    31 2019-04-24 14:55:31 8.664851e-03 0.131621
+autoencoders.py:408 INFO:    32 2019-04-24 14:55:31 8.664851e-03 0.125298
+autoencoders.py:408 INFO:    33 2019-04-24 14:55:31 7.849736e-03 0.110677
+autoencoders.py:408 INFO:    34 2019-04-24 14:55:31 6.124684e-03 0.108605
+autoencoders.py:408 INFO:    35 2019-04-24 14:55:31 5.897518e-03 0.104556
+autoencoders.py:408 INFO:    36 2019-04-24 14:55:31 5.466001e-03 0.102503
+autoencoders.py:408 INFO:    37 2019-04-24 14:55:32 5.253464e-03 0.093045
+autoencoders.py:408 INFO:    38 2019-04-24 14:55:32 4.328664e-03 0.092115
+autoencoders.py:408 INFO:    39 2019-04-24 14:55:32 4.242546e-03 0.091778
+autoencoders.py:408 INFO:    40 2019-04-24 14:55:32 4.242546e-03 0.092071
+autoencoders.py:408 INFO:    41 2019-04-24 14:55:33 4.242547e-03 0.091944
+autoencoders.py:408 INFO:    42 2019-04-24 14:55:33 4.242547e-03 0.089657
+autoencoders.py:408 INFO:    43 2019-04-24 14:55:33 4.019163e-03 0.089657
+autoencoders.py:408 INFO:    44 2019-04-24 14:55:33 4.019164e-03 0.088367
+autoencoders.py:408 INFO:    45 2019-04-24 14:55:34 3.904365e-03 0.088367
+autoencoders.py:408 INFO:    46 2019-04-24 14:55:34 3.904366e-03 0.085167
+autoencoders.py:408 INFO:    47 2019-04-24 14:55:34 3.626688e-03 0.084964
+autoencoders.py:408 INFO:    48 2019-04-24 14:55:34 3.626689e-03 0.083087
+autoencoders.py:408 INFO:    49 2019-04-24 14:55:34 3.451697e-03 0.080734
+autoencoders.py:408 INFO:    50 2019-04-24 14:55:34 3.259006e-03 0.078689
+autoencoders.py:408 INFO:    51 2019-04-24 14:55:35 3.095953e-03 0.078405
+autoencoders.py:408 INFO:    52 2019-04-24 14:55:35 3.095953e-03 0.077904
+autoencoders.py:408 INFO:    53 2019-04-24 14:55:35 3.034499e-03 0.076127
+autoencoders.py:408 INFO:    54 2019-04-24 14:55:35 2.897657e-03 0.075582
+autoencoders.py:408 INFO:    55 2019-04-24 14:55:36 2.856349e-03 0.075507
+autoencoders.py:408 INFO:    56 2019-04-24 14:55:36 2.856350e-03 0.075514
+autoencoders.py:408 INFO:    57 2019-04-24 14:55:36 2.856349e-03 0.075527
+autoencoders.py:408 INFO:    58 2019-04-24 14:55:36 2.856349e-03 0.075291
+autoencoders.py:408 INFO:    59 2019-04-24 14:55:36 2.856349e-03 0.074750
+autoencoders.py:408 INFO:    60 2019-04-24 14:55:37 2.793778e-03 0.074469
+autoencoders.py:408 INFO:    61 2019-04-24 14:55:37 2.772851e-03 0.072955
+autoencoders.py:408 INFO:    62 2019-04-24 14:55:37 2.661199e-03 0.072914
+autoencoders.py:408 INFO:    63 2019-04-24 14:55:37 2.661199e-03 0.071420
+autoencoders.py:408 INFO:    64 2019-04-24 14:55:37 2.550412e-03 0.069824
+autoencoders.py:408 INFO:    65 2019-04-24 14:55:38 2.437667e-03 0.068781
+autoencoders.py:408 INFO:    66 2019-04-24 14:55:38 2.365444e-03 0.067685
+autoencoders.py:408 INFO:    67 2019-04-24 14:55:38 2.290626e-03 0.066611
+autoencoders.py:408 INFO:    68 2019-04-24 14:55:38 2.218533e-03 0.066600
+autoencoders.py:408 INFO:    69 2019-04-24 14:55:38 2.218533e-03 0.066173
+autoencoders.py:408 INFO:    70 2019-04-24 14:55:39 2.189428e-03 0.065998
+autoencoders.py:408 INFO:    71 2019-04-24 14:55:39 2.189428e-03 0.065310
+autoencoders.py:408 INFO:    72 2019-04-24 14:55:39 2.132697e-03 0.065161
+autoencoders.py:408 INFO:    73 2019-04-24 14:55:39 2.132697e-03 0.064035
+autoencoders.py:408 INFO:    74 2019-04-24 14:55:39 2.050244e-03 0.063185
+autoencoders.py:408 INFO:    75 2019-04-24 14:55:39 1.996182e-03 0.062360
+autoencoders.py:408 INFO:    76 2019-04-24 14:55:40 1.944413e-03 0.062111
+autoencoders.py:408 INFO:    77 2019-04-24 14:55:40 1.944414e-03 0.062360
+autoencoders.py:408 INFO:    78 2019-04-24 14:55:40 1.944414e-03 0.060859
+autoencoders.py:408 INFO:    79 2019-04-24 14:55:40 1.851901e-03 0.060794
+autoencoders.py:408 INFO:    80 2019-04-24 14:55:41 1.851901e-03 0.060482
+autoencoders.py:408 INFO:    81 2019-04-24 14:55:41 1.829036e-03 0.059492
+autoencoders.py:408 INFO:    82 2019-04-24 14:55:41 1.769628e-03 0.057425
+autoencoders.py:408 INFO:    83 2019-04-24 14:55:41 1.648825e-03 0.057397
+autoencoders.py:408 INFO:    84 2019-04-24 14:55:41 1.648826e-03 0.057288
+autoencoders.py:408 INFO:    85 2019-04-24 14:55:42 1.648826e-03 0.056019
+autoencoders.py:408 INFO:    86 2019-04-24 14:55:42 1.569075e-03 0.056019
+autoencoders.py:408 INFO:    87 2019-04-24 14:55:42 1.569075e-03 0.055582
+autoencoders.py:408 INFO:    88 2019-04-24 14:55:42 1.544680e-03 0.055534
+autoencoders.py:408 INFO:    89 2019-04-24 14:55:42 1.544680e-03 0.054473
+autoencoders.py:408 INFO:    90 2019-04-24 14:55:43 1.483645e-03 0.053688
+autoencoders.py:408 INFO:    91 2019-04-24 14:55:43 1.441187e-03 0.050819
+autoencoders.py:408 INFO:    92 2019-04-24 14:55:43 1.291266e-03 0.050710
+autoencoders.py:408 INFO:    93 2019-04-24 14:55:43 1.285743e-03 0.049993
+autoencoders.py:420 INFO:Training finished in 0 hours 0 minutes 22.86 seconds.
+handler.py:34 WARNING:Data structure is not compatible with ML4Chem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:108 INFO: 
+gaussian.py:109 INFO:Fingerprinting
+gaussian.py:110 INFO:==============
+gaussian.py:117 INFO:Getting unique element symbols for training
+gaussian.py:125 INFO:Unique chemical elements: ['Cu']
+gaussian.py:544 WARNING:Making default symmetry functions
+gaussian.py:612 INFO:Number of features per chemical element:
+gaussian.py:614 INFO:    - Cu: 8.
+gaussian.py:616 INFO: 
+gaussian.py:617 INFO:Symmetry function parameters:
+gaussian.py:618 INFO:-----------------------------
+gaussian.py:620 INFO:  #      Symbol    Type Parameters
+gaussian.py:641 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:641 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:641 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:641 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:641 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:641 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:641 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:641 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+preprocessing.py:58 INFO: 
+preprocessing.py:88 INFO:Data preprocessing
+preprocessing.py:89 INFO:------------------
+preprocessing.py:90 INFO:Preprocessor: MinMaxScaler.
+preprocessing.py:91 INFO:Options:
+preprocessing.py:93 INFO:    - feature_range: (-1, 1).
+preprocessing.py:95 INFO: 
+gaussian.py:138 INFO:
+gaussian.py:139 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:167 INFO:... finished in 0 hours 0 minutes 0.52 seconds.
+gaussian.py:170 INFO:
+gaussian.py:171 INFO:Computing fingerprints...
+gaussian.py:280 INFO:Fingerprinting finished in 0 hours 0 minutes 8.73 seconds.
+autoencoders.py:85 INFO:Model Training
+autoencoders.py:86 INFO:==============
+autoencoders.py:87 INFO:Model name: AutoEncoder.
+autoencoders.py:90 INFO:Structure of Autoencoder: (input, 'encoder': [20, 10, 4], 'decoder': [4, 10, 20], output)
+autoencoders.py:146 INFO:ModuleDict(
+  (Cu): Sequential(
+    (0): Linear(in_features=8, out_features=20, bias=True)
+    (1): Tanh()
+    (2): Linear(in_features=20, out_features=10, bias=True)
+    (3): Tanh()
+    (4): Linear(in_features=10, out_features=4, bias=True)
+    (5): Tanh()
+  )
+)
+autoencoders.py:147 INFO:ModuleDict(
+  (Cu): Sequential(
+    (0): Linear(in_features=4, out_features=10, bias=True)
+    (1): Tanh()
+    (2): Linear(in_features=10, out_features=20, bias=True)
+    (3): Tanh()
+    (4): Linear(in_features=20, out_features=8, bias=True)
+  )
+)
+autoencoders.py:152 WARNING:Initialization of weights with Xavier Uniform by default.
+handler.py:34 WARNING:Data structure is not compatible with ML4Chem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:108 INFO: 
+gaussian.py:109 INFO:Fingerprinting
+gaussian.py:110 INFO:==============
+gaussian.py:117 INFO:Getting unique element symbols for training
+gaussian.py:125 INFO:Unique chemical elements: ['Cu']
+gaussian.py:544 WARNING:Making default symmetry functions
+gaussian.py:612 INFO:Number of features per chemical element:
+gaussian.py:614 INFO:    - Cu: 8.
+gaussian.py:616 INFO: 
+gaussian.py:617 INFO:Symmetry function parameters:
+gaussian.py:618 INFO:-----------------------------
+gaussian.py:620 INFO:  #      Symbol    Type Parameters
+gaussian.py:641 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:641 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:641 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:641 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:641 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:641 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:641 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:641 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+preprocessing.py:58 INFO: 
+preprocessing.py:88 INFO:Data preprocessing
+preprocessing.py:89 INFO:------------------
+preprocessing.py:90 INFO:Preprocessor: MinMaxScaler.
+preprocessing.py:91 INFO:Options:
+preprocessing.py:93 INFO:    - feature_range: (-1, 1).
+preprocessing.py:95 INFO: 
+gaussian.py:138 INFO:
+gaussian.py:139 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:167 INFO:... finished in 0 hours 0 minutes 0.55 seconds.
+gaussian.py:170 INFO:
+gaussian.py:171 INFO:Computing fingerprints...
+gaussian.py:280 INFO:Fingerprinting finished in 0 hours 0 minutes 8.74 seconds.
+autoencoders.py:85 INFO:Model Training
+autoencoders.py:86 INFO:==============
+autoencoders.py:87 INFO:Model name: AutoEncoder.
+autoencoders.py:90 INFO:Structure of Autoencoder: (input, 'encoder': [20, 10, 4], 'decoder': [4, 10, 20], output)
+autoencoders.py:146 INFO:ModuleDict(
+  (Cu): Sequential(
+    (0): Linear(in_features=8, out_features=20, bias=True)
+    (1): Tanh()
+    (2): Linear(in_features=20, out_features=10, bias=True)
+    (3): Tanh()
+    (4): Linear(in_features=10, out_features=4, bias=True)
+    (5): Tanh()
+  )
+)
+autoencoders.py:147 INFO:ModuleDict(
+  (Cu): Sequential(
+    (0): Linear(in_features=4, out_features=10, bias=True)
+    (1): Tanh()
+    (2): Linear(in_features=10, out_features=20, bias=True)
+    (3): Tanh()
+    (4): Linear(in_features=20, out_features=8, bias=True)
+  )
+)
+autoencoders.py:152 WARNING:Initialization of weights with Xavier Uniform by default.
+handler.py:34 WARNING:Data structure is not compatible with ML4Chem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:108 INFO: 
+gaussian.py:109 INFO:Fingerprinting
+gaussian.py:110 INFO:==============
+gaussian.py:117 INFO:Getting unique element symbols for training
+gaussian.py:125 INFO:Unique chemical elements: ['Cu']
+gaussian.py:544 WARNING:Making default symmetry functions
+gaussian.py:612 INFO:Number of features per chemical element:
+gaussian.py:614 INFO:    - Cu: 8.
+gaussian.py:616 INFO: 
+gaussian.py:617 INFO:Symmetry function parameters:
+gaussian.py:618 INFO:-----------------------------
+gaussian.py:620 INFO:  #      Symbol    Type Parameters
+gaussian.py:641 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:641 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:641 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:641 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:641 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:641 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:641 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:641 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+preprocessing.py:58 INFO: 
+preprocessing.py:88 INFO:Data preprocessing
+preprocessing.py:89 INFO:------------------
+preprocessing.py:90 INFO:Preprocessor: MinMaxScaler.
+preprocessing.py:91 INFO:Options:
+preprocessing.py:93 INFO:    - feature_range: (-1, 1).
+preprocessing.py:95 INFO: 
+gaussian.py:138 INFO:
+gaussian.py:139 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:167 INFO:... finished in 0 hours 0 minutes 0.52 seconds.
+gaussian.py:170 INFO:
+gaussian.py:171 INFO:Computing fingerprints...
+gaussian.py:280 INFO:Fingerprinting finished in 0 hours 0 minutes 8.85 seconds.
+autoencoders.py:85 INFO:Model Training
+autoencoders.py:86 INFO:==============
+autoencoders.py:87 INFO:Model name: AutoEncoder.
+autoencoders.py:90 INFO:Structure of Autoencoder: (input, 'encoder': [20, 10, 4], 'decoder': [4, 10, 20], output)
+autoencoders.py:146 INFO:ModuleDict(
+  (Cu): Sequential(
+    (0): Linear(in_features=8, out_features=20, bias=True)
+    (1): Tanh()
+    (2): Linear(in_features=20, out_features=10, bias=True)
+    (3): Tanh()
+    (4): Linear(in_features=10, out_features=4, bias=True)
+    (5): Tanh()
+  )
+)
+autoencoders.py:147 INFO:ModuleDict(
+  (Cu): Sequential(
+    (0): Linear(in_features=4, out_features=10, bias=True)
+    (1): Tanh()
+    (2): Linear(in_features=10, out_features=20, bias=True)
+    (3): Tanh()
+    (4): Linear(in_features=20, out_features=8, bias=True)
+  )
+)
+autoencoders.py:152 WARNING:Initialization of weights with Xavier Uniform by default.
