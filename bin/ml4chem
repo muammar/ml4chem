@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+import time
+import click
+import os
+import sys
+path = os.path.dirname(os.path.abspath(__file__)).strip('bin')
+sys.path.append(path)
+from ml4chem.data.visualization import read_log
+
+@click.command()
+@click.option('--plot', default=None, help='Plot information from file.')
+@click.option('--file', default=None, help='Path to log.')
+@click.option('--interval', default=None, type=float,
+              help='Useful for sleeping before reading log files.')
+
+def main(**args):
+    """ML4Chem command line tool"""
+    if args['plot'] is not None:
+        plt = read_log(args['file'], metric=args['plot'],
+                       interval=args['interval'])
+
+if __name__ == '__main__':
+    main()

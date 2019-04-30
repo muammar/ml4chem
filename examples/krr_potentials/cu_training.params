@@ -1,0 +1,27 @@
+{
+    "model": {
+        "name": "KernelRidge",
+        "type": "svm",
+        "sigma": 1.0,
+        "kernel": "rbf",
+        "scheduler": "distributed",
+        "lamda": 1e-05,
+        "cholesky": true,
+        "weights_independent": true,
+        "forcetraining": false,
+        "sum_rule": true,
+        "batch_size": 160
+    },
+    "fingerprints": {
+        "name": "Gaussian",
+        "cutoff": 6.5,
+        "normalized": true,
+        "preprocessor": [
+            "MinMaxScaler",
+            null
+        ],
+        "defaults": true,
+        "save_preprocessor": "cu_training.scaler",
+        "filename": "fingerprints.db"
+    }
+}

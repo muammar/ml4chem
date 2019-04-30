@@ -1,0 +1,73 @@
+potentials.py:52 INFO:
+-------------------------------------------------------------------------------
+
+          ███╗   ███╗██╗██╗  ██╗ ██████╗██╗  ██╗███████╗███╗   ███╗
+          ████╗ ████║██║██║  ██║██╔════╝██║  ██║██╔════╝████╗ ████║
+          ██╔████╔██║██║███████║██║     ███████║█████╗  ██╔████╔██║
+          ██║╚██╔╝██║██║╚════██║██║     ██╔══██║██╔══╝  ██║╚██╔╝██║
+          ██║ ╚═╝ ██║███████╗██║╚██████╗██║  ██║███████╗██║ ╚═╝ ██║
+          ╚═╝     ╚═╝╚══════╝╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝
+
+
+
+ML4Chem is Machine Learning for Chemistry. This package is written in Python 3,
+and intends to offer modern and rich features to perform machine learning
+workflows for chemical physics.
+
+This software is developed by Muammar El Khatib.
+-------------------------------------------------------------------------------
+
+potentials.py:53 INFO:Available backends: ['torch', 'torchvision', 'numpy'].
+handler.py:34 WARNING:Data structure is not compatible with ML4Chem
+handler.py:56 INFO:Preparing images...
+handler.py:87 INFO:Images hashed and processed...
+gaussian.py:108 INFO: 
+gaussian.py:109 INFO:Fingerprinting
+gaussian.py:110 INFO:==============
+gaussian.py:117 INFO:Getting unique element symbols for training
+gaussian.py:125 INFO:Unique chemical elements: ['Cu']
+gaussian.py:544 WARNING:Making default symmetry functions
+gaussian.py:612 INFO:Number of features per chemical element:
+gaussian.py:614 INFO:    - Cu: 8.
+gaussian.py:616 INFO: 
+gaussian.py:617 INFO:Symmetry function parameters:
+gaussian.py:618 INFO:-----------------------------
+gaussian.py:620 INFO:  #      Symbol    Type Parameters
+gaussian.py:641 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:641 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:641 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:641 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:641 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:641 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:641 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:641 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+preprocessing.py:58 INFO: 
+preprocessing.py:88 INFO:Data preprocessing
+preprocessing.py:89 INFO:------------------
+preprocessing.py:90 INFO:Preprocessor: MinMaxScaler.
+preprocessing.py:91 INFO:Options:
+preprocessing.py:93 INFO:    - feature_range: (-1, 1).
+preprocessing.py:95 INFO: 
+gaussian.py:138 INFO:
+gaussian.py:139 INFO:Adding atomic fingerprint calculations to scheduler...
+gaussian.py:167 INFO:... finished in 0 hours 0 minutes 0.77 seconds.
+gaussian.py:170 INFO:
+gaussian.py:171 INFO:Computing fingerprints...
+gaussian.py:280 INFO:Fingerprinting finished in 0 hours 0 minutes 5.60 seconds.
+kernelridge.py:162 INFO:Model Training
+kernelridge.py:163 INFO:Model name: KernelRidge.
+kernelridge.py:164 INFO:Kernel parameters:
+kernelridge.py:165 INFO:    - Kernel function: rbf.
+kernelridge.py:166 INFO:    - Sigma: 1.0.
+kernelridge.py:167 INFO:    - Lamda: 1e-05.
+kernelridge.py:177 INFO:Computing Kernel Matrix...
+kernelridge.py:180 WARNING:    Adding calculations to scheduler...
+kernelridge.py:188 INFO:    1600 kernel evaluations added in 0 hours 0 minutes 0.20 seconds.
+kernelridge.py:193 INFO:    The calculations were batched in groups of 160.
+kernelridge.py:197 INFO:    Evaluating atomic similarities...
+kernelridge.py:213 INFO:Kernel matrix built in 0 hours 0 minutes 3.68 seconds.
+kernelridge.py:219 INFO:Building LT matrix
+kernelridge.py:230 INFO:LT matrix built in 0 hours 0 minutes 3.72 seconds.
+kernelridge.py:274 INFO:Size of the Kernel matrix is (10, 10).
+kernelridge.py:275 INFO:Starting Cholesky Factorization...
+kernelridge.py:277 INFO:Cholesky Factorization finished...

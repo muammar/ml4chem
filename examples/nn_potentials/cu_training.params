@@ -1,0 +1,23 @@
+{
+    "model": {
+        "name": "PytorchPotentials",
+        "hiddenlayers": [
+            10,
+            10
+        ],
+        "activation": "relu",
+        "type": "nn"
+    },
+    "fingerprints": {
+        "name": "Gaussian",
+        "cutoff": 6.5,
+        "normalized": true,
+        "preprocessor": [
+            "MinMaxScaler",
+            null
+        ],
+        "defaults": true,
+        "save_preprocessor": "model.scaler",
+        "filename": "fingerprints.db"
+    }
+}

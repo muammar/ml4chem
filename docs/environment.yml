@@ -1,19 +1,18 @@
-name: mlchem
+name: ml4chem
 
 channels:
     - anaconda
     - pytorch
-    - conda-forge
-
 
 dependencies:
     - python==3.7
     - pytorch
-    - matplotlib
     - pip:
+        - matplotlib
         - pyyaml
         - sphinx-gallery
         - sphinxcontrib-napoleon
         - sphinxcontrib-bibtex
         - sphinxcontrib-inlinesyntaxhighlight
         - ase
+        - m2r

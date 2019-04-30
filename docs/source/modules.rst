@@ -1,8 +1,8 @@
-mlchem
-======
+ml4chem
+=======
 
 .. toctree::
    :maxdepth: 4
 
-   mlchem
+   ml4chem
    setup
