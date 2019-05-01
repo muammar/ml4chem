@@ -25,17 +25,17 @@ class LatentFeatures(object):
 
     Parameters
     ----------
-    encoder : obj
-        A ML4Chem AutoEncoder model to extract atomic features.
+    encoder : dict
+        Dictionary with structure:
+            >>> encoder = {'model': file.ml4c, 'params': file.params}
+
     scheduler : str
         The scheduler to be used with the dask backend.
     filename : str
         Name to save on disk of serialized database.
     preprocessor : tuple
         Use some scaling method to preprocess the data.
-    save_preprocessor : str
-        Save preprocessor to file.
-    features : obj or tuple
+    features : tuple
         Users can set the features keyword argument to a tuple with the
         structure ('Name', {kwargs})
     """
@@ -47,15 +47,14 @@ class LatentFeatures(object):
         return cls.NAME
 
     def __init__(self, encoder=None, scheduler='distributed',
-                 filename='latent.db', preprocessor=None,
-                 save_preprocessor='ml4chem', features=None):
+                 filename='latent.db', preprocessor=None, features=None):
 
         self.encoder = encoder
         self.filename = filename
         self.scheduler = scheduler
         self.preprocessor = preprocessor
-        self.save_preprocessor = save_preprocessor
 
+        # TODO features could be passed as a dictionary, too?
         if features is None:
             # Add user-defined exception?
             # https://docs.python.org/3/tutorial/errors.html#user-defined-exceptions
@@ -75,7 +74,7 @@ class LatentFeatures(object):
 
         Parameters
         ----------
-        image : dict
+        images : dict
             Hashed images using the DataSet class.
         purpose : str
             The supported purposes are: 'training', 'inference'.
@@ -96,6 +95,7 @@ class LatentFeatures(object):
         name, kwargs = self.features
         features = dynamic_import(name, 'ml4chem.fingerprints')
         features = features(**kwargs)
+
         feature_space = features.calculate_features(images, data=data,
                                                     purpose=purpose, svm=svm)
 
@@ -106,7 +106,26 @@ class LatentFeatures(object):
         return latent_space
 
     def load_encoder(self, encoder, **kwargs):
-        """Load an autoencoder in eval() mode"""
+        """Load an autoencoder in eval() mode
+
+        Parameters
+        ----------
+        encoder : dict
+            Dictionary with structure:
+
+                >>> encoder = {'model': file.ml4c, 'params': file.params}
+
+        data : obj
+            data object
+        svm : bool
+            Whether or not these features are going to be used for kernel
+            methods.
+
+        Returns
+        -------
+        autoencoder.eval() : obj
+            Autoencoder model object in eval mode to get the latent space.
+        """
 
         params_path = encoder.get('params')
         model_path = encoder.get('model')

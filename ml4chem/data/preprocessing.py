@@ -13,7 +13,7 @@ class Preprocessing(object):
 
     Parameters
     ----------
-    preprocesor : tuple
+    preprocessor : tuple
         Tuple with structure: ('name', {kwargs}).
     purpose : str
         Supported purposes are : 'training', 'inference'.
@@ -29,18 +29,18 @@ class Preprocessing(object):
     report or follow the structure shown below to implement it yourself (PR are
     very welcomed). In principle, all preprocessors can be implemented.
     """
-    def __init__(self, preprocesor, purpose):
+    def __init__(self, preprocessor, purpose):
 
-        # preprocesor has to be a tuple, but it might be the case that user
+        # preprocessor has to be a tuple, but it might be the case that user
         # input is not that.
-        if preprocesor is None:
+        if preprocessor is None:
             self.preprocessing = None
             self.kwargs = None
-        elif preprocesor is not None and purpose == 'training':
-            self.preprocessing, self.kwargs = preprocesor
+        elif preprocessor is not None and purpose == 'training':
+            self.preprocessing, self.kwargs = preprocessor
             self.preprocessing = self.preprocessing.lower()
         else:
-            self.preprocessing = preprocesor
+            self.preprocessing = preprocessor
 
     def set(self, purpose):
         """Set a preprocessing method
@@ -55,7 +55,7 @@ class Preprocessing(object):
             Preprocessor object.
         """
 
-        logger.info(' ')
+        logger.info('')
 
         if self.preprocessing == 'minmaxscaler' and purpose == 'training':
             from dask_ml.preprocessing import MinMaxScaler
@@ -121,7 +121,7 @@ class Preprocessing(object):
         Returns
         -------
         scaled_features : list
-            Scaled features using requested preprocesor.
+            Scaled features using requested preprocessor.
         """
 
         if isinstance(stacked_features, np.ndarray):

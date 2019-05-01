@@ -169,6 +169,7 @@ class Gaussian(object):
         # In this block we compute the fingerprints.
         logger.info('')
         logger.info('Computing fingerprints...')
+
         if self.preprocessor is None:
             feature_space = dask.compute(*computations,
                                          scheduler=self.scheduler)

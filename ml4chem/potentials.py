@@ -29,6 +29,8 @@ class Potentials(Calculator, object):
         PATH where to save files.
     label : str
         Name for files. Default ml4chem.
+    preprocessor : str
+        The path to load the file with the sklearn preprocessor object.
     """
     # This is needed by ASE
     implemented_properties = ['energy', 'forces']
@@ -145,9 +147,15 @@ class Potentials(Calculator, object):
             params = {'model': {'name': model_name,
                                 'hiddenlayers': model.hiddenlayers,
                                 'activation': model.activation,
-                                'type': 'nn'}}
+                                'type': 'nn',
+                                'input_dimension': model.input_dimension}}
+
 
             torch.save(model.state_dict(), path + '.ml4c')
+
+        if model_name == 'AutoEncoder':
+            output_dimension = {'output_dimension': model.output_dimension}
+            params['model'].update(output_dimension)
 
         if features is not None:
             # Adding fingerprints to .params json file.

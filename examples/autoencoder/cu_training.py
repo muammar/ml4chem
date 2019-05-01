@@ -3,6 +3,7 @@ import sys
 sys.path.append('../../')
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
+from ml4chem import Potentials
 from ml4chem.data.handler import DataSet
 from ml4chem.fingerprints import Cartesian, Gaussian
 from ml4chem.models.autoencoders import AutoEncoder, train
@@ -66,9 +67,7 @@ def autoencode():
     latent_space = autoencoder.get_latent_space(targets, svm=True)
 
     dump(latent_space, filename='cu_training.latent')
-    print(latent_space)
 
-    from ml4chem import Potentials
     Potentials.save(autoencoder)
 
     return latent_space, energy_targets, data_handler

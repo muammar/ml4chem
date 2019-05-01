@@ -34,7 +34,7 @@ class NeuralNetwork(torch.nn.Module):
 
         return cls.NAME
 
-    def __init__(self, hiddenlayers=(3, 3), activation='relu'):
+    def __init__(self, hiddenlayers=(3, 3), activation='relu', **kwargs):
         super(NeuralNetwork, self).__init__()
         self.hiddenlayers = hiddenlayers
         self.activation = activation
@@ -51,6 +51,8 @@ class NeuralNetwork(torch.nn.Module):
         purpose : str
             Purpose of this model: 'training', 'inference'.
         """
+        self.input_dimension = input_dimension
+
         activation = {'tanh': torch.nn.Tanh, 'relu': torch.nn.ReLU,
                       'celu': torch.nn.CELU}
 

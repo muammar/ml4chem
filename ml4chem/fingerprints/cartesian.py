@@ -87,6 +87,9 @@ class Cartesian(object):
             logger.info('Unique chemical elements: {}'
                         .format(unique_element_symbols))
 
+        preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
+        preprocessor.set(purpose=purpose)
+
         # We start populating computations with delayed functions to operate
         # with dask's scheduler. These computations get cartesian coordinates.
         computations = []
@@ -121,9 +124,6 @@ class Cartesian(object):
             if len(dim) > 1:
                 d1, d2, d3 = dim
                 feature_space = feature_space.reshape(d1 * d2, d3)
-                preprocessor = Preprocessing(self.preprocessor,
-                                             purpose=purpose)
-                preprocessor.set(purpose=purpose)
                 feature_space = preprocessor.fit(feature_space,
                                                  scheduler=self.scheduler)
                 feature_space = feature_space.reshape(d1, d2, d3)
@@ -173,9 +173,44 @@ class Cartesian(object):
                                          scheduler=self.scheduler)
 
             feature_space = OrderedDict(feature_space)
-        else:
-            feature_space = OrderedDict(zip(hashes, feature_space))
 
+            # Save preprocessor.
+            preprocessor.save_to_file(preprocessor, self.save_preprocessor)
+
+        elif self.preprocessor is not None and purpose == 'inference':
+            # We take stacked features and preprocess them
+            stacked_features = np.array(feature_space)
+            d1, d2, d3 = stacked_features.shape
+            stacked_features = stacked_features.reshape(d1 * d2, d3)
+            feature_space = OrderedDict()
+            scaled_feature_space = preprocessor.transform(stacked_features)
+
+            # Once preprocessed, they are wrapped as a dictionary.
+            # TODO this has to be parallelized.
+            for key, image in images.items():
+                if key not in feature_space.keys():
+                    feature_space[key] = []
+                for index, atom in enumerate(image):
+                    symbol = atom.symbol
+
+                    if svm:
+                        scaled = scaled_feature_space[index]
+                        # TODO change this to something more elegant later
+                        try:
+                            self.reference_space
+                        except AttributeError:
+                            # If self.reference does not exist it means that
+                            # reference_space is being loaded by Messagepack.
+                            symbol = symbol.encode('utf-8')
+                    else:
+                        scaled = torch.tensor(scaled_feature_space[index],
+                                              requires_grad=True,
+                                              dtype=torch.float)
+
+                    feature_space[key].append((symbol, scaled))
+        else:
+
+            feature_space = OrderedDict(zip(hashes, feature_space))
 
         fp_time = time.time() - initial_time
 

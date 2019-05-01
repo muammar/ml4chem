@@ -78,6 +78,9 @@ class AutoEncoder(torch.nn.Module):
         purpose : str
             Purpose of this model: 'training', 'inference'.
         """
+        self.input_dimension = input_dimension
+        self.output_dimension = output_dimension
+
         activation = {'tanh': torch.nn.Tanh, 'relu': torch.nn.ReLU,
                       'celu': torch.nn.CELU}
 

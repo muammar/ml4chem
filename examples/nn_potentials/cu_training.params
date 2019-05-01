@@ -6,7 +6,8 @@
             10
         ],
         "activation": "relu",
-        "type": "nn"
+        "type": "nn",
+        "input_dimension": 8
     },
     "fingerprints": {
         "name": "Gaussian",
