@@ -30,8 +30,12 @@ def autoencode():
                                  'save_preprocessor': 'inference.scaler'})
     encoder = {'model': 'model.ml4c',
                'params': 'model.params'}
-    fingerprints = LatentFeatures(features=fingerprints, encoder=encoder)
-    fingerprints = fingerprints.calculate_features(images, purpose='training',
+    preprocessor = ('MinMaxScaler', {'feature_range': (-1, 1)})
+
+    fingerprints = LatentFeatures(features=fingerprints, encoder=encoder,
+                                  preprocessor=preprocessor,
+                                  save_preprocessor='latent_space_min_max.scaler')
+    fingerprints = fingerprints.calculate_features(images, purpose=purpose,
                                                    data=data_handler,
                                                    svm=False)
 
@@ -39,7 +43,8 @@ def autoencode():
     print(fingerprints)
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='cu_training.log', level=logging.INFO,
+    #logging.basicConfig(filename='cu_inference.log', level=logging.INFO,
+    logging.basicConfig(level=logging.INFO,
                         format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
     cluster = LocalCluster()
     client = Client(cluster, asyncronous=True)

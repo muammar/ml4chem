@@ -135,7 +135,8 @@ class Cartesian(object):
 
                 for i in feature_space:
                     end = ini + len(i)
-                    atoms_index_map.append(list(range(ini, end)))
+                    atoms_map = list(range(ini, end))
+                    atoms_index_map.append(atoms_map)
                     ini = end
 
                     for j in i:

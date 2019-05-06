@@ -38,6 +38,8 @@ class LatentFeatures(object):
     features : tuple
         Users can set the features keyword argument to a tuple with the
         structure ('Name', {kwargs})
+    save_preprocessor : str
+        Save preprocessor to file.
     """
     NAME = 'LatentFeatures'
 
@@ -47,12 +49,13 @@ class LatentFeatures(object):
         return cls.NAME
 
     def __init__(self, encoder=None, scheduler='distributed',
-                 filename='latent.db', preprocessor=None, features=None):
-
+                 filename='latent.db', preprocessor=None, features=None,
+                 save_preprocessor='latentfeatures.scaler'):
         self.encoder = encoder
         self.filename = filename
         self.scheduler = scheduler
         self.preprocessor = preprocessor
+        self.save_preprocessor = save_preprocessor
 
         # TODO features could be passed as a dictionary, too?
         if features is None:
@@ -99,9 +102,47 @@ class LatentFeatures(object):
         feature_space = features.calculate_features(images, data=data,
                                                     purpose=purpose, svm=svm)
 
+        preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
+        preprocessor.set(purpose=purpose)
+
         encoder = self.load_encoder(self.encoder, data=data, purpose=purpose)
 
-        latent_space = encoder.get_latent_space(feature_space, svm=svm)
+        if self.preprocessor is not None and purpose == 'training':
+            hashes, symbols, _latent_space = \
+                    encoder.get_latent_space(feature_space, svm=True,
+                                             purpose='preprocessing')
+            _latent_space = preprocessor.fit(_latent_space,
+                                             scheduler=self.scheduler)
+
+            latent_space = OrderedDict()
+
+            # TODO parallelize this.
+            index = 0
+            for i, hash in enumerate(hashes):
+                pairs = []
+
+                for symbol in symbols[i]:
+                    feature_vector = _latent_space[index]
+
+                    if svm is False:
+                        feature_vector = \
+                            torch.tensor(feature_vector, requires_grad=True,
+                                         dtype=torch.float)
+
+                    pairs.append((symbol, feature_vector))
+                    index += 1
+
+                latent_space[hash] = pairs
+
+            del _latent_space
+
+            # Save preprocessor.
+            preprocessor.save_to_file(preprocessor, self.save_preprocessor)
+
+        elif self.preprocessor is not None and purpose == 'training':
+            raise('Error')
+        else:
+            latent_space = encoder.get_latent_space(feature_space, svm=svm)
 
         return latent_space
 

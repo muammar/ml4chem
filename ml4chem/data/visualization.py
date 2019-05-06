@@ -1,6 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from ml4chem.data.serialization import load
+from sklearn.decomposition import PCA
+
 
 
 def parity(predictions, true, scores=False, filename=None, **kwargs):
@@ -47,7 +52,7 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
         plt.savefig(filename, **kwargs)
 
 
-def read_log(logfile, metric='loss', interval=None):
+def read_log(logfile, metric='loss', refresh=None):
     """Read the logfile
 
     Parameters
@@ -56,11 +61,11 @@ def read_log(logfile, metric='loss', interval=None):
         Path to logfile.
     metric : str
         Metric to plot. Supported are loss and rmse.
-    interval : float
-        Interval in seconds before reading log file again.
+    refresh : float
+        Interval in seconds before refreshing log file plot.
     """
 
-    if interval is not None:
+    if refresh is not None:
         # This means that there is no dynamic update of the plot
         # We create an interactive plot
         plt.ion()
@@ -83,7 +88,7 @@ def read_log(logfile, metric='loss', interval=None):
     rmse = []
 
     initiliazed = False
-    while interval is not None:
+    while refresh is not None:
         for line in f.readlines():
             if check in line:
                 start = True
@@ -122,7 +127,7 @@ def read_log(logfile, metric='loss', interval=None):
         axes.relim()
         axes.autoscale_view(True, True, True)
         plt.draw()
-        plt.pause(interval)
+        plt.pause(refresh)
         initiliazed = True
     else:
         for line in f.readlines():
@@ -148,3 +153,28 @@ def read_log(logfile, metric='loss', interval=None):
             fig, = plt.plot(epochs, rmse, label='rmse')
 
         plt.show(block=True)
+
+def plot_latent_space(latent_space, method='PCA', dimensions=2):
+    """docstring for latent_space"""
+
+    latent_space = load(latent_space)
+    full_ls = []
+    full_symbols = []
+
+    for hash, feature_space in latent_space.items():
+        for symbol, feature_vector in feature_space:
+            full_ls.append(feature_vector)
+            full_symbols.append(symbol.decode('utf-8'))
+
+    pca = PCA(n_components=dimensions)
+    pca_result = pca.fit_transform(full_ls)
+
+    to_pandas = []
+
+    for i, element in enumerate(pca_result):
+        to_pandas.append([full_symbols[i], element[0], element[1]])
+
+    df = pd.DataFrame(to_pandas, columns = ['Symbol', 'PCA-1', 'PCA-2'])
+
+    ax = sns.scatterplot(x="PCA-1", y="PCA-2", data=df, hue="Symbol")
+    plt.show()

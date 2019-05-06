@@ -184,7 +184,7 @@ class AutoEncoder(torch.nn.Module):
         outputs = torch.stack(outputs)
         return outputs
 
-    def get_latent_space(self, X, svm=False):
+    def get_latent_space(self, X, svm=False, purpose=None):
         """Get latent space for training ML4Chem
 
         This method takes an input and use the encoder to return latent space
@@ -197,6 +197,11 @@ class AutoEncoder(torch.nn.Module):
         svm : bool
             Whether or not these latent vectors are going to be used for kernel
             methods.
+        purpose : str
+            The purpose for this latent space. This is just useful for the case
+            where the latent space will be preprocessed
+            (purpose='preprocessing').
+
 
         Returns
         -------
@@ -211,21 +216,45 @@ class AutoEncoder(torch.nn.Module):
         forward propagate and get the latent_space.
         """
 
-        latent_space = OrderedDict()
+        if purpose == 'preprocessing':
+            hashes = []
+            latent_space = []
+            symbols = []
 
-        for hash, image in X.items():
-            latent_space[hash] = []
-            for symbol, x in image:
-                latent_vector = self.encoders[symbol](x)
+            for hash, image in X.items():
+                hashes.append(hash)
+                _symbols = []
+                for symbol, x in image:
+                    latent_vector = self.encoders[symbol](x)
+                    _symbols.append(symbol)
 
-                if svm:
-                    _latent_vector = latent_vector.detach().numpy()
-                else:
-                    _latent_vector = latent_vector.detach()
+                    if svm:
+                        _latent_vector = latent_vector.detach().numpy()
+                    else:
+                        _latent_vector = latent_vector.detach()
 
-                latent_space[hash].append((symbol, _latent_vector))
+                    latent_space.append(_latent_vector)
 
-        return latent_space
+                symbols.append(_symbols)
+
+            return hashes, symbols, np.array(latent_space)
+
+        else:
+            latent_space = OrderedDict()
+
+            for hash, image in X.items():
+                latent_space[hash] = []
+                for symbol, x in image:
+                    latent_vector = self.encoders[symbol](x)
+
+                    if svm:
+                        _latent_vector = latent_vector.detach().numpy()
+                    else:
+                        _latent_vector = latent_vector.detach()
+
+                    latent_space[hash].append((symbol, _latent_vector))
+
+            return latent_space
 
 
 class train(object):
