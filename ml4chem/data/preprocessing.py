@@ -78,8 +78,9 @@ class Preprocessing(object):
             self.preprocessor = Normalizer()
             preprocessor_name = 'Normalizer'
 
-        elif purpose == 'inference':
+        elif self.preprocessing is not None and purpose == 'inference' :
             self.preprocessor = joblib.load(self.preprocessing)
+
         else:
             logger.warning('Preprocessor is not supported.')
             self.preprocessor = preprocessor_name = None

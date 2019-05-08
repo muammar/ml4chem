@@ -281,13 +281,16 @@ class Potentials(Calculator, object):
 
         # We copy the loaded fingerprint class
         fingerprints = copy.deepcopy(self.fingerprints)
-        fingerprints.preprocessor = self.preprocessor
         kwargs = {'data': data_handler, 'purpose': purpose}
 
         if model_name in Potentials.svm_models:
             kwargs.update({'svm': True})
 
-        fingerprints = fingerprints.calculate_features(atoms, **kwargs)
+        if fingerprints.name() == 'LatentFeatures':
+            fingerprints = fingerprints.calculate_features(atoms, **kwargs)
+        else:
+            fingerprints.preprocessor = self.preprocessor
+            fingerprints = fingerprints.calculate_features(atoms, **kwargs)
 
         if 'energy' in properties:
             logger.info('Calculating energy')

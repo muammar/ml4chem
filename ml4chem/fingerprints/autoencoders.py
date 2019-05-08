@@ -139,10 +139,36 @@ class LatentFeatures(object):
             # Save preprocessor.
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
-        elif self.preprocessor is not None and purpose == 'training':
-            raise('Error')
+        elif self.preprocessor is not None and purpose == 'inference':
+            hashes, symbols, _latent_space = \
+                    encoder.get_latent_space(feature_space, svm=True,
+                                             purpose='preprocessing')
+            scaled_latent_space = preprocessor.transform(_latent_space)
+
+            latent_space = OrderedDict()
+            # TODO parallelize this.
+            index = 0
+            for i, hash in enumerate(hashes):
+                pairs = []
+
+                for symbol in symbols[i]:
+                    feature_vector = scaled_latent_space[index]
+
+                    if svm is False:
+                        feature_vector = \
+                            torch.tensor(feature_vector, requires_grad=True,
+                                         dtype=torch.float)
+
+                    pairs.append((symbol, feature_vector))
+                    index += 1
+
+                latent_space[hash] = pairs
+
+            del _latent_space
+
         else:
             latent_space = encoder.get_latent_space(feature_space, svm=svm)
+
 
         return latent_space
 

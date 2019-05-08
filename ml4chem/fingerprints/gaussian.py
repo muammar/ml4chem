@@ -292,6 +292,7 @@ class Gaussian(object):
         elif purpose == 'inference':
             feature_space = OrderedDict()
             scaled_feature_space = preprocessor.transform(stacked_features)
+
             # TODO this has to be parallelized.
             for key, image in images.items():
                 if key not in feature_space.keys():
