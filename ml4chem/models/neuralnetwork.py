@@ -91,8 +91,6 @@ class NeuralNetwork(torch.nn.Module):
                 slope = torch.nn.Parameter(torch.tensor(slope,
                                                         requires_grad=True))
 
-                print(intercept, slope)
-
                 self.register_parameter(intercept_name, intercept)
                 self.register_parameter(slope_name, slope)
             elif purpose == 'inference':
@@ -217,7 +215,8 @@ class train(object):
         Tuple with structure: scheduler's name and a dictionary with keyword
         arguments.
 
-        >>> lr_scheduler = ('ReduceLROnPlateau', {'mode': 'min', 'patience': 10})
+        >>> lr_scheduler = ('ReduceLROnPlateau',
+                            {'mode': 'min', 'patience': 10})
     """
 
     def __init__(self, inputs, targets, model=None, data=None,
@@ -305,9 +304,13 @@ class train(object):
         self.targets = [client.scatter(target) for target in targets]
         self.device = device
         self.epochs = epochs
-        self.lossfxn = lossfxn
         self.model = model
         self.lr_scheduler = lr_scheduler
+
+        if lossfxn is None:
+            self.lossfxn = AtomicMSELoss
+        else:
+            self.lossfxn = lossfxn
 
         # Let the hunger games begin...
         self.run()
@@ -397,11 +400,8 @@ class train(object):
         inputs = OrderedDict(chunk)
         outputs = model(inputs)
 
-        if lossfxn is None:
-            loss = AtomicMSELoss(outputs, targets[index], atoms_per_image[index])
-            loss.backward()
-        else:
-            raise('I do not know what to do')
+        loss = lossfxn(outputs, targets[index], atoms_per_image[index])
+        loss.backward()
 
         gradients = []
 

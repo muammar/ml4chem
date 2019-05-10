@@ -1,13 +1,9 @@
-import dask
 import json
 import logging
-import time
 import torch
-import numpy as np
 from collections import OrderedDict
 from ml4chem.data.preprocessing import Preprocessing
-from ml4chem.data.serialization import dump
-from ml4chem.utils import convert_elapsed_time, dynamic_import
+from ml4chem.utils import dynamic_import
 
 logger = logging.getLogger()
 
@@ -168,7 +164,6 @@ class LatentFeatures(object):
 
         else:
             latent_space = encoder.get_latent_space(feature_space, svm=svm)
-
 
         return latent_space
 

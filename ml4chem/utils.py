@@ -1,6 +1,5 @@
 import hashlib
 import importlib
-import logging
 from ase.neighborlist import NeighborList
 
 

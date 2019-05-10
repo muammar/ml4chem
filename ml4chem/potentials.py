@@ -150,7 +150,6 @@ class Potentials(Calculator, object):
                                 'type': 'nn',
                                 'input_dimension': model.input_dimension}}
 
-
             torch.save(model.state_dict(), path + '.ml4c')
 
         if model_name == 'AutoEncoder':

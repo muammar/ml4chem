@@ -1,5 +1,6 @@
 import dask
 import datetime
+import inspect
 import logging
 import time
 import torch
@@ -22,10 +23,10 @@ class AutoEncoder(torch.nn.Module):
     reconstructed (input equals output). These models are able to learn data
     codings in an unsupervised manner. They are composed by an encoder that
     takes an input and concentrate (encodes) the information in a lower/larger
-    dimension (latent space). Subsequently, a decoder takes the latent space
-    and tries to resconstruct the input. However, when the output is not equal
-    to the input, the model learns how to 'translate' input into output e.g.
-    image coloring.
+    dimensional space (aka latent space). Subsequently, a decoder takes the
+    latent space and tries to resconstruct the input. It is been reported that
+    when the output is not equal to the input, the model learns how to
+    'translate' input into output e.g. image coloring.
 
     This module uses autoencoders for pipelines in chemistry.
 
@@ -36,18 +37,20 @@ class AutoEncoder(torch.nn.Module):
     activation : str
         The activation function.
 
+
     Notes
     -----
     When defining the hiddenlayers keyword argument, input and output
     dimensions are automatically determined. For example, suppose you have an
     input data point with 10 dimensions and you want to autoencode with
-    targets having 14 dimensions, and a latent space with 4 dimensions and just
-    one layer with 5 nodes between input/latent and latent/output. Your
-    hiddenlayers dictionary would look like this:
+    targets having 14 dimensions, a latent space with 4 dimensions and just one
+    hidden layer with 5 nodes between input-layer / latent-layer and
+    latent-layer / output-layer. Your `hiddenlayers` dictionary would look like
+    this:
 
         >>> hiddenlayers = {'encoder': (5, 4), 'decoder': (4, 5)}
 
-    That would generate an autoencoder with topology (10, 5, 4, 4, 5, 14).
+    That would generate an autoencoder with topology (10, 5, 4 | 4, 5, 14).
     """
 
     NAME = 'AutoEncoder'
@@ -55,7 +58,6 @@ class AutoEncoder(torch.nn.Module):
     @classmethod
     def name(cls):
         """Returns name of class"""
-
         return cls.NAME
 
     def __init__(self, hiddenlayers=None, activation='relu'):
@@ -237,7 +239,12 @@ class AutoEncoder(torch.nn.Module):
 
                 symbols.append(_symbols)
 
-            return hashes, symbols, np.array(latent_space)
+            if svm:
+                latent_space = np.array(latent_space)
+                return hashes, symbols, latent_space
+            else:
+                latent_space = torch.stack(latent_space)
+                return latent_space
 
         else:
             latent_space = OrderedDict()
@@ -290,15 +297,17 @@ class train(object):
         Tuple with structure: scheduler's name and a dictionary with keyword
         arguments.
 
-        >>> lr_scheduler = ('ReduceLROnPlateau', {'mode': 'min', 'patience': 10})
+        >>> lr_scheduler = ('ReduceLROnPlateau',
+                            {'mode': 'min', 'patience': 10})
     """
 
     def __init__(self, inputs, targets, model=None, data=None,
                  optimizer=(None, None), regularization=None, epochs=100,
-                 convergence=None, lossfxn=None, device='cpu',
-                 batch_size=None, lr_scheduler=None):
+                 convergence=None, lossfxn=None, device='cpu', batch_size=None,
+                 lr_scheduler=None):
 
         self.initial_time = time.time()
+
         if device == 'cuda':
             pass
             """
@@ -391,9 +400,13 @@ class train(object):
         self.targets = [client.scatter(target) for target in targets]
         self.device = device
         self.epochs = epochs
-        self.lossfxn = lossfxn
         self.model = model
         self.lr_scheduler = lr_scheduler
+
+        if lossfxn is None:
+            self.lossfxn = MSELoss
+        else:
+            self.lossfxn = lossfxn
 
         # Let the hunger game begin...
         self.run()
@@ -477,12 +490,18 @@ class train(object):
         """
         inputs = OrderedDict(chunk)
         outputs = model(inputs)
+        args = {'outputs': outputs, 'targets': targets[index]}
 
-        if lossfxn is None:
-            loss = MSELoss(outputs, targets[index])
-            loss.backward()
-        else:
-            raise('I do not know what to do')
+        _args, _varargs, _keywords, _defaults = inspect.getargspec(lossfxn)
+
+        if 'latent' in _args:
+            latent = model.get_latent_space(inputs, svm=False,
+                                            purpose='preprocessing')
+            latent = {'latent': latent}
+            args.update(latent)
+
+        loss = lossfxn(**args)
+        loss.backward()
 
         gradients = []
 

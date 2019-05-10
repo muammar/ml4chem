@@ -256,17 +256,17 @@ class Gaussian(object):
             else:
                 try:
                     for i, image in enumerate(images.items()):
-                        computations.append(self.restack_image(i, image,
+                        computations.append(self.restack_image(
+                            i, image,
                             scaled_feature_space=scaled_feature_space,
                             svm=svm))
 
                 except UnboundLocalError:
-                # scaled_feature_space does not exist.
+                    # scaled_feature_space does not exist.
                     for i, image in enumerate(images.items()):
-                        computations.append(self.restack_image(i, image,
-                            feature_space=feature_space,
+                        computations.append(self.restack_image(
+                            i, image, feature_space=feature_space,
                             svm=svm))
-
 
             feature_space = dask.compute(*computations,
                                          scheduler=self.scheduler)
@@ -399,7 +399,6 @@ class Gaussian(object):
             features = feature_space[index]
 
             return hash, features
-
 
     @dask.delayed
     def fingerprints_per_image(self, image):

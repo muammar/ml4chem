@@ -15,6 +15,7 @@ def available_backends():
 
     return available_backends
 
+
 def cuda_is_available(backend):
     """Check if cuda is avaible for the current backend
 

@@ -7,7 +7,6 @@ from ml4chem.data.serialization import load
 from sklearn.decomposition import PCA
 
 
-
 def parity(predictions, true, scores=False, filename=None, **kwargs):
     """A parity plot function
 
@@ -154,6 +153,7 @@ def read_log(logfile, metric='loss', refresh=None):
 
         plt.show(block=True)
 
+
 def plot_latent_space(latent_space, method='PCA', dimensions=2):
     """docstring for latent_space"""
 
@@ -174,7 +174,8 @@ def plot_latent_space(latent_space, method='PCA', dimensions=2):
     for i, element in enumerate(pca_result):
         to_pandas.append([full_symbols[i], element[0], element[1]])
 
-    df = pd.DataFrame(to_pandas, columns = ['Symbol', 'PCA-1', 'PCA-2'])
+    df = pd.DataFrame(to_pandas, columns=['Symbol', 'PCA-1', 'PCA-2'])
 
-    ax = sns.scatterplot(x="PCA-1", y="PCA-2", data=df, hue="Symbol")
+    sns.scatterplot(x="PCA-1", y="PCA-2", data=df, hue="Symbol")
+
     plt.show()

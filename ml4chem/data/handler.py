@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from ml4chem.utils import get_hash
-import dask
 import logging
 
 logger = logging.getLogger()
@@ -131,16 +130,17 @@ class DataSet(object):
                 symbols[purpose] = {}
                 try:
                     symbols[purpose] = sorted(list(set([atom.symbol for image
-                                                         in images for atom in
-                                                         image])))
+                                                        in images for atom in
+                                                        image])))
                 except AttributeError:
                     symbols[purpose] = sorted(list(set([atom.symbol for
-                                                         key, image in
-                                                         images.items() for
-                                                         atom in image])))
+                                                        key, image in
+                                                        images.items() for
+                                                        atom in image])))
 
             else:
-                logger.warning('what happens in the following case?')    # FIXME
+                # FIXME
+                logger.warning('what happens in the following case?')
         else:
             logger.warning('The requested purpose is not supported...')
             symbols = None

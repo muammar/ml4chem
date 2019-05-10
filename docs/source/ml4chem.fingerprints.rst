@@ -4,6 +4,14 @@ ml4chem.fingerprints package
 Submodules
 ----------
 
+ml4chem.fingerprints.autoencoders module
+----------------------------------------
+
+.. automodule:: ml4chem.fingerprints.autoencoders
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 ml4chem.fingerprints.cartesian module
 -------------------------------------
 
