@@ -21,11 +21,11 @@ def AtomicMSELoss(outputs, targets, atoms_per_image):
         The value of the loss function.
     """
 
-    criterion = torch.nn.MSELoss(reduction='sum')
+    criterion = torch.nn.MSELoss(reduction="sum")
     outputs_atom = torch.div(outputs, atoms_per_image)
     targets_atom = torch.div(targets, atoms_per_image)
 
-    loss = criterion(outputs_atom, targets_atom) * .5
+    loss = criterion(outputs_atom, targets_atom) * 0.5
 
     return loss
 
@@ -52,7 +52,7 @@ def SumSquaredDiff(outputs, targets):
     In the literature it is mentioned that for real-valued autoencoders the
     reconstruction loss function is the sum of squared differences.
     """
-    loss = (outputs - targets).pow(2).sum() * .5
+    loss = (outputs - targets).pow(2).sum() * 0.5
     return loss
 
 
@@ -76,12 +76,25 @@ def MSELoss(outputs, targets):
     """
 
     criterion = torch.nn.MSELoss()
-    loss = criterion(outputs, targets) * .5
+    loss = criterion(outputs, targets) * 0.5
     return loss
 
 
-def EncoderMapLoss(outputs, targets, latent, p=2, k_a=1., k_s=1., sig_h=4.5,
-                   a_h=12., b_h=6., sig_l=1., a_l=2., b_l=6.):
+def EncoderMapLoss(
+    outputs,
+    targets,
+    latent,
+    p=2,
+    k_c=1.0,
+    k_auto=1.0,
+    k_sketch=1.0,
+    sigma_h=4.5,
+    a_h=12.0,
+    b_h=6.0,
+    sigma_l=1.0,
+    a_l=2.0,
+    b_l=6.0,
+):
     """Encodermap loss function
 
     This is the implementation of the encodermap loss function as proposed by:
@@ -101,8 +114,10 @@ def EncoderMapLoss(outputs, targets, latent, p=2, k_a=1., k_s=1., sig_h=4.5,
         The latent space tensor.
     p : int
         The norm to be computed. Default is L2 norm.
-    k_a : float
+    k_auto : float
         Contribution of distance loss function to total loss.
+    k_sketch : float
+        Contribution of sketch map loss function to total loss.
 
     Returns
     -------
@@ -126,29 +141,23 @@ def EncoderMapLoss(outputs, targets, latent, p=2, k_a=1., k_s=1., sig_h=4.5,
 
     """
 
-    loss = 0.
+    loss = 0.0
 
     # Computation of distance loss function
-    n = len(outputs)
-    loss_auto = torch.dist(outputs, targets, p=p) / n
-    loss += k_a * loss_auto
+    loss_auto = torch.mean(torch.dist(outputs, targets, p=p))
+    loss += k_auto * loss_auto
 
     # Computation of sketch map loss function
     cdist_h = torch.cdist(outputs, outputs)
     cdist_l = torch.cdist(latent, latent)
-    sigmoid_h = sigmoid(cdist_h, sig_h, a_h, b_h)
-    sigmoid_l = sigmoid(cdist_l, sig_l, a_l, b_l)
-
-    mse = torch.nn.MSELoss()
-    loss += mse(sigmoid_h, sigmoid_l) * k_s
+    sigmoid_h = sigmoid(cdist_h, sigma_h, a_h, b_h)
+    sigmoid_l = sigmoid(cdist_l, sigma_l, a_l, b_l)
+    loss += k_sketch * torch.mean(torch.pow((sigmoid_h - sigmoid_l), 2))
 
     # Computation of activation regularization
-    activation_reg = 0.
-
-    for l in latent:
-        activation_reg += torch.dot(l, l)
-
-    loss += activation_reg / n
+    activation_reg = 0.0
+    activation_reg += torch.mean(torch.pow(latent, 2))
+    loss += k_c * activation_reg
 
     return loss
 
@@ -177,5 +186,5 @@ def sigmoid(r, sigma, a, b):
     sigmoid : float
         Value of the sigmoid function.
     """
-    sigmoid = 1 - (1 + (2**(a / b) - 1) * (r / sigma)**a)**(-b / a)
+    sigmoid = 1 - (1 + (2 ** (a / b) - 1) * (r / sigma) ** a) ** (-b / a)
     return sigmoid
