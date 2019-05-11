@@ -13,13 +13,14 @@ class BackendOperations(object):
     backend : object
         A backend object: numpy, tensorflow, or pytorch.
     """
+
     def __init__(self, backend):
         self.backend = backend
         self.name = self.backend.__name__
 
     def dot(self, a, b):
         """Dot product"""
-        if self.name == 'torch':
+        if self.name == "torch":
             if isinstance(a, np.ndarray):
                 a = self.backend.Tensor(a).float()
             if isinstance(b, np.ndarray):
@@ -30,21 +31,20 @@ class BackendOperations(object):
 
     def logspace(self, a, b, num):
         """Logspace"""
-        if self.name == 'torch':
-            return self.backend.logspace(start=float(a), end=float(b),
-                                         steps=num)
+        if self.name == "torch":
+            return self.backend.logspace(start=float(a), end=float(b), steps=num)
         else:
             return self.backend.logspace(a, b, num)
 
     def log10(self, a):
         """Log base 10"""
-        if self.name == 'torch':
+        if self.name == "torch":
             a = self.backend.Tensor([a])
         return self.backend.log10(a)
 
     def norm(self, a):
         """Norm between two vectors"""
-        if self.name == 'torch':
+        if self.name == "torch":
             return self.backend.norm(a).float()
         else:
             return self.backend.linalg.norm(a)
@@ -55,20 +55,20 @@ class BackendOperations(object):
 
     def from_numpy(self, a):
         """Convert from numpy to right data type"""
-        a = np.array(a)     # This is the safest way
+        a = np.array(a)  # This is the safest way
         return self.backend.from_numpy(a).float()
 
     def to_numpy(self, a):
         """Convert from numpy to right data type"""
-        if self.name == 'torch':
+        if self.name == "torch":
             return a.numpy()
 
     def divide(self, a, b):
         """Divide two vectors/tensors"""
-        if self.name == 'torch':
+        if self.name == "torch":
             return self.backend.div(a, b)
 
     def sum(self, a):
         """Sum a list of values"""
-        if self.name == 'torch':
+        if self.name == "torch":
             return self.backend.sum(a)

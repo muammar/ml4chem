@@ -29,21 +29,24 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
 
     min_val = min(true)
     max_val = max(true)
-    fig = plt.figure(figsize=(6., 6.))
+    fig = plt.figure(figsize=(6.0, 6.0))
     ax = fig.add_subplot(111)
-    ax.plot(true, predictions, 'r.')
-    ax.plot([min_val, max_val], [min_val, max_val], 'k-', lw=0.3,)
-    plt.xlabel('True Values')
-    plt.ylabel('ML4Chem Predictions')
+    ax.plot(true, predictions, "r.")
+    ax.plot([min_val, max_val], [min_val, max_val], "k-", lw=0.3)
+    plt.xlabel("True Values")
+    plt.ylabel("ML4Chem Predictions")
 
     if scores:
         rmse = np.sqrt(mean_squared_error(true, predictions))
         mae = mean_absolute_error(true, predictions)
         correlation = r2_score(true, predictions)
-        plt.text(min_val, max_val, 'R-squared = {:.2f} \n'
-                                   'RMSE = {:.2f}\n'
-                                   'MAE = {:.2f}\n'
-                                   .format(correlation, rmse, mae))
+        plt.text(
+            min_val,
+            max_val,
+            "R-squared = {:.2f} \n"
+            "RMSE = {:.2f}\n"
+            "MAE = {:.2f}\n".format(correlation, rmse, mae),
+        )
 
     if filename is None:
         plt.show()
@@ -51,7 +54,7 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
         plt.savefig(filename, **kwargs)
 
 
-def read_log(logfile, metric='loss', refresh=None):
+def read_log(logfile, metric="loss", refresh=None):
     """Read the logfile
 
     Parameters
@@ -73,14 +76,14 @@ def read_log(logfile, metric='loss', refresh=None):
         # This is for autoscale
         axes.set_autoscale_on(True)
         axes.autoscale_view(True, True, True)
-        axes.set_xlabel('Epochs')
+        axes.set_xlabel("Epochs")
         plt.show(block=False)
 
     metric = metric.lower()
 
-    f = open(logfile, 'r')
+    f = open(logfile, "r")
 
-    check = 'Epoch'
+    check = "Epoch"
     start = False
     epochs = []
     loss = []
@@ -102,27 +105,27 @@ def read_log(logfile, metric='loss', refresh=None):
                     pass
 
         if initiliazed is False:
-            if metric == 'loss':
-                fig, = plt.plot(epochs, loss, label='loss')
+            if metric == "loss":
+                fig, = plt.plot(epochs, loss, label="loss")
 
-            elif metric == 'rmse':
-                fig, = plt.plot(epochs, rmse, label='rmse')
+            elif metric == "rmse":
+                fig, = plt.plot(epochs, rmse, label="rmse")
 
             else:
-                fig, = plt.plot(epochs, loss, label='loss')
-                fig, = plt.plot(epochs, rmse, label='rmse')
+                fig, = plt.plot(epochs, loss, label="loss")
+                fig, = plt.plot(epochs, rmse, label="rmse")
         else:
-            if metric == 'loss':
+            if metric == "loss":
                 fig.set_data(epochs, loss)
 
-            elif metric == 'rmse':
+            elif metric == "rmse":
                 fig.set_data(epochs, rmse)
 
             else:
                 fig.set_data(epochs, loss)
                 fig.set_data(epochs, rmse)
 
-        plt.legend(loc='upper left')
+        plt.legend(loc="upper left")
         axes.relim()
         axes.autoscale_view(True, True, True)
         plt.draw()
@@ -141,20 +144,20 @@ def read_log(logfile, metric='loss', refresh=None):
                     rmse.append(float(line[4]))
                 except ValueError:
                     pass
-        if metric == 'loss':
-            fig, = plt.plot(epochs, loss, label='loss')
+        if metric == "loss":
+            fig, = plt.plot(epochs, loss, label="loss")
 
-        elif metric == 'rmse':
-            fig, = plt.plot(epochs, rmse, label='rmse')
+        elif metric == "rmse":
+            fig, = plt.plot(epochs, rmse, label="rmse")
 
         else:
-            fig, = plt.plot(epochs, loss, label='loss')
-            fig, = plt.plot(epochs, rmse, label='rmse')
+            fig, = plt.plot(epochs, loss, label="loss")
+            fig, = plt.plot(epochs, rmse, label="rmse")
 
         plt.show(block=True)
 
 
-def plot_latent_space(latent_space, method='PCA', dimensions=2):
+def plot_latent_space(latent_space, method="PCA", dimensions=2):
     """docstring for latent_space"""
 
     latent_space = load(latent_space)
@@ -164,7 +167,7 @@ def plot_latent_space(latent_space, method='PCA', dimensions=2):
     for hash, feature_space in latent_space.items():
         for symbol, feature_vector in feature_space:
             full_ls.append(feature_vector)
-            full_symbols.append(symbol.decode('utf-8'))
+            full_symbols.append(symbol.decode("utf-8"))
 
     pca = PCA(n_components=dimensions)
     pca_result = pca.fit_transform(full_ls)
@@ -174,7 +177,7 @@ def plot_latent_space(latent_space, method='PCA', dimensions=2):
     for i, element in enumerate(pca_result):
         to_pandas.append([full_symbols[i], element[0], element[1]])
 
-    df = pd.DataFrame(to_pandas, columns=['Symbol', 'PCA-1', 'PCA-2'])
+    df = pd.DataFrame(to_pandas, columns=["Symbol", "PCA-1", "PCA-2"])
 
     sns.scatterplot(x="PCA-1", y="PCA-2", data=df, hue="Symbol")
 

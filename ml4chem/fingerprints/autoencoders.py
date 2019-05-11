@@ -37,16 +37,23 @@ class LatentFeatures(object):
     save_preprocessor : str
         Save preprocessor to file.
     """
-    NAME = 'LatentFeatures'
+
+    NAME = "LatentFeatures"
 
     @classmethod
     def name(cls):
         """Returns name of class"""
         return cls.NAME
 
-    def __init__(self, encoder=None, scheduler='distributed',
-                 filename='latent.db', preprocessor=None, features=None,
-                 save_preprocessor='latentfeatures.scaler'):
+    def __init__(
+        self,
+        encoder=None,
+        scheduler="distributed",
+        filename="latent.db",
+        preprocessor=None,
+        features=None,
+        save_preprocessor="latentfeatures.scaler",
+    ):
         self.encoder = encoder
         self.filename = filename
         self.scheduler = scheduler
@@ -57,7 +64,7 @@ class LatentFeatures(object):
         if features is None:
             # Add user-defined exception?
             # https://docs.python.org/3/tutorial/errors.html#user-defined-exceptions
-            error = 'A fingerprint object or tuple has to be provided.'
+            error = "A fingerprint object or tuple has to be provided."
             logger.error(error)
         else:
             self.features = features
@@ -65,10 +72,9 @@ class LatentFeatures(object):
         # Let's add parameters that are going to be stored in the .params json
         # file.
         self.params = OrderedDict()
-        self.params['name'] = self.name()
+        self.params["name"] = self.name()
 
-    def calculate_features(self, images, purpose='training', data=None,
-                           svm=False):
+    def calculate_features(self, images, purpose="training", data=None, svm=False):
         """Return features per atom in an atoms object
 
         Parameters
@@ -92,23 +98,23 @@ class LatentFeatures(object):
         # Now, we need to take the inputs and convert them to the right feature
         # space
         name, kwargs = self.features
-        features = dynamic_import(name, 'ml4chem.fingerprints')
+        features = dynamic_import(name, "ml4chem.fingerprints")
         features = features(**kwargs)
 
-        feature_space = features.calculate_features(images, data=data,
-                                                    purpose=purpose, svm=svm)
+        feature_space = features.calculate_features(
+            images, data=data, purpose=purpose, svm=svm
+        )
 
         preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
         preprocessor.set(purpose=purpose)
 
         encoder = self.load_encoder(self.encoder, data=data, purpose=purpose)
 
-        if self.preprocessor is not None and purpose == 'training':
-            hashes, symbols, _latent_space = \
-                    encoder.get_latent_space(feature_space, svm=True,
-                                             purpose='preprocessing')
-            _latent_space = preprocessor.fit(_latent_space,
-                                             scheduler=self.scheduler)
+        if self.preprocessor is not None and purpose == "training":
+            hashes, symbols, _latent_space = encoder.get_latent_space(
+                feature_space, svm=True, purpose="preprocessing"
+            )
+            _latent_space = preprocessor.fit(_latent_space, scheduler=self.scheduler)
 
             latent_space = OrderedDict()
 
@@ -121,9 +127,9 @@ class LatentFeatures(object):
                     feature_vector = _latent_space[index]
 
                     if svm is False:
-                        feature_vector = \
-                            torch.tensor(feature_vector, requires_grad=True,
-                                         dtype=torch.float)
+                        feature_vector = torch.tensor(
+                            feature_vector, requires_grad=True, dtype=torch.float
+                        )
 
                     pairs.append((symbol, feature_vector))
                     index += 1
@@ -135,10 +141,10 @@ class LatentFeatures(object):
             # Save preprocessor.
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
-        elif self.preprocessor is not None and purpose == 'inference':
-            hashes, symbols, _latent_space = \
-                    encoder.get_latent_space(feature_space, svm=True,
-                                             purpose='preprocessing')
+        elif self.preprocessor is not None and purpose == "inference":
+            hashes, symbols, _latent_space = encoder.get_latent_space(
+                feature_space, svm=True, purpose="preprocessing"
+            )
             scaled_latent_space = preprocessor.transform(_latent_space)
 
             latent_space = OrderedDict()
@@ -151,9 +157,9 @@ class LatentFeatures(object):
                     feature_vector = scaled_latent_space[index]
 
                     if svm is False:
-                        feature_vector = \
-                            torch.tensor(feature_vector, requires_grad=True,
-                                         dtype=torch.float)
+                        feature_vector = torch.tensor(
+                            feature_vector, requires_grad=True, dtype=torch.float
+                        )
 
                     pairs.append((symbol, feature_vector))
                     index += 1
@@ -189,19 +195,18 @@ class LatentFeatures(object):
             Autoencoder model object in eval mode to get the latent space.
         """
 
-        params_path = encoder.get('params')
-        model_path = encoder.get('model')
+        params_path = encoder.get("params")
+        model_path = encoder.get("model")
 
-        model_params = json.load(open(params_path, 'r'))
-        model_params = model_params.get('model')
-        name = model_params.pop('name')
-        del model_params['type']   # delete unneeded key, value
+        model_params = json.load(open(params_path, "r"))
+        model_params = model_params.get("model")
+        name = model_params.pop("name")
+        del model_params["type"]  # delete unneeded key, value
 
-        input_dimension = model_params.pop('input_dimension')
-        output_dimension = model_params.pop('output_dimension')
+        input_dimension = model_params.pop("input_dimension")
+        output_dimension = model_params.pop("output_dimension")
 
-        autoencoder = dynamic_import(name, 'ml4chem.models',
-                                     alt_name='autoencoders')
+        autoencoder = dynamic_import(name, "ml4chem.models", alt_name="autoencoders")
         autoencoder = autoencoder(**model_params)
         autoencoder.prepare_model(input_dimension, output_dimension, **kwargs)
         autoencoder.load_state_dict(torch.load(model_path), strict=True)

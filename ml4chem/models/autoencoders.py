@@ -53,20 +53,21 @@ class AutoEncoder(torch.nn.Module):
     That would generate an autoencoder with topology (10, 5, 4 | 4, 5, 14).
     """
 
-    NAME = 'AutoEncoder'
+    NAME = "AutoEncoder"
 
     @classmethod
     def name(cls):
         """Returns name of class"""
         return cls.NAME
 
-    def __init__(self, hiddenlayers=None, activation='relu'):
+    def __init__(self, hiddenlayers=None, activation="relu"):
         super(AutoEncoder, self).__init__()
         self.hiddenlayers = hiddenlayers
         self.activation = activation
 
-    def prepare_model(self, input_dimension, output_dimension, data=None,
-                      purpose='training'):
+    def prepare_model(
+        self, input_dimension, output_dimension, data=None, purpose="training"
+    ):
         """Prepare the model
 
         Parameters
@@ -83,16 +84,21 @@ class AutoEncoder(torch.nn.Module):
         self.input_dimension = input_dimension
         self.output_dimension = output_dimension
 
-        activation = {'tanh': torch.nn.Tanh, 'relu': torch.nn.ReLU,
-                      'celu': torch.nn.CELU}
+        activation = {
+            "tanh": torch.nn.Tanh,
+            "relu": torch.nn.ReLU,
+            "celu": torch.nn.CELU,
+        }
 
-        if purpose == 'training':
-            logger.info('Model Training')
-            logger.info('==============')
-            logger.info('Model name: {}.'.format(self.name()))
-            logger.info('Structure of Autoencoder: {}'
-                        .format('(input, ' + str(self.hiddenlayers)[1:-1] +
-                                ', output)'))
+        if purpose == "training":
+            logger.info("Model Training")
+            logger.info("==============")
+            logger.info("Model name: {}.".format(self.name()))
+            logger.info(
+                "Structure of Autoencoder: {}".format(
+                    "(input, " + str(self.hiddenlayers)[1:-1] + ", output)"
+                )
+            )
 
         unique_element_symbols = data.unique_element_symbols[purpose]
 
@@ -101,17 +107,16 @@ class AutoEncoder(torch.nn.Module):
 
         for symbol in unique_element_symbols:
             encoder = []
-            encoder_layers = self.hiddenlayers['encoder']
+            encoder_layers = self.hiddenlayers["encoder"]
             decoder = []
-            decoder_layers = self.hiddenlayers['decoder']
+            decoder_layers = self.hiddenlayers["decoder"]
 
             """
             Encoder
             """
             # The first encoder layer for symbol
             out_dimension = encoder_layers[0]
-            _encoder = torch.nn.Linear(input_dimension,
-                                       out_dimension)
+            _encoder = torch.nn.Linear(input_dimension, out_dimension)
             encoder.append(_encoder)
             encoder.append(activation[self.activation]())
 
@@ -134,8 +139,7 @@ class AutoEncoder(torch.nn.Module):
 
             # The last decoder layer for symbol
             inp_dim = out_dim
-            _decoder = torch.nn.Linear(inp_dim,
-                                       output_dimension)
+            _decoder = torch.nn.Linear(inp_dim, output_dimension)
             decoder.append(_decoder)
             # According to this video https://youtu.be/xTU79Zs4XKY?t=416
             # real numbered inputs need no activation function in the output
@@ -151,11 +155,12 @@ class AutoEncoder(torch.nn.Module):
         logger.info(self.encoders)
         logger.info(self.decoders)
 
-        if purpose == 'training':
+        if purpose == "training":
             # Iterate over all modules and just intialize those that are
             # a linear layer.
-            logger.warning('Initialization of weights with Xavier Uniform by '
-                           'default.')
+            logger.warning(
+                "Initialization of weights with Xavier Uniform by " "default."
+            )
             for m in self.modules():
                 if isinstance(m, torch.nn.Linear):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
@@ -218,7 +223,7 @@ class AutoEncoder(torch.nn.Module):
         forward propagate and get the latent_space.
         """
 
-        if purpose == 'preprocessing':
+        if purpose == "preprocessing":
             hashes = []
             latent_space = []
             symbols = []
@@ -301,14 +306,25 @@ class train(object):
                             {'mode': 'min', 'patience': 10})
     """
 
-    def __init__(self, inputs, targets, model=None, data=None,
-                 optimizer=(None, None), regularization=None, epochs=100,
-                 convergence=None, lossfxn=None, device='cpu', batch_size=None,
-                 lr_scheduler=None):
+    def __init__(
+        self,
+        inputs,
+        targets,
+        model=None,
+        data=None,
+        optimizer=(None, None),
+        regularization=None,
+        epochs=100,
+        convergence=None,
+        lossfxn=None,
+        device="cpu",
+        batch_size=None,
+        lr_scheduler=None,
+    ):
 
         self.initial_time = time.time()
 
-        if device == 'cuda':
+        if device == "cuda":
             pass
             """
             logger.info('Moving data to CUDA...')
@@ -352,10 +368,10 @@ class train(object):
             vectors = torch.tensor(vectors, requires_grad=False)
             targets.append(vectors)
 
-        logging.info('Batch size: {} elements per batch.' .format(batch_size))
+        logging.info("Batch size: {} elements per batch.".format(batch_size))
 
-        if device == 'cuda':
-            logger.info('Moving data to CUDA...')
+        if device == "cuda":
+            logger.info("Moving data to CUDA...")
 
             targets = targets.cuda()
             _inputs = OrderedDict()
@@ -370,30 +386,33 @@ class train(object):
 
             move_time = time.time() - self.initial_time
             h, m, s = convert_elapsed_time(move_time)
-            logger.info('Data moved to GPU in {} hours {} minutes {:.2f} \
-                         seconds.' .format(h, m, s))
-            logger.info(' ')
+            logger.info(
+                "Data moved to GPU in {} hours {} minutes {:.2f} \
+                         seconds.".format(
+                    h, m, s
+                )
+            )
+            logger.info(" ")
 
         # Define optimizer
-        self.optimizer_name, self.optimizer = get_optimizer(optimizer,
-                                                            model.parameters()
-                                                            )
+        self.optimizer_name, self.optimizer = get_optimizer(
+            optimizer, model.parameters()
+        )
         if lr_scheduler is not None:
             self.scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
 
-        logger.info(' ')
-        logger.info('Starting training...')
-        logger.info(' ')
+        logger.info(" ")
+        logger.info("Starting training...")
+        logger.info(" ")
 
-        logger.info('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
-                                                       'Time Stamp',
-                                                       'Loss',
-                                                       'Rec Err'))
-        logger.info('{:6s} {:19s} {:12s} {:9s}'.format(
-            '------',
-            '-------------------',
-            '------------',
-            '--------'))
+        logger.info(
+            "{:6s} {:19s} {:12s} {:9s}".format("Epoch", "Time Stamp", "Loss", "Rec Err")
+        )
+        logger.info(
+            "{:6s} {:19s} {:12s} {:9s}".format(
+                "------", "-------------------", "------------", "--------"
+            )
+        )
         self.convergence = convergence
         client = dask.distributed.get_client()
         self.chunks = [client.scatter(chunk) for chunk in chunks]
@@ -424,11 +443,10 @@ class train(object):
 
             loss = self.closure()
 
-            if self.optimizer_name != 'LBFGS':
+            if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
             else:
-                options = {'closure': self.closure, 'current_loss': loss,
-                           'max_ls': 10}
+                options = {"closure": self.closure, "current_loss": loss, "max_ls": 10}
                 self.optimizer.step(options)
 
             # RMSE per image and per/atom
@@ -436,8 +454,7 @@ class train(object):
 
             client = dask.distributed.get_client()
 
-            rmse = client.submit(self.compute_rmse, *(self.outputs_,
-                                                      self.targets))
+            rmse = client.submit(self.compute_rmse, *(self.outputs_, self.targets))
             rmse = rmse.result()
 
             _loss.append(loss.item())
@@ -447,22 +464,20 @@ class train(object):
                 self.scheduler.step(loss)
 
             ts = time.time()
-            ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
-                                                              '%H:%M:%S')
-            logger.info('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss,
-                                                       rmse))
+            ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
+            logger.info("{:6d} {} {:8e} {:8f}".format(epoch, ts, loss, rmse))
 
             if self.convergence is None and epoch == self.epochs:
                 converged = True
-            elif (self.convergence is not None and rmse <
-                  self.convergence['rmse']):
+            elif self.convergence is not None and rmse < self.convergence["rmse"]:
                 converged = True
 
         training_time = time.time() - self.initial_time
 
         h, m, s = convert_elapsed_time(training_time)
-        logger.info('Training finished in {} hours {} minutes {:.2f} seconds.'
-                    .format(h, m, s))
+        logger.info(
+            "Training finished in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
+        )
 
     def train_batches(self, index, chunk, targets, model, lossfxn, device):
         """A function that allows training per batches
@@ -490,14 +505,13 @@ class train(object):
         """
         inputs = OrderedDict(chunk)
         outputs = model(inputs)
-        args = {'outputs': outputs, 'targets': targets[index]}
+        args = {"outputs": outputs, "targets": targets[index]}
 
         _args, _varargs, _keywords, _defaults = inspect.getargspec(lossfxn)
 
-        if 'latent' in _args:
-            latent = model.get_latent_space(inputs, svm=False,
-                                            purpose='preprocessing')
-            latent = {'latent': latent}
+        if "latent" in _args:
+            latent = model.get_latent_space(inputs, svm=False, purpose="preprocessing")
+            latent = {"latent": latent}
             args.update(latent)
 
         loss = lossfxn(**args)
@@ -528,10 +542,12 @@ class train(object):
         grads = []
         # Accumulation of gradients
         for index, chunk in enumerate(self.chunks):
-            accumulation.append(client.submit(self.train_batches,
-                                              *(index, chunk, self.targets,
-                                                self.model, self.lossfxn,
-                                                self.device)))
+            accumulation.append(
+                client.submit(
+                    self.train_batches,
+                    *(index, chunk, self.targets, self.model, self.lossfxn, self.device)
+                )
+            )
         dask.distributed.wait(accumulation)
         # accumulation = dask.compute(*accumulation,
         # scheduler='distributed')

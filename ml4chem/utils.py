@@ -16,12 +16,12 @@ def get_hash(image):
     _hash : str
         Hash of image in string format
     """
-    string = ''
+    string = ""
 
     for atom in image:
         string += str(atom)
 
-    sha1 = hashlib.sha1(string.encode('utf-8'))
+    sha1 = hashlib.sha1(string.encode("utf-8"))
     _hash = sha1.hexdigest()
 
     return _hash
@@ -39,9 +39,10 @@ def get_neighborlist(image, cutoff):
     -------
         A list of neighbors with offset distances.
     """
-    cutoffs = [cutoff / 2.] * len(image)
-    nlist = NeighborList(cutoffs=cutoffs, self_interaction=False,
-                         bothways=True, skin=0.)
+    cutoffs = [cutoff / 2.0] * len(image)
+    nlist = NeighborList(
+        cutoffs=cutoffs, self_interaction=False, bothways=True, skin=0.0
+    )
     nlist.update(image)
     return [nlist.get_neighbors(index) for index in range(len(image))]
 
@@ -99,9 +100,9 @@ def dynamic_import(name, package, alt_name=None):
     """
 
     if alt_name is None:
-        module_name = '.{}' .format(name.lower())
+        module_name = ".{}".format(name.lower())
     else:
-        module_name = '.{}' .format(alt_name.lower())
+        module_name = ".{}".format(alt_name.lower())
     module = importlib.import_module(module_name, package=package)
     imported_class = getattr(module, name)
 

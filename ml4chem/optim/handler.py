@@ -44,61 +44,68 @@ def get_optimizer(optimizer, params):
         pass
 
     if optimizer_name is None:
-        kwargs = {'lr': 1, 'history_size': 10, 'line_search': 'Wolfe', 'dtype':
-                  torch.float, 'debug': False}
+        kwargs = {
+            "lr": 1,
+            "history_size": 10,
+            "line_search": "Wolfe",
+            "dtype": torch.float,
+            "debug": False,
+        }
         from ml4chem.optim.LBFGS import FullBatchLBFGS
-        optimizer_name = 'LBFGS'
+
+        optimizer_name = "LBFGS"
         optimizer = FullBatchLBFGS(params, **kwargs)
 
-    elif optimizer_name == 'adam':
+    elif optimizer_name == "adam":
         optimizer = torch.optim.Adam(params, **kwargs)
-        optimizer_name = 'Adam'
+        optimizer_name = "Adam"
 
-    elif optimizer_name == 'lbfgs':
+    elif optimizer_name == "lbfgs":
         from ml4chem.optim.LBFGS import FullBatchLBFGS
+
         optimizer = FullBatchLBFGS(params, **kwargs)
-        optimizer_name = 'LBFGS'
+        optimizer_name = "LBFGS"
 
-    elif optimizer_name == 'adagrad':
+    elif optimizer_name == "adagrad":
         optimizer = torch.optim.Adagrad(params, **kwargs)
-        optimizer_name = 'Adagrad'
+        optimizer_name = "Adagrad"
 
-    elif optimizer_name == 'adadelta':
+    elif optimizer_name == "adadelta":
         optimizer = torch.optim.Adadelta(params, **kwargs)
-        optimizer_name = 'Adadelta'
+        optimizer_name = "Adadelta"
 
-    elif optimizer_name == 'sparseadam':
+    elif optimizer_name == "sparseadam":
         optimizer = torch.optim.SparseAdam(params, **kwargs)
-        optimizer_name = 'SparseAdam'
+        optimizer_name = "SparseAdam"
 
-    elif optimizer_name == 'adamax':
+    elif optimizer_name == "adamax":
         optimizer = torch.optim.Adamax(params, **kwargs)
-        optimizer_name = 'Adamax'
+        optimizer_name = "Adamax"
 
-    elif optimizer_name == 'asgd':
+    elif optimizer_name == "asgd":
         optimizer = torch.optim.ASGD(params, **kwargs)
-        optimizer_name = 'ASGD'
+        optimizer_name = "ASGD"
 
-    elif optimizer_name == 'rmsprop':
+    elif optimizer_name == "rmsprop":
         optimizer = torch.optim.RMSprop(params, **kwargs)
-        optimizer_name = 'RMSprop'
+        optimizer_name = "RMSprop"
 
-    elif optimizer_name == 'rprop':
+    elif optimizer_name == "rprop":
         optimizer = torch.optim.Rprop(params, **kwargs)
-        optimizer_name = 'Rprop'
+        optimizer_name = "Rprop"
 
-    elif optimizer_name == 'sgd':
+    elif optimizer_name == "sgd":
         optimizer = torch.optim.SGD(params, **kwargs)
-        optimizer_name = 'SGD'
+        optimizer_name = "SGD"
 
-    logger.info('Optimizer')
-    logger.info('---------')
-    logger.info('Name: {}.' .format(optimizer_name))
-    logger.info('Options:')
+    logger.info("Optimizer")
+    logger.info("---------")
+    logger.info("Name: {}.".format(optimizer_name))
+    logger.info("Options:")
     for k, v in kwargs.items():
-        logger.info('    - {}: {}.' .format(k, v))
+        logger.info("    - {}: {}.".format(k, v))
 
-    logger.info(' ')
+    logger.info(" ")
 
     return optimizer_name, optimizer
 
@@ -135,15 +142,14 @@ def get_lr_scheduler(optimizer, lr_scheduler):
     scheduler_name, kwargs = lr_scheduler
     scheduler_name = scheduler_name.lower()
 
-    if scheduler_name == 'reducelronplateau':
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-                                                               **kwargs)
-        name = 'ReduceLROnPlateau'
+    if scheduler_name == "reducelronplateau":
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **kwargs)
+        name = "ReduceLROnPlateau"
 
-    logger.info('Learning Rate Scheduler')
-    logger.info('-----------------------')
-    logger.info('    - Name: {}.' .format(name))
-    logger.info('    - Args: {}.' .format(kwargs))
-    logger.info('')
+    logger.info("Learning Rate Scheduler")
+    logger.info("-----------------------")
+    logger.info("    - Name: {}.".format(name))
+    logger.info("    - Args: {}.".format(kwargs))
+    logger.info("")
 
     return scheduler

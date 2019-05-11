@@ -2,7 +2,7 @@ import msgpack
 import msgpack_numpy as m
 
 
-def dump(arr, filename='data.db'):
+def dump(arr, filename="data.db"):
     """Dump array or dictionary to file using msgpack
 
     This function allows to dump arrays and ML4Chem dictionaries serialized
@@ -17,7 +17,7 @@ def dump(arr, filename='data.db'):
         Name of file to save in disk.
     """
 
-    with open(filename, 'wb') as f:
+    with open(filename, "wb") as f:
         f.write(msgpack.packb(arr, default=m.encode, use_bin_type=True))
 
 
@@ -30,7 +30,7 @@ def load(filename):
         Path of file to load from disk.
     """
 
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         content = msgpack.unpackb(f.read(), object_hook=m.decode)
 
     return content

@@ -9,6 +9,7 @@ class Cosine(object):
     cutoff : float
         The cutoff radius.
     """
+
     def __init__(self, cutoff):
         self.cutoff = cutoff
 
@@ -26,8 +27,8 @@ class Cosine(object):
             Value of the cutoff function.
         """
         if rij > self.cutoff:
-            cutofffxn = 0.
+            cutofffxn = 0.0
         else:
-            cutofffxn = .5 * (np.cos(np.pi * rij / self.cutoff) + 1.)
+            cutofffxn = 0.5 * (np.cos(np.pi * rij / self.cutoff) + 1.0)
 
         return cutofffxn
