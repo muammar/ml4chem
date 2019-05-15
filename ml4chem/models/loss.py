@@ -81,10 +81,11 @@ def MSELoss(outputs, targets):
 
 
 def EncoderMapLoss(
+    inputs,
     outputs,
     targets,
     latent,
-    p=2,
+    periodicity=float("inf"),
     k_c=1.0,
     k_auto=1.0,
     k_sketch=1.0,
@@ -106,14 +107,20 @@ def EncoderMapLoss(
 
     Parameters
     ----------
+    inputs : tensor
+        Inputs of the model.
     outputs : tensor
-        outputs of the model.
+        Outputs of the model.
     targets : tensor
         Expected value of outputs.
     latent : tensor
         The latent space tensor.
-    p : int
-        The norm to be computed. Default is L2 norm.
+    periodicity : float
+        Defines the distance between periodic walls for the inputs. For example
+        2pi for angular values in radians. All periodic data processed by
+        EncoderMap must be wrapped to one periodic window. E.g. data with 2pi
+        periodicity may contain values from -pi to pi or from 0 to 2pi.
+        Default is float("inf") -- non-periodic inputs.
     k_auto : float
         Contribution of distance loss function to total loss.
     k_sketch : float
@@ -138,25 +145,27 @@ def EncoderMapLoss(
     and the magnitude of activations in the latent space layer.  is added in
     the optimizer The L2 regularization is included using weight_decay in the
     optimizer of choice. The activation penalization is computed below.
-
     """
 
     loss = 0.0
 
     # Computation of distance loss function
-    loss_auto = torch.mean(torch.dist(outputs, targets, p=p))
+    distance = get_distance(inputs, outputs, periodicity=periodicity)
+    loss_auto = torch.mean(torch.norm(distance, p=2, dim=1))
     loss += k_auto * loss_auto
 
     # Computation of sketch map loss function
-    cdist_h = torch.cdist(outputs, outputs)
-    cdist_l = torch.cdist(latent, latent)
-    sigmoid_h = sigmoid(cdist_h, sigma_h, a_h, b_h)
+    # FIXME only works with non-periodic systems.
+    cdist_i = get_pairwise_distances(inputs, inputs)
+    cdist_l = get_pairwise_distances(latent, latent)
+
+    sigmoid_i = sigmoid(cdist_i, sigma_h, a_h, b_h)
     sigmoid_l = sigmoid(cdist_l, sigma_l, a_l, b_l)
-    loss += k_sketch * torch.mean(torch.pow((sigmoid_h - sigmoid_l), 2))
+    sketch_loss = torch.mean(torch.pow((sigmoid_i - sigmoid_l), 2))
+    loss += k_sketch * sketch_loss
 
     # Computation of activation regularization
-    activation_reg = 0.0
-    activation_reg += torch.mean(torch.pow(latent, 2))
+    activation_reg = torch.mean(torch.pow(latent, 2))
     loss += k_c * activation_reg
 
     return loss
@@ -188,3 +197,37 @@ def sigmoid(r, sigma, a, b):
     """
     sigmoid = 1 - (1 + (2 ** (a / b) - 1) * (r / sigma) ** a) ** (-b / a)
     return sigmoid
+
+
+def get_distance(i, j, periodicity):
+    """Get distance between two tensors
+
+    Parameters
+    ----------
+    i : tensor
+        A tensor.
+    j : tensor
+        A tensor.
+    periodicity : float
+        Defines the distance between periodic walls for the inputs.
+
+    Returns
+    -------
+        tensor with distances.
+    """
+    d = torch.abs(i - j)
+
+    return torch.min(d, periodicity - d)
+
+
+def get_pairwise_distances(positions, squared=False):
+    """docstring for pairwise_dist"""
+    dot_product = torch.matmul(positions, positions.t())
+    square_norm = dot_product.diag()
+    distances = square_norm.unsqueeze(0) - 2.0 * dot_product + square_norm.unsqueeze(1)
+    distances = torch.max(distances, torch.zeros_like(distances))
+
+    if squared is True:
+        distances = torch.sqrt(distances)
+
+    return distances

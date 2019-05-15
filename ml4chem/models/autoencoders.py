@@ -323,6 +323,7 @@ class train(object):
     ):
 
         self.initial_time = time.time()
+        client = dask.distributed.get_client()
 
         if device == "cuda":
             pass
@@ -357,6 +358,9 @@ class train(object):
         del targets
 
         targets = []
+
+        # This loop is needed because the targets are fingerprints or positions
+        # and they are built as a dictionary.
 
         for t in targets_:
             t = OrderedDict(t)
@@ -401,12 +405,31 @@ class train(object):
         if lr_scheduler is not None:
             self.scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
 
+        if lossfxn is None:
+            self.lossfxn = MSELoss
+        else:
+            logger.info("Using custom loss function...")
+            logger.info("")
+            self.lossfxn = lossfxn
+
+            self.inputs_chunk_vals = []
+            for c in chunks:
+                c = OrderedDict(c)
+                vectors = []
+                for hash in c.keys():
+                    features = c[hash]
+                    for symbol, vector in features:
+                        vectors.append(vector.detach().numpy())
+                vectors = torch.tensor(vectors, requires_grad=False)
+                self.inputs_chunk_vals.append(vectors)
+
         logger.info(" ")
         logger.info("Starting training...")
         logger.info(" ")
 
         logger.info(
-            "{:6s} {:19s} {:12s} {:9s}".format("Epoch", "Time Stamp", "Loss", "Rec Err")
+            "{:6s} {:19s} {:12s} {:9s}".format("Epoch", "Time Stamp", "Loss",
+                                               "Rec Err")
         )
         logger.info(
             "{:6s} {:19s} {:12s} {:9s}".format(
@@ -414,18 +437,12 @@ class train(object):
             )
         )
         self.convergence = convergence
-        client = dask.distributed.get_client()
         self.chunks = [client.scatter(chunk) for chunk in chunks]
         self.targets = [client.scatter(target) for target in targets]
         self.device = device
         self.epochs = epochs
         self.model = model
         self.lr_scheduler = lr_scheduler
-
-        if lossfxn is None:
-            self.lossfxn = MSELoss
-        else:
-            self.lossfxn = lossfxn
 
         # Let the hunger game begin...
         self.run()
@@ -446,7 +463,8 @@ class train(object):
             if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
             else:
-                options = {"closure": self.closure, "current_loss": loss, "max_ls": 10}
+                options = {"closure": self.closure, "current_loss": loss,
+                           "max_ls": 10}
                 self.optimizer.step(options)
 
             # RMSE per image and per/atom
@@ -454,7 +472,8 @@ class train(object):
 
             client = dask.distributed.get_client()
 
-            rmse = client.submit(self.compute_rmse, *(self.outputs_, self.targets))
+            rmse = client.submit(self.compute_rmse, *(self.outputs_,
+                                                      self.targets))
             rmse = rmse.result()
 
             _loss.append(loss.item())
@@ -513,6 +532,9 @@ class train(object):
             latent = model.get_latent_space(inputs, svm=False, purpose="preprocessing")
             latent = {"latent": latent}
             args.update(latent)
+
+            # In the case of using EncoderMapLoss the inputs are needed, too.
+            args.update({"inputs": self.inputs_chunk_vals[index]})
 
         loss = lossfxn(**args)
         loss.backward()
