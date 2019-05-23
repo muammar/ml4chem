@@ -428,8 +428,7 @@ class train(object):
         logger.info(" ")
 
         logger.info(
-            "{:6s} {:19s} {:12s} {:9s}".format("Epoch", "Time Stamp", "Loss",
-                                               "Rec Err")
+            "{:6s} {:19s} {:12s} {:9s}".format("Epoch", "Time Stamp", "Loss", "Rec Err")
         )
         logger.info(
             "{:6s} {:19s} {:12s} {:9s}".format(
@@ -463,8 +462,7 @@ class train(object):
             if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
             else:
-                options = {"closure": self.closure, "current_loss": loss,
-                           "max_ls": 10}
+                options = {"closure": self.closure, "current_loss": loss, "max_ls": 10}
                 self.optimizer.step(options)
 
             # RMSE per image and per/atom
@@ -472,8 +470,7 @@ class train(object):
 
             client = dask.distributed.get_client()
 
-            rmse = client.submit(self.compute_rmse, *(self.outputs_,
-                                                      self.targets))
+            rmse = client.submit(self.compute_rmse, *(self.outputs_, self.targets))
             rmse = rmse.result()
 
             _loss.append(loss.item())

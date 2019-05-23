@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from sklearn.externals import joblib
+import joblib
 
 logger = logging.getLogger()
 

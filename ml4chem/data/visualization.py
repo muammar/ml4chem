@@ -4,7 +4,6 @@ import pandas as pd
 import seaborn as sns
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from ml4chem.data.serialization import load
-from sklearn.decomposition import PCA
 
 
 def parity(predictions, true, scores=False, filename=None, **kwargs):
@@ -157,28 +156,76 @@ def read_log(logfile, metric="loss", refresh=None):
         plt.show(block=True)
 
 
-def plot_latent_space(latent_space, method="PCA", dimensions=2):
-    """docstring for latent_space"""
+def plot_atomic_features(latent_space, method="PCA", dimensions=2):
+    """Plot high dimensional atomic feature vectors
+    
+    This function can take a feature space dictionary, or a database file
+    and plot the atomic features using PCA or t-SNE. 
 
-    latent_space = load(latent_space)
+    $ mlchem --plot tsne --file path.db
+
+    Parameters
+    ----------
+    latent_space : dict or str
+        Dictionary of atomic features of path to database file.
+    method : str, optional
+        Dimensionality reduction method to employed, by default "PCA".
+        Supported are: "PCA" and "TSNE".
+    dimensions : int, optional
+        Number of dimensions to reduce the high dimensional atomic feature
+        vectors, by default 2.
+    """
+
+    method = method.lower()
+    if isinstance(latent_space, str):
+        latent_space = load(latent_space)
+
     full_ls = []
     full_symbols = []
+
+    # This conditional is needed if you are passing an atomic feature database.
+    if b"feature_space" in latent_space.keys():
+        latent_space = latent_space[b"feature_space"]
 
     for hash, feature_space in latent_space.items():
         for symbol, feature_vector in feature_space:
             full_ls.append(feature_vector)
             full_symbols.append(symbol.decode("utf-8"))
 
-    pca = PCA(n_components=dimensions)
-    pca_result = pca.fit_transform(full_ls)
+    if method == "pca":
+        from sklearn.decomposition import PCA
 
-    to_pandas = []
+        labels = {"x": "PCA-1", "y": "PCA-2"}
+        pca = PCA(n_components=dimensions)
+        pca_result = pca.fit_transform(full_ls)
 
-    for i, element in enumerate(pca_result):
-        to_pandas.append([full_symbols[i], element[0], element[1]])
+        to_pandas = []
 
-    df = pd.DataFrame(to_pandas, columns=["Symbol", "PCA-1", "PCA-2"])
+        for i, element in enumerate(pca_result):
+            to_pandas.append([full_symbols[i], element[0], element[1]])
 
-    sns.scatterplot(x="PCA-1", y="PCA-2", data=df, hue="Symbol")
+        columns = ["Symbol", "PCA-1", "PCA-2"]
+
+        df = pd.DataFrame(to_pandas, columns=columns)
+        sns.scatterplot(**labels, data=df, hue="Symbol")
+
+    elif method == "tsne":
+        from sklearn import manifold
+
+        labels = {"x": "t-SNE-1", "y": "t-SNE-2"}
+
+        tsne = manifold.TSNE(n_components=dimensions)
+
+        tsne_result = tsne.fit_transform(full_ls)
+
+        to_pandas = []
+
+        for i, element in enumerate(tsne_result):
+            to_pandas.append([full_symbols[i], element[0], element[1]])
+
+        columns = ["Symbol", "t-SNE-1", "t-SNE-2"]
+
+        df = pd.DataFrame(to_pandas, columns=columns)
+        sns.scatterplot(**labels, data=df, hue="Symbol")
 
     plt.show()
