@@ -23,7 +23,6 @@ class ModelMerger(torch.nn.Module):
     @classmethod
     def name(cls):
         """Returns name of class"""
-
         return cls.NAME
 
     def __init__(self, merge):

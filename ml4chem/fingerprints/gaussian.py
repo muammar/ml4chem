@@ -1,12 +1,13 @@
 import dask
 import logging
+import os
 import time
 import torch
 import numpy as np
 from ase.data import atomic_numbers
 from collections import OrderedDict
 from .cutoff import Cosine
-from ml4chem.data.serialization import dump
+from ml4chem.data.serialization import dump, load
 from ml4chem.data.preprocessing import Preprocessing
 from ml4chem.utils import get_neighborlist, convert_elapsed_time
 
@@ -38,6 +39,12 @@ class Gaussian(object):
         Save preprocessor to file.
     scheduler : str
         The scheduler to be used with the dask backend.
+    filename : str
+        Path to save database. Note that if the filename exists, the features
+        will be loaded without being recomputed.
+    overwrite : bool
+        If overwrite is set to true, ml4chem will not try to load existing
+        databases.
     """
 
     NAME = "Gaussian"
@@ -58,6 +65,7 @@ class Gaussian(object):
         save_preprocessor="ml4chem",
         scheduler="distributed",
         filename="fingerprints.db",
+        overwrite=False
     ):
 
         self.cutoff = cutoff
@@ -66,6 +74,7 @@ class Gaussian(object):
         self.scheduler = scheduler
         self.preprocessor = preprocessor
         self.save_preprocessor = save_preprocessor
+        self.overwrite = overwrite
 
         # Let's add parameters that are going to be stored in the .params json
         # file.
@@ -78,6 +87,7 @@ class Gaussian(object):
         # Delete useless variables
         del _params["self"]
         del _params["scheduler"]
+        del _params["overwrite"]
 
         for k, v in _params.items():
             if v is not None:
@@ -90,7 +100,7 @@ class Gaussian(object):
         else:
             self.cutofffxn = cutofffxn
 
-    def calculate_features(self, images, purpose="training", data=None, svm=False):
+    def calculate_features(self, images=None, purpose="training", data=None, svm=False):
         """Calculate the features per atom in an atoms objects
 
         Parameters
@@ -110,11 +120,26 @@ class Gaussian(object):
         feature_space : dict
             A dictionary with key hash and value as a list with the following
             structure: {'hash': [('H', [vector]]}
+        reference_space : dict
+            A reference space useful for SVM models.
         """
 
         logger.info(" ")
         logger.info("Fingerprinting")
         logger.info("==============")
+
+        if os.path.isfile(self.filename) and self.overwrite is False:
+            logger.warning('Loading features from {}.' .format(self.filename))
+            logger.info(" ")
+            svm_keys = [b'feature_space', b'reference_space']
+            data = load(self.filename)
+
+            if svm_keys == list(data.keys()):
+                feature_space = data[svm_keys[0]]
+                reference_space = data[svm_keys[1]]
+                return feature_space, reference_space
+            else:
+                return data
 
         initial_time = time.time()
 
@@ -302,13 +327,18 @@ class Gaussian(object):
                 " seconds.".format(h, m, s)
             )
 
-            data = {"feature_space": feature_space}
 
             if svm:
-                data.update({"reference_space": reference_space})
-                dump(data, filename=self.filename)
+                if self.filename is not None:
+                    logger.info("Fingerprints saved to {}." .format(self.filename))
+                    data = {"feature_space": feature_space}
+                    data.update({"reference_space": reference_space})
+                    dump(data, filename=self.filename)
                 return feature_space, reference_space
             else:
+                if self.filename is not None:
+                    logger.info("Fingerprints saved to {}." .format(self.filename))
+                    dump(feature_space, filename=self.filename)
                 return feature_space
 
         elif purpose == "inference":

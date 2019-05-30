@@ -1,5 +1,6 @@
 import dask
 import logging
+import os
 import time
 import torch
 import numpy as np
@@ -29,6 +30,9 @@ class Cartesian(object):
         Use some scaling method to preprocess the data. Default Normalizer.
     save_preprocessor : str
         Save preprocessor to file.
+    overwrite : bool
+        If overwrite is set to true, ml4chem will not try to load existing
+        databases.
     """
 
     NAME = "Cartesian"
@@ -44,14 +48,16 @@ class Cartesian(object):
         filename="cartesians.db",
         preprocessor=("Normalizer",),
         save_preprocessor="ml4chem",
+        overwrite=False
     ):
 
         self.filename = filename
         self.scheduler = scheduler
         self.preprocessor = preprocessor
         self.save_preprocessor = save_preprocessor
+        self.overwrite = overwrite
 
-    def calculate_features(self, images, purpose="training", data=None, svm=False):
+    def calculate_features(self, images=None, purpose="training", data=None, svm=False):
         """Return features per atom in an atoms objects
 
         Parameters
@@ -76,6 +82,19 @@ class Cartesian(object):
         logger.info(" ")
         logger.info("Fingerprinting")
         logger.info("==============")
+
+        if os.path.isfile(self.filename) and self.overwrite is False:
+            logger.warning('Loading features from {}.' .format(self.filename))
+            logger.info(" ")
+            svm_keys = [b'feature_space', b'reference_space']
+            data = load(self.filename)
+
+            if svm_keys == list(data.keys()):
+                feature_space = data[svm_keys[0]]
+                reference_space = data[svm_keys[1]]
+                return feature_space, reference_space
+            else:
+                return data
 
         initial_time = time.time()
 
