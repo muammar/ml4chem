@@ -76,6 +76,7 @@ def read_log(logfile, metric="loss", refresh=None):
         axes.set_autoscale_on(True)
         axes.autoscale_view(True, True, True)
         axes.set_xlabel("Epochs")
+        annotation = axes.text(0, 0, str(""))
         plt.show(block=False)
 
     metric = metric.lower()
@@ -124,9 +125,24 @@ def read_log(logfile, metric="loss", refresh=None):
                 fig.set_data(epochs, loss)
                 fig.set_data(epochs, rmse)
 
+            # Updating annotation
+            if metric == "loss":
+                values = loss
+            elif metric == "rmse":
+                values = rmse
+        
+            reported = values [-1]
+            x = int(epochs[-1] * 0.9)
+            y = float(reported * 1.3)
+            annotation.set_text('{:.5f}'.format(reported))
+            annotation.set_position((x, y))
+
         plt.legend(loc="upper left")
         axes.relim()
         axes.autoscale_view(True, True, True)
+
+
+        # Draw the plot
         plt.draw()
         plt.pause(refresh)
         initiliazed = True
@@ -143,6 +159,7 @@ def read_log(logfile, metric="loss", refresh=None):
                     rmse.append(float(line[4]))
                 except ValueError:
                     pass
+
         if metric == "loss":
             fig, = plt.plot(epochs, loss, label="loss")
 

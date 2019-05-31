@@ -122,7 +122,7 @@ class Potentials(Calculator, object):
         return calc
 
     @staticmethod
-    def save(model, features=None, path=None, label=None):
+    def save(model, features=None, path=None, label='ml4chem'):
         """Save a model
 
         Parameters
@@ -134,15 +134,13 @@ class Potentials(Calculator, object):
         path : str
             The path where to save the model.
         label : str
-            Name for files. Default ml4chem.
+            Name of files. Default ml4chem.
         """
 
         model_name = model.name()
 
-        if path is None and label is None:
-            path = "model"
-        elif path is None and label is not None:
-            path = label
+        if path is None:
+            path = "model" + label
         else:
             path += label
 
