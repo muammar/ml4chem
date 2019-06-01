@@ -92,7 +92,7 @@ class KernelRidge(object):
         Quantum Chemistry, 115(16), 1058-1073.
     """
 
-    NAME = 'KernelRidge'
+    NAME = "KernelRidge"
 
     @classmethod
     def name(cls):
@@ -100,11 +100,22 @@ class KernelRidge(object):
 
         return cls.NAME
 
-    def __init__(self, sigma=1., kernel='rbf', scheduler='distributed',
-                 lamda=1e-5, trainingimages=None, checkpoints=None,
-                 cholesky=True, weights_independent=True, forcetraining=False,
-                 nnpartition=None, sum_rule=True, batch_size=None,
-                 weights=None):
+    def __init__(
+        self,
+        sigma=1.0,
+        kernel="rbf",
+        scheduler="distributed",
+        lamda=1e-5,
+        trainingimages=None,
+        checkpoints=None,
+        cholesky=True,
+        weights_independent=True,
+        forcetraining=False,
+        nnpartition=None,
+        sum_rule=True,
+        batch_size=None,
+        weights=None,
+    ):
 
         np.set_printoptions(precision=30, threshold=999999999)
         self.kernel = kernel
@@ -116,14 +127,14 @@ class KernelRidge(object):
         # Let's add parameters that are going to be stored in the .params json
         # file.
         self.params = OrderedDict()
-        self.params['name'] = self.name()
-        self.params['type'] = 'svm'
+        self.params["name"] = self.name()
+        self.params["type"] = "svm"
 
         # This is a very general way of not forgetting to save variables
         _params = vars()
 
         # Delete useless variables
-        del _params['self']
+        del _params["self"]
 
         for k, v in _params.items():
             if v is not None:
@@ -137,8 +148,9 @@ class KernelRidge(object):
         else:
             self.weights = weights
 
-    def prepare_model(self, feature_space, reference_features, data=None,
-                      purpose='training'):
+    def prepare_model(
+        self, feature_space, reference_features, data=None, purpose="training"
+    ):
         """Prepare the Kernel Ridge Regression model
 
         Parameters
@@ -158,13 +170,13 @@ class KernelRidge(object):
         This method builds the atomic kernel matrices and the LT vectors needed
         to apply the atomic decomposition Ansatz.
         """
-        if purpose == 'training':
-            logger.info('Model Training')
-            logger.info('Model name: {}.'.format(self.name()))
-            logger.info('Kernel parameters:')
-            logger.info('    - Kernel function: {}.' .format(self.kernel))
-            logger.info('    - Sigma: {}.' .format(self.sigma))
-            logger.info('    - Lamda: {}.' .format(self.lamda))
+        if purpose == "training":
+            logger.info("Model Training")
+            logger.info("Model name: {}.".format(self.name()))
+            logger.info("Kernel parameters:")
+            logger.info("    - Kernel function: {}.".format(self.kernel))
+            logger.info("    - Sigma: {}.".format(self.sigma))
+            logger.info("    - Lamda: {}.".format(self.lamda))
 
         dim = len(reference_features)
 
@@ -174,65 +186,69 @@ class KernelRidge(object):
 
         initial_time = time.time()
 
-        logger.info('Computing Kernel Matrix...')
+        logger.info("Computing Kernel Matrix...")
         # We start populating computations with delayed functions to
         # operate with dask's scheduler
-        logger.warning('    Adding calculations to scheduler...')
+        logger.warning("    Adding calculations to scheduler...")
 
-        computations = self.get_kernel_matrix(feature_space,
-                                              reference_features)
+        computations = self.get_kernel_matrix(feature_space, reference_features)
 
         scheduler_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(scheduler_time)
-        logger.info('    {} kernel evaluations added in {} hours {} minutes '
-                    '{:.2f} seconds.' .format(len(computations), h, m, s))
+        logger.info(
+            "    {} kernel evaluations added in {} hours {} minutes "
+            "{:.2f} seconds.".format(len(computations), h, m, s)
+        )
 
         if self.batch_size is not None:
             computations = list(get_chunks(computations, self.batch_size))
-            logger.info('    The calculations were batched in groups of {}.'
-                        .format(self.batch_size))
+            logger.info(
+                "    The calculations were batched in groups of {}.".format(
+                    self.batch_size
+                )
+            )
 
         # We compute the calculations with dask and the result is converted
         # to numpy array.
-        logger.info('    Evaluating atomic similarities...')
+        logger.info("    Evaluating atomic similarities...")
 
         if self.batch_size is None:
-            kernel_matrix = dask.compute(*computations,
-                                         scheduler=self.scheduler)
+            kernel_matrix = dask.compute(*computations, scheduler=self.scheduler)
         else:
             kernel_matrix = []
             for i, chunk in enumerate(computations):
-                kernel_matrix.append(dask.compute(*chunk,
-                                     scheduler=self.scheduler))
+                kernel_matrix.append(dask.compute(*chunk, scheduler=self.scheduler))
 
         self.K = np.array(kernel_matrix).reshape(dim, dim)
 
         build_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(build_time)
-        logger.info('Kernel matrix built in {} hours {} minutes {:.2f} '
-                    'seconds.' .format(h, m, s))
+        logger.info(
+            "Kernel matrix built in {} hours {} minutes {:.2f} "
+            "seconds.".format(h, m, s)
+        )
 
         """
         LT Vectors
         """
         # We build the LT matrix needed for ADA
-        logger.info('Building LT matrix')
+        logger.info("Building LT matrix")
         computations = []
         for index, feature_space in enumerate(feature_space.items()):
             computations.append(self.get_lt(index))
 
-        self.LT = np.array((dask.compute(*computations,
-                                         scheduler=self.scheduler)))
+        self.LT = np.array((dask.compute(*computations, scheduler=self.scheduler)))
 
         lt_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(lt_time)
-        logger.info('LT matrix built in {} hours {} minutes {:.2f} seconds.'
-                    .format(h, m, s))
+        logger.info(
+            "LT matrix built in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
+        )
 
     def get_kernel_matrix(self, feature_space, reference_features):
         """Create computations to build kernel matrix"""
 
-        call = {'exponential': exponential, 'laplacian': laplacian, 'rbf': rbf}
+        call = {"exponential": exponential, "laplacian": laplacian, "rbf": rbf}
         computations = []
 
         for hash, _feature_space in feature_space.items():
@@ -240,10 +256,13 @@ class KernelRidge(object):
             for i_symbol, i_afp in _feature_space:
                 f_map.append(1)
                 for j_symbol, j_afp in reference_features:
-                    kernel = call[self.kernel](i_afp, j_afp,
-                                               i_symbol=i_symbol,
-                                               j_symbol=j_symbol,
-                                               sigma=self.sigma)
+                    kernel = call[self.kernel](
+                        i_afp,
+                        j_afp,
+                        i_symbol=i_symbol,
+                        j_symbol=j_symbol,
+                        sigma=self.sigma,
+                    )
                     computations.append(kernel)
             self.fingerprint_map.append(f_map)
 
@@ -264,30 +283,32 @@ class KernelRidge(object):
         """
 
         if isinstance(self.lamda, dict):
-            lamda = self.lamda['energy']
+            lamda = self.lamda["energy"]
         else:
             lamda = self.lamda
 
         size = len(targets)
         I_e = np.identity(size)
         K = self.LT.dot(self.K).dot(self.LT.T)
-        logger.info('Size of the Kernel matrix is {}.' .format(K.shape))
-        logger.info('Starting Cholesky Factorization...')
+        logger.info("Size of the Kernel matrix is {}.".format(K.shape))
+        logger.info("Starting Cholesky Factorization...")
         cholesky_U = cholesky((K + (lamda * I_e)))
-        logger.info('Cholesky Factorization finished...')
+        logger.info("Cholesky Factorization finished...")
         betas = np.linalg.solve(cholesky_U.T, targets)
         _weights = np.linalg.solve(cholesky_U, betas)
-        _weights = [w * g for index, w in enumerate(_weights) for
-                    g in self.fingerprint_map[index]]
-        self.weights['energy'] = _weights
+        _weights = [
+            w * g
+            for index, w in enumerate(_weights)
+            for g in self.fingerprint_map[index]
+        ]
+        self.weights["energy"] = _weights
 
     def get_potential_energy(self, fingerprints, reference_space):
         """Get potential energy in KernelRidge"""
-        reference_space = reference_space[b'reference_space']
+        reference_space = reference_space[b"reference_space"]
         computations = self.get_kernel_matrix(fingerprints, reference_space)
-        kernel = np.array(dask.compute(*computations,
-                                       scheduler=self.scheduler))
-        weights = np.array(self.weights['energy'])
+        kernel = np.array(dask.compute(*computations, scheduler=self.scheduler))
+        weights = np.array(self.weights["energy"])
         dim = int(kernel.shape[0] / weights.shape[0])
         kernel = kernel.reshape(dim, len(weights))
         energy_per_atom = np.dot(kernel, weights)
@@ -313,10 +334,10 @@ class KernelRidge(object):
         for i, group in enumerate(self.fingerprint_map):
             if i == index:
                 for _ in group:
-                    _LT.append(1.)
+                    _LT.append(1.0)
             else:
                 for _ in group:
-                    _LT.append(0.)
+                    _LT.append(0.0)
         return _LT
 
     def get_sigma(self, sigma, forcetraining=False):
@@ -347,6 +368,8 @@ class KernelRidge(object):
 """
 Auxiliary functions to compute kernels
 """
+
+
 @dask.delayed
 def linear(feature_i, feature_j, i_symbol=None, j_symbol=None):
     """ Compute a linear kernel
@@ -369,14 +392,14 @@ def linear(feature_i, feature_j, i_symbol=None, j_symbol=None):
     """
 
     if i_symbol != j_symbol:
-        return 0.
+        return 0.0
     else:
         linear = np.dot(feature_i, feature_j)
         return linear
 
 
 @dask.delayed
-def rbf(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.):
+def rbf(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.0):
     """ Compute the rbf (AKA Gaussian) kernel.
 
     Parameters
@@ -400,26 +423,33 @@ def rbf(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.):
     """
 
     if i_symbol != j_symbol:
-        return 0.
+        return 0.0
     else:
         if isinstance(sigma, list) or isinstance(sigma, np.ndarray):
-            assert(len(sigma) == len(feature_i) and
-                   len(sigma) == len(feature_j)), "Length of sigma does not " \
-                                                  "match atomic fingerprint " \
-                                                  "length."
+            assert len(sigma) == len(feature_i) and len(sigma) == len(feature_j), (
+                "Length of sigma does not " "match atomic fingerprint " "length."
+            )
             sigma = np.array(sigma)
-            anisotropic_rbf = np.exp(-(np.sum(np.divide(np.square(
-                              np.subtract(feature_i, feature_j)),
-                                          (2. * np.square(sigma))))))
+            anisotropic_rbf = np.exp(
+                -(
+                    np.sum(
+                        np.divide(
+                            np.square(np.subtract(feature_i, feature_j)),
+                            (2.0 * np.square(sigma)),
+                        )
+                    )
+                )
+            )
             return anisotropic_rbf
         else:
-            rbf = np.exp(-(np.linalg.norm(feature_i - feature_j) ** 2.) /
-                         (2. * sigma ** 2.))
+            rbf = np.exp(
+                -(np.linalg.norm(feature_i - feature_j) ** 2.0) / (2.0 * sigma ** 2.0)
+            )
             return rbf
 
 
 @dask.delayed
-def exponential(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.):
+def exponential(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.0):
     """ Compute the exponential kernel
 
     Parameters
@@ -442,26 +472,37 @@ def exponential(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.):
     """
 
     if i_symbol != j_symbol:
-        return 0.
+        return 0.0
     else:
         if isinstance(sigma, list) or isinstance(sigma, np.ndarray):
-            assert(len(sigma) == len(feature_i) and
-                   len(sigma) == len(feature_j)), "Length of sigma does not " \
-                                                  "match atomic fingerprint " \
-                                                  "length."
+            assert len(sigma) == len(feature_i) and len(sigma) == len(feature_j), (
+                "Length of sigma does not " "match atomic fingerprint " "length."
+            )
             sigma = np.array(sigma)
-            anisotropic_exp = np.exp(-(np.sqrt(np.sum(np.square(
-                          np.divide(np.subtract(feature_i, feature_j),
-                                               (2. * np.square(sigma))))))))
+            anisotropic_exp = np.exp(
+                -(
+                    np.sqrt(
+                        np.sum(
+                            np.square(
+                                np.divide(
+                                    np.subtract(feature_i, feature_j),
+                                    (2.0 * np.square(sigma)),
+                                )
+                            )
+                        )
+                    )
+                )
+            )
             return anisotropic_exp
         else:
-            exponential = np.exp(-(np.linalg.norm(feature_i - feature_j)) /
-                                 (2. * sigma ** 2))
+            exponential = np.exp(
+                -(np.linalg.norm(feature_i - feature_j)) / (2.0 * sigma ** 2)
+            )
             return exponential
 
 
 @dask.delayed
-def laplacian(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.):
+def laplacian(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.0):
     """ Compute the laplacian kernel
 
     Parameters
@@ -484,22 +525,20 @@ def laplacian(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.):
     """
 
     if i_symbol != j_symbol:
-        return 0.
+        return 0.0
     else:
         if isinstance(sigma, list) or isinstance(sigma, np.ndarray):
-            assert(len(sigma) == len(feature_i) and
-                   len(sigma) == len(feature_j)), "Length of sigma does not " \
-                                                  "match atomic fingerprint " \
-                                                  "length."
+            assert len(sigma) == len(feature_i) and len(sigma) == len(feature_j), (
+                "Length of sigma does not " "match atomic fingerprint " "length."
+            )
             sigma = np.array(sigma)
 
-            sum_ij = np.sum(np.square(np.divide(np.subtract(feature_i,
-                                                            feature_j),
-                                                sigma)))
+            sum_ij = np.sum(
+                np.square(np.divide(np.subtract(feature_i, feature_j), sigma))
+            )
 
             anisotropic_lap = np.exp(-(np.sqrt(sum_ij)))
             return anisotropic_lap
         else:
-            laplacian = np.exp(-(np.linalg.norm(feature_i - feature_j)) /
-                               sigma)
+            laplacian = np.exp(-(np.linalg.norm(feature_i - feature_j)) / sigma)
         return laplacian

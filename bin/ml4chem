@@ -5,19 +5,31 @@ import os
 import sys
 path = os.path.dirname(os.path.abspath(__file__)).strip('bin')
 sys.path.append(path)
-from ml4chem.data.visualization import read_log
+from ml4chem.data.visualization import read_log, plot_atomic_features
 
 @click.command()
 @click.option('--plot', default=None, help='Plot information from file.')
-@click.option('--file', default=None, help='Path to log.')
-@click.option('--interval', default=None, type=float,
+@click.option('--file', default=None, help='Path to log file or database.')
+@click.option('--refresh', default=None, type=float,
               help='Useful for sleeping before reading log files.')
 
 def main(**args):
     """ML4Chem command line tool"""
+    training_plots = ['rmse', 'loss']
+    dim_visualization = ['pca', 'tsne']
+
+    _file = args['file']
+
     if args['plot'] is not None:
-        plt = read_log(args['file'], metric=args['plot'],
-                       interval=args['interval'])
+        if args['plot'] in training_plots:
+            metric = args['plot']
+            refresh = args['refresh']
+            plt = read_log(_file, metric=metric,
+                           refresh=refresh)
+
+        elif args['plot'].lower() in dim_visualization:
+            method = args['plot']
+            plt = plot_atomic_features(_file, method=method)
 
 if __name__ == '__main__':
     main()

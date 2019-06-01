@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from sklearn.externals import joblib
+import joblib
 
 logger = logging.getLogger()
 
@@ -13,7 +13,7 @@ class Preprocessing(object):
 
     Parameters
     ----------
-    preprocesor : tuple
+    preprocessor : tuple
         Tuple with structure: ('name', {kwargs}).
     purpose : str
         Supported purposes are : 'training', 'inference'.
@@ -29,18 +29,19 @@ class Preprocessing(object):
     report or follow the structure shown below to implement it yourself (PR are
     very welcomed). In principle, all preprocessors can be implemented.
     """
-    def __init__(self, preprocesor, purpose):
 
-        # preprocesor has to be a tuple, but it might be the case that user
+    def __init__(self, preprocessor, purpose):
+
+        # preprocessor has to be a tuple, but it might be the case that user
         # input is not that.
-        if preprocesor is None:
+        if preprocessor is None:
             self.preprocessing = None
             self.kwargs = None
-        elif preprocesor is not None and purpose == 'training':
-            self.preprocessing, self.kwargs = preprocesor
+        elif preprocessor is not None and purpose == "training":
+            self.preprocessing, self.kwargs = preprocessor
             self.preprocessing = self.preprocessing.lower()
         else:
-            self.preprocessing = preprocesor
+            self.preprocessing = preprocessor
 
     def set(self, purpose):
         """Set a preprocessing method
@@ -55,44 +56,48 @@ class Preprocessing(object):
             Preprocessor object.
         """
 
-        logger.info(' ')
+        logger.info("")
 
-        if self.preprocessing == 'minmaxscaler' and purpose == 'training':
+        if self.preprocessing == "minmaxscaler" and purpose == "training":
             from dask_ml.preprocessing import MinMaxScaler
-            if self.kwargs is None:
-                self.kwargs = {'feature_range': (-1, 1)}
-            self.preprocessor = MinMaxScaler(**self.kwargs)
-            preprocessor_name = 'MinMaxScaler'
 
-        elif self.preprocessing == 'standardscaler' and purpose == 'training':
+            if self.kwargs is None:
+                self.kwargs = {"feature_range": (-1, 1)}
+            self.preprocessor = MinMaxScaler(**self.kwargs)
+            preprocessor_name = "MinMaxScaler"
+
+        elif self.preprocessing == "standardscaler" and purpose == "training":
             from dask_ml.preprocessing import StandardScaler
+
             if self.kwargs is None:
                 self.kwargs = {}
             self.preprocessor = StandardScaler(**self.kwargs)
-            preprocessor_name = 'StandardScaler'
+            preprocessor_name = "StandardScaler"
 
-        elif self.preprocessing == 'normalizer' and purpose == 'training':
+        elif self.preprocessing == "normalizer" and purpose == "training":
             if self.kwargs is None:
-                self.kwargs = {'norm': 'l2'}
+                self.kwargs = {"norm": "l2"}
             from sklearn.preprocessing import Normalizer
-            self.preprocessor = Normalizer()
-            preprocessor_name = 'Normalizer'
 
-        elif purpose == 'inference':
+            self.preprocessor = Normalizer()
+            preprocessor_name = "Normalizer"
+
+        elif self.preprocessing is not None and purpose == "inference":
             self.preprocessor = joblib.load(self.preprocessing)
+
         else:
-            logger.warning('Preprocessor is not supported.')
+            logger.warning("Preprocessor is not supported.")
             self.preprocessor = preprocessor_name = None
 
-        if purpose == 'training' and preprocessor_name is not None:
-            logger.info('Data preprocessing')
-            logger.info('------------------')
-            logger.info('Preprocessor: {}.' .format(preprocessor_name))
-            logger.info('Options:')
+        if purpose == "training" and preprocessor_name is not None:
+            logger.info("Data preprocessing")
+            logger.info("------------------")
+            logger.info("Preprocessor: {}.".format(preprocessor_name))
+            logger.info("Options:")
             for k, v in self.kwargs.items():
-                logger.info('    - {}: {}.' .format(k, v))
+                logger.info("    - {}: {}.".format(k, v))
 
-            logger.info(' ')
+            logger.info(" ")
 
         return self.preprocessor
 
@@ -121,7 +126,7 @@ class Preprocessing(object):
         Returns
         -------
         scaled_features : list
-            Scaled features using requested preprocesor.
+            Scaled features using requested preprocessor.
         """
 
         if isinstance(stacked_features, np.ndarray):
@@ -129,11 +134,10 @@ class Preprocessing(object):
             self.preprocessor.fit(stacked_features)
             scaled_features = self.preprocessor.transform(stacked_features)
         else:
-            self.preprocessor.fit(stacked_features.compute(
-                scheduler=scheduler))
-            scaled_features = \
-                self.preprocessor.transform(
-                    stacked_features.compute(scheduler=scheduler))
+            self.preprocessor.fit(stacked_features.compute(scheduler=scheduler))
+            scaled_features = self.preprocessor.transform(
+                stacked_features.compute(scheduler=scheduler)
+            )
 
         return scaled_features
 

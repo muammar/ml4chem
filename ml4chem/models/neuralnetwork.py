@@ -26,7 +26,7 @@ class NeuralNetwork(torch.nn.Module):
         The activation function.
     """
 
-    NAME = 'PytorchPotentials'
+    NAME = "PytorchPotentials"
 
     @classmethod
     def name(cls):
@@ -34,12 +34,12 @@ class NeuralNetwork(torch.nn.Module):
 
         return cls.NAME
 
-    def __init__(self, hiddenlayers=(3, 3), activation='relu'):
+    def __init__(self, hiddenlayers=(3, 3), activation="relu", **kwargs):
         super(NeuralNetwork, self).__init__()
         self.hiddenlayers = hiddenlayers
         self.activation = activation
 
-    def prepare_model(self, input_dimension, data=None, purpose='training'):
+    def prepare_model(self, input_dimension, data=None, purpose="training"):
         """Prepare the model
 
         Parameters
@@ -51,26 +51,32 @@ class NeuralNetwork(torch.nn.Module):
         purpose : str
             Purpose of this model: 'training', 'inference'.
         """
-        activation = {'tanh': torch.nn.Tanh, 'relu': torch.nn.ReLU,
-                      'celu': torch.nn.CELU}
+        self.input_dimension = input_dimension
+
+        activation = {
+            "tanh": torch.nn.Tanh,
+            "relu": torch.nn.ReLU,
+            "celu": torch.nn.CELU,
+        }
 
         hl = len(self.hiddenlayers)
-        if purpose == 'training':
-            logger.info(' ')
-            logger.info('Model Training')
-            logger.info('==============')
-            logger.info('Model name: {}.'.format(self.name()))
-            logger.info('Number of hidden-layers: {}' .format(hl))
-            logger.info('Structure of Neural Net: {}'
-                        .format('(input, ' + str(self.hiddenlayers)[1:-1] +
-                                ', output)'))
-            logger.info(' ')
+        if purpose == "training":
+            logger.info(" ")
+            logger.info("Model Training")
+            logger.info("==============")
+            logger.info("Model name: {}.".format(self.name()))
+            logger.info("Number of hidden-layers: {}".format(hl))
+            logger.info(
+                "Structure of Neural Net: {}".format(
+                    "(input, " + str(self.hiddenlayers)[1:-1] + ", output)"
+                )
+            )
+            logger.info(" ")
         layers = range(len(self.hiddenlayers) + 1)
         try:
             unique_element_symbols = data.unique_element_symbols[purpose]
         except TypeError:
-            unique_element_symbols = \
-                    data.get_unique_element_symbols(purpose=purpose)
+            unique_element_symbols = data.get_unique_element_symbols(purpose=purpose)
             unique_element_symbols = unique_element_symbols[purpose]
 
         symbol_model_pair = []
@@ -78,24 +84,22 @@ class NeuralNetwork(torch.nn.Module):
         for symbol in unique_element_symbols:
             linears = []
 
-            intercept_name = 'intercept_' + symbol
-            slope_name = 'slope_' + symbol
+            intercept_name = "intercept_" + symbol
+            slope_name = "slope_" + symbol
 
-            if purpose == 'training':
-                intercept = (data.max_energy + data.min_energy) / 2.
+            if purpose == "training":
+                intercept = (data.max_energy + data.min_energy) / 2.0
                 intercept = torch.nn.Parameter(
-                        torch.tensor(intercept, requires_grad=True))
-                slope = (data.max_energy - data.min_energy) / 2.
-                slope = torch.nn.Parameter(torch.tensor(slope,
-                                                        requires_grad=True))
-
-                print(intercept, slope)
+                    torch.tensor(intercept, requires_grad=True)
+                )
+                slope = (data.max_energy - data.min_energy) / 2.0
+                slope = torch.nn.Parameter(torch.tensor(slope, requires_grad=True))
 
                 self.register_parameter(intercept_name, intercept)
                 self.register_parameter(slope_name, slope)
-            elif purpose == 'inference':
-                intercept = torch.nn.Parameter(torch.tensor(0.))
-                slope = torch.nn.Parameter(torch.tensor(0.))
+            elif purpose == "inference":
+                intercept = torch.nn.Parameter(torch.tensor(0.0))
+                slope = torch.nn.Parameter(torch.tensor(0.0))
                 self.register_parameter(intercept_name, intercept)
                 self.register_parameter(slope_name, slope)
 
@@ -103,8 +107,7 @@ class NeuralNetwork(torch.nn.Module):
                 # This is the input layer
                 if index == 0:
                     out_dimension = self.hiddenlayers[0]
-                    _linear = torch.nn.Linear(input_dimension,
-                                              out_dimension)
+                    _linear = torch.nn.Linear(input_dimension, out_dimension)
                     linears.append(_linear)
                     linears.append(activation[self.activation]())
                 # This is the output layer
@@ -127,12 +130,13 @@ class NeuralNetwork(torch.nn.Module):
 
         self.linears = torch.nn.ModuleDict(symbol_model_pair)
 
-        if purpose == 'training':
+        if purpose == "training":
             logger.info(self.linears)
             # Iterate over all modules and just intialize those that are
             # a linear layer.
-            logger.warning('Initialization of weights with Xavier Uniform by '
-                           'default.')
+            logger.warning(
+                "Initialization of weights with Xavier Uniform by " "default."
+            )
             for m in self.modules():
                 if isinstance(m, torch.nn.Linear):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
@@ -164,11 +168,11 @@ class NeuralNetwork(torch.nn.Module):
                 # TODO this conditional can be removed after de/serialization
                 # is fixed.
                 if isinstance(symbol, bytes):
-                    symbol = symbol.decode('utf-8')
+                    symbol = symbol.decode("utf-8")
                 x = self.linears[symbol](x)
 
-                intercept_name = 'intercept_' + symbol
-                slope_name = 'slope_' + symbol
+                intercept_name = "intercept_" + symbol
+                slope_name = "slope_" + symbol
                 slope = getattr(self, slope_name)
                 intercept = getattr(self, intercept_name)
 
@@ -215,13 +219,25 @@ class train(object):
         Tuple with structure: scheduler's name and a dictionary with keyword
         arguments.
 
-        >>> lr_scheduler = ('ReduceLROnPlateau', {'mode': 'min', 'patience': 10})
+        >>> lr_scheduler = ('ReduceLROnPlateau',
+                            {'mode': 'min', 'patience': 10})
     """
 
-    def __init__(self, inputs, targets, model=None, data=None,
-                 optimizer=(None, None), regularization=None, epochs=100,
-                 convergence=None, lossfxn=None, device='cpu',
-                 batch_size=None, lr_scheduler=None):
+    def __init__(
+        self,
+        inputs,
+        targets,
+        model=None,
+        data=None,
+        optimizer=(None, None),
+        regularization=None,
+        epochs=100,
+        convergence=None,
+        lossfxn=None,
+        device="cpu",
+        batch_size=None,
+        lr_scheduler=None,
+    ):
 
         self.initial_time = time.time()
 
@@ -238,22 +254,22 @@ class train(object):
         if isinstance(batch_size, int):
             chunks = list(get_chunks(inputs, batch_size, svm=False))
             targets = list(get_chunks(targets, batch_size, svm=False))
-            atoms_per_image = list(get_chunks(atoms_per_image, batch_size,
-                                              svm=False))
+            atoms_per_image = list(get_chunks(atoms_per_image, batch_size, svm=False))
 
-        logger.info(' ')
-        logging.info('Batch Information')
-        logging.info('-----------------')
-        logging.info('Number of batches: {}.' .format(len(chunks)))
-        logging.info('Batch size: {} elements per batch.' .format(batch_size))
-        logger.info(' ')
+        logger.info(" ")
+        logging.info("Batch Information")
+        logging.info("-----------------")
+        logging.info("Number of batches: {}.".format(len(chunks)))
+        logging.info("Batch size: {} elements per batch.".format(batch_size))
+        logger.info(" ")
 
-        atoms_per_image = torch.tensor(atoms_per_image, requires_grad=False,
-                                       dtype=torch.float)
+        atoms_per_image = torch.tensor(
+            atoms_per_image, requires_grad=False, dtype=torch.float
+        )
         targets = torch.tensor(targets, requires_grad=False)
 
-        if device == 'cuda':
-            logger.info('Moving data to CUDA...')
+        if device == "cuda":
+            logger.info("Moving data to CUDA...")
 
             atoms_per_image = atoms_per_image.cuda()
             targets = targets.cuda()
@@ -269,33 +285,35 @@ class train(object):
 
             move_time = time.time() - self.initial_time
             h, m, s = convert_elapsed_time(move_time)
-            logger.info('Data moved to GPU in {} hours {} minutes {:.2f} \
-                         seconds.' .format(h, m, s))
-            logger.info(' ')
+            logger.info(
+                "Data moved to GPU in {} hours {} minutes {:.2f} \
+                         seconds.".format(
+                    h, m, s
+                )
+            )
+            logger.info(" ")
 
         # Define optimizer
-        self.optimizer_name, self.optimizer = get_optimizer(optimizer,
-                                                            model.parameters()
-                                                            )
+        self.optimizer_name, self.optimizer = get_optimizer(
+            optimizer, model.parameters()
+        )
         if lr_scheduler is not None:
             self.scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
 
-        logger.info(' ')
-        logger.info('Starting training...')
-        logger.info(' ')
+        logger.info(" ")
+        logger.info("Starting training...")
+        logger.info(" ")
 
-        logger.info('{:6s} {:19s} {:12s} {:8s} {:8s}'.format(
-                                                       'Epoch',
-                                                       'Time Stamp',
-                                                       'Loss',
-                                                       'RMSE/img',
-                                                       'RMSE/atom'))
-        logger.info('{:6s} {:19s} {:12s} {:8s} {:8s}'.format(
-                                                       '------',
-                                                       '-------------------',
-                                                       '------------',
-                                                       '--------',
-                                                       '---------'))
+        logger.info(
+            "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
+                "Epoch", "Time Stamp", "Loss", "RMSE/img", "RMSE/atom"
+            )
+        )
+        logger.info(
+            "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
+                "------", "-------------------", "------------", "--------", "---------"
+            )
+        )
         self.atoms_per_image = atoms_per_image
         self.convergence = convergence
         client = dask.distributed.get_client()
@@ -303,9 +321,13 @@ class train(object):
         self.targets = [client.scatter(target) for target in targets]
         self.device = device
         self.epochs = epochs
-        self.lossfxn = lossfxn
         self.model = model
         self.lr_scheduler = lr_scheduler
+
+        if lossfxn is None:
+            self.lossfxn = AtomicMSELoss
+        else:
+            self.lossfxn = lossfxn
 
         # Let the hunger games begin...
         self.run()
@@ -323,21 +345,20 @@ class train(object):
 
             loss = self.closure()
 
-            if self.optimizer_name != 'LBFGS':
+            if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
             else:
-                options = {'closure': self.closure, 'current_loss': loss,
-                           'max_ls': 10}
+                options = {"closure": self.closure, "current_loss": loss, "max_ls": 10}
                 self.optimizer.step(options)
 
             # RMSE per image and per/atom
 
             client = dask.distributed.get_client()
 
-            rmse = client.submit(self.compute_rmse, *(self.outputs_,
-                                                      self.targets))
-            rmse_atom = client.submit(self.compute_rmse, *(self.outputs_,
-                                      self.targets, self.atoms_per_image))
+            rmse = client.submit(self.compute_rmse, *(self.outputs_, self.targets))
+            rmse_atom = client.submit(
+                self.compute_rmse, *(self.outputs_, self.targets, self.atoms_per_image)
+            )
             rmse = rmse.result()
             rmse_atom = rmse_atom.result()
 
@@ -348,25 +369,26 @@ class train(object):
                 self.scheduler.step(loss)
 
             ts = time.time()
-            ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
-                                                              '%H:%M:%S')
-            logger.info('{:6d} {} {:8e} {:8f} {:8f}' .format(epoch, ts, loss,
-                                                             rmse, rmse_atom))
+            ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
+            logger.info(
+                "{:6d} {} {:8e} {:8f} {:8f}".format(epoch, ts, loss, rmse, rmse_atom)
+            )
 
             if self.convergence is None and epoch == self.epochs:
                 converged = True
-            elif (self.convergence is not None and rmse <
-                  self.convergence['energy']):
+            elif self.convergence is not None and rmse < self.convergence["energy"]:
                 converged = True
 
         training_time = time.time() - self.initial_time
 
         h, m, s = convert_elapsed_time(training_time)
-        logger.info('Training finished in {} hours {} minutes {:.2f} seconds.'
-                    .format(h, m, s))
+        logger.info(
+            "Training finished in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
+        )
 
-    def train_batches(self, index, chunk, targets, model, lossfxn,
-                      atoms_per_image, device):
+    def train_batches(
+        self, index, chunk, targets, model, lossfxn, atoms_per_image, device
+    ):
         """A function that allows training per batches
 
 
@@ -395,11 +417,8 @@ class train(object):
         inputs = OrderedDict(chunk)
         outputs = model(inputs)
 
-        if lossfxn is None:
-            loss = AtomicMSELoss(outputs, targets[index], atoms_per_image[index])
-            loss.backward()
-        else:
-            raise('I do not know what to do')
+        loss = lossfxn(outputs, targets[index], atoms_per_image[index])
+        loss.backward()
 
         gradients = []
 
@@ -427,11 +446,20 @@ class train(object):
         grads = []
         # Accumulation of gradients
         for index, chunk in enumerate(self.chunks):
-            accumulation.append(client.submit(self.train_batches,
-                                              *(index, chunk, self.targets,
-                                                self.model, self.lossfxn,
-                                                self.atoms_per_image,
-                                                self.device)))
+            accumulation.append(
+                client.submit(
+                    self.train_batches,
+                    *(
+                        index,
+                        chunk,
+                        self.targets,
+                        self.model,
+                        self.lossfxn,
+                        self.atoms_per_image,
+                        self.device,
+                    )
+                )
+            )
         dask.distributed.wait(accumulation)
         # accumulation = dask.compute(*accumulation,
         # scheduler='distributed')

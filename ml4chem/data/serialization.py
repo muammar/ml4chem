@@ -1,24 +1,30 @@
+import torch
 import msgpack
 import msgpack_numpy as m
 
 
-def dump(arr, filename='data.db'):
-    """Dump array or dictionary to file using msgpack
+def dump(data, filename="data.db"):
+    """Serialize data
 
-    This function allows to dump arrays and ML4Chem dictionaries serialized
-    with msgpack.
+    This function allows to dump data and ML4Chem dictionaries serialized
+    with msgpack, or torch (depending on the models).
 
     Parameters
     ----------
-    arr : dict or array
+    data : dict or array
         A dictionary or array containting data to be saved to file using
         msgpack.
     filename : str
         Name of file to save in disk.
     """
 
-    with open(filename, 'wb') as f:
-        f.write(msgpack.packb(arr, default=m.encode, use_bin_type=True))
+    # Let's try to dump the data with msgpack, if that does not work we assume
+    # torch.
+    try:
+        with open(filename, "wb") as f:
+                f.write(msgpack.packb(data, default=m.encode, use_bin_type=True))
+    except TypeError:
+        torch.save(data, filename)
 
 
 def load(filename):
@@ -30,7 +36,12 @@ def load(filename):
         Path of file to load from disk.
     """
 
-    with open(filename, 'rb') as f:
-        content = msgpack.unpackb(f.read(), object_hook=m.decode)
+    # Let's try to open a serialized data file with msgpack, if that does not
+    # work we again assume it is a torch serialized file.
+    try:
+        with open(filename, "rb") as f:
+            content = msgpack.unpackb(f.read(), object_hook=m.decode)
+    except msgpack.exceptions.ExtraData:
+        content = torch.load(filename)
 
     return content

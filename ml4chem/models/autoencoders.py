@@ -1,5 +1,6 @@
 import dask
 import datetime
+import inspect
 import logging
 import time
 import torch
@@ -22,10 +23,10 @@ class AutoEncoder(torch.nn.Module):
     reconstructed (input equals output). These models are able to learn data
     codings in an unsupervised manner. They are composed by an encoder that
     takes an input and concentrate (encodes) the information in a lower/larger
-    dimension (latent space). Subsequently, a decoder takes the latent space
-    and tries to resconstruct the input. However, when the output is not equal
-    to the input, the model learns how to 'translate' input into output e.g.
-    image coloring.
+    dimensional space (aka latent space). Subsequently, a decoder takes the
+    latent space and tries to resconstruct the input. It is been reported that
+    when the output is not equal to the input, the model learns how to
+    'translate' input into output e.g. image coloring.
 
     This module uses autoencoders for pipelines in chemistry.
 
@@ -36,35 +37,37 @@ class AutoEncoder(torch.nn.Module):
     activation : str
         The activation function.
 
+
     Notes
     -----
     When defining the hiddenlayers keyword argument, input and output
     dimensions are automatically determined. For example, suppose you have an
     input data point with 10 dimensions and you want to autoencode with
-    targets having 14 dimensions, and a latent space with 4 dimensions and just
-    one layer with 5 nodes between input/latent and latent/output. Your
-    hiddenlayers dictionary would look like this:
+    targets having 14 dimensions, a latent space with 4 dimensions and just one
+    hidden layer with 5 nodes between input-layer / latent-layer and
+    latent-layer / output-layer. Your `hiddenlayers` dictionary would look like
+    this:
 
         >>> hiddenlayers = {'encoder': (5, 4), 'decoder': (4, 5)}
 
-    That would generate an autoencoder with topology (10, 5, 4, 4, 5, 14).
+    That would generate an autoencoder with topology (10, 5, 4 | 4, 5, 14).
     """
 
-    NAME = 'AutoEncoder'
+    NAME = "AutoEncoder"
 
     @classmethod
     def name(cls):
         """Returns name of class"""
-
         return cls.NAME
 
-    def __init__(self, hiddenlayers=None, activation='relu'):
+    def __init__(self, hiddenlayers=None, activation="relu"):
         super(AutoEncoder, self).__init__()
         self.hiddenlayers = hiddenlayers
         self.activation = activation
 
-    def prepare_model(self, input_dimension, output_dimension, data=None,
-                      purpose='training'):
+    def prepare_model(
+        self, input_dimension, output_dimension, data=None, purpose="training"
+    ):
         """Prepare the model
 
         Parameters
@@ -78,16 +81,24 @@ class AutoEncoder(torch.nn.Module):
         purpose : str
             Purpose of this model: 'training', 'inference'.
         """
-        activation = {'tanh': torch.nn.Tanh, 'relu': torch.nn.ReLU,
-                      'celu': torch.nn.CELU}
+        self.input_dimension = input_dimension
+        self.output_dimension = output_dimension
 
-        if purpose == 'training':
-            logger.info('Model Training')
-            logger.info('==============')
-            logger.info('Model name: {}.'.format(self.name()))
-            logger.info('Structure of Autoencoder: {}'
-                        .format('(input, ' + str(self.hiddenlayers)[1:-1] +
-                                ', output)'))
+        activation = {
+            "tanh": torch.nn.Tanh,
+            "relu": torch.nn.ReLU,
+            "celu": torch.nn.CELU,
+        }
+
+        if purpose == "training":
+            logger.info("Model Training")
+            logger.info("==============")
+            logger.info("Model name: {}.".format(self.name()))
+            logger.info(
+                "Structure of Autoencoder: {}".format(
+                    "(input, " + str(self.hiddenlayers)[1:-1] + ", output)"
+                )
+            )
 
         unique_element_symbols = data.unique_element_symbols[purpose]
 
@@ -96,17 +107,16 @@ class AutoEncoder(torch.nn.Module):
 
         for symbol in unique_element_symbols:
             encoder = []
-            encoder_layers = self.hiddenlayers['encoder']
+            encoder_layers = self.hiddenlayers["encoder"]
             decoder = []
-            decoder_layers = self.hiddenlayers['decoder']
+            decoder_layers = self.hiddenlayers["decoder"]
 
             """
             Encoder
             """
             # The first encoder layer for symbol
             out_dimension = encoder_layers[0]
-            _encoder = torch.nn.Linear(input_dimension,
-                                       out_dimension)
+            _encoder = torch.nn.Linear(input_dimension, out_dimension)
             encoder.append(_encoder)
             encoder.append(activation[self.activation]())
 
@@ -129,8 +139,7 @@ class AutoEncoder(torch.nn.Module):
 
             # The last decoder layer for symbol
             inp_dim = out_dim
-            _decoder = torch.nn.Linear(inp_dim,
-                                       output_dimension)
+            _decoder = torch.nn.Linear(inp_dim, output_dimension)
             decoder.append(_decoder)
             # According to this video https://youtu.be/xTU79Zs4XKY?t=416
             # real numbered inputs need no activation function in the output
@@ -146,11 +155,12 @@ class AutoEncoder(torch.nn.Module):
         logger.info(self.encoders)
         logger.info(self.decoders)
 
-        if purpose == 'training':
+        if purpose == "training":
             # Iterate over all modules and just intialize those that are
             # a linear layer.
-            logger.warning('Initialization of weights with Xavier Uniform by '
-                           'default.')
+            logger.warning(
+                "Initialization of weights with Xavier Uniform by " "default."
+            )
             for m in self.modules():
                 if isinstance(m, torch.nn.Linear):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
@@ -181,7 +191,7 @@ class AutoEncoder(torch.nn.Module):
         outputs = torch.stack(outputs)
         return outputs
 
-    def get_latent_space(self, X, svm=False):
+    def get_latent_space(self, X, svm=False, purpose=None):
         """Get latent space for training ML4Chem
 
         This method takes an input and use the encoder to return latent space
@@ -194,6 +204,11 @@ class AutoEncoder(torch.nn.Module):
         svm : bool
             Whether or not these latent vectors are going to be used for kernel
             methods.
+        purpose : str
+            The purpose for this latent space. This is just useful for the case
+            where the latent space will be preprocessed
+            (purpose='preprocessing').
+
 
         Returns
         -------
@@ -208,21 +223,50 @@ class AutoEncoder(torch.nn.Module):
         forward propagate and get the latent_space.
         """
 
-        latent_space = OrderedDict()
+        if purpose == "preprocessing":
+            hashes = []
+            latent_space = []
+            symbols = []
 
-        for hash, image in X.items():
-            latent_space[hash] = []
-            for symbol, x in image:
-                latent_vector = self.encoders[symbol](x)
+            for hash, image in X.items():
+                hashes.append(hash)
+                _symbols = []
+                for symbol, x in image:
+                    latent_vector = self.encoders[symbol](x)
+                    _symbols.append(symbol)
 
-                if svm:
-                    _latent_vector = latent_vector.detach().numpy()
-                else:
-                    _latent_vector = latent_vector.detach()
+                    if svm:
+                        _latent_vector = latent_vector.detach().numpy()
+                    else:
+                        _latent_vector = latent_vector.detach()
 
-                latent_space[hash].append((symbol, _latent_vector))
+                    latent_space.append(_latent_vector)
 
-        return latent_space
+                symbols.append(_symbols)
+
+            if svm:
+                latent_space = np.array(latent_space)
+                return hashes, symbols, latent_space
+            else:
+                latent_space = torch.stack(latent_space)
+                return latent_space
+
+        else:
+            latent_space = OrderedDict()
+
+            for hash, image in X.items():
+                latent_space[hash] = []
+                for symbol, x in image:
+                    latent_vector = self.encoders[symbol](x)
+
+                    if svm:
+                        _latent_vector = latent_vector.detach().numpy()
+                    else:
+                        _latent_vector = latent_vector.detach()
+
+                    latent_space[hash].append((symbol, _latent_vector))
+
+            return latent_space
 
 
 class train(object):
@@ -258,16 +302,30 @@ class train(object):
         Tuple with structure: scheduler's name and a dictionary with keyword
         arguments.
 
-        >>> lr_scheduler = ('ReduceLROnPlateau', {'mode': 'min', 'patience': 10})
+        >>> lr_scheduler = ('ReduceLROnPlateau',
+                            {'mode': 'min', 'patience': 10})
     """
 
-    def __init__(self, inputs, targets, model=None, data=None,
-                 optimizer=(None, None), regularization=None, epochs=100,
-                 convergence=None, lossfxn=None, device='cpu',
-                 batch_size=None, lr_scheduler=None):
+    def __init__(
+        self,
+        inputs,
+        targets,
+        model=None,
+        data=None,
+        optimizer=(None, None),
+        regularization=None,
+        epochs=100,
+        convergence=None,
+        lossfxn=None,
+        device="cpu",
+        batch_size=None,
+        lr_scheduler=None,
+    ):
 
         self.initial_time = time.time()
-        if device == 'cuda':
+        client = dask.distributed.get_client()
+
+        if device == "cuda":
             pass
             """
             logger.info('Moving data to CUDA...')
@@ -301,6 +359,9 @@ class train(object):
 
         targets = []
 
+        # This loop is needed because the targets are fingerprints or positions
+        # and they are built as a dictionary.
+
         for t in targets_:
             t = OrderedDict(t)
             vectors = []
@@ -311,10 +372,10 @@ class train(object):
             vectors = torch.tensor(vectors, requires_grad=False)
             targets.append(vectors)
 
-        logging.info('Batch size: {} elements per batch.' .format(batch_size))
+        logging.info("Batch size: {} elements per batch.".format(batch_size))
 
-        if device == 'cuda':
-            logger.info('Moving data to CUDA...')
+        if device == "cuda":
+            logger.info("Moving data to CUDA...")
 
             targets = targets.cuda()
             _inputs = OrderedDict()
@@ -329,37 +390,56 @@ class train(object):
 
             move_time = time.time() - self.initial_time
             h, m, s = convert_elapsed_time(move_time)
-            logger.info('Data moved to GPU in {} hours {} minutes {:.2f} \
-                         seconds.' .format(h, m, s))
-            logger.info(' ')
+            logger.info(
+                "Data moved to GPU in {} hours {} minutes {:.2f} \
+                         seconds.".format(
+                    h, m, s
+                )
+            )
+            logger.info(" ")
 
         # Define optimizer
-        self.optimizer_name, self.optimizer = get_optimizer(optimizer,
-                                                            model.parameters()
-                                                            )
+        self.optimizer_name, self.optimizer = get_optimizer(
+            optimizer, model.parameters()
+        )
         if lr_scheduler is not None:
             self.scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
 
-        logger.info(' ')
-        logger.info('Starting training...')
-        logger.info(' ')
+        if lossfxn is None:
+            self.lossfxn = MSELoss
+        else:
+            logger.info("Using custom loss function...")
+            logger.info("")
+            self.lossfxn = lossfxn
 
-        logger.info('{:6s} {:19s} {:12s} {:9s}'.format('Epoch',
-                                                       'Time Stamp',
-                                                       'Loss',
-                                                       'Rec Err'))
-        logger.info('{:6s} {:19s} {:12s} {:9s}'.format(
-            '------',
-            '-------------------',
-            '------------',
-            '--------'))
+            self.inputs_chunk_vals = []
+            for c in chunks:
+                c = OrderedDict(c)
+                vectors = []
+                for hash in c.keys():
+                    features = c[hash]
+                    for symbol, vector in features:
+                        vectors.append(vector.detach().numpy())
+                vectors = torch.tensor(vectors, requires_grad=False)
+                self.inputs_chunk_vals.append(vectors)
+
+        logger.info(" ")
+        logger.info("Starting training...")
+        logger.info(" ")
+
+        logger.info(
+            "{:6s} {:19s} {:12s} {:9s}".format("Epoch", "Time Stamp", "Loss", "Rec Err")
+        )
+        logger.info(
+            "{:6s} {:19s} {:12s} {:9s}".format(
+                "------", "-------------------", "------------", "--------"
+            )
+        )
         self.convergence = convergence
-        client = dask.distributed.get_client()
         self.chunks = [client.scatter(chunk) for chunk in chunks]
         self.targets = [client.scatter(target) for target in targets]
         self.device = device
         self.epochs = epochs
-        self.lossfxn = lossfxn
         self.model = model
         self.lr_scheduler = lr_scheduler
 
@@ -379,11 +459,10 @@ class train(object):
 
             loss = self.closure()
 
-            if self.optimizer_name != 'LBFGS':
+            if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
             else:
-                options = {'closure': self.closure, 'current_loss': loss,
-                           'max_ls': 10}
+                options = {"closure": self.closure, "current_loss": loss, "max_ls": 10}
                 self.optimizer.step(options)
 
             # RMSE per image and per/atom
@@ -391,8 +470,7 @@ class train(object):
 
             client = dask.distributed.get_client()
 
-            rmse = client.submit(self.compute_rmse, *(self.outputs_,
-                                                      self.targets))
+            rmse = client.submit(self.compute_rmse, *(self.outputs_, self.targets))
             rmse = rmse.result()
 
             _loss.append(loss.item())
@@ -402,22 +480,20 @@ class train(object):
                 self.scheduler.step(loss)
 
             ts = time.time()
-            ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d '
-                                                              '%H:%M:%S')
-            logger.info('{:6d} {} {:8e} {:8f}' .format(epoch, ts, loss,
-                                                       rmse))
+            ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
+            logger.info("{:6d} {} {:8e} {:8f}".format(epoch, ts, loss, rmse))
 
             if self.convergence is None and epoch == self.epochs:
                 converged = True
-            elif (self.convergence is not None and rmse <
-                  self.convergence['rmse']):
+            elif self.convergence is not None and rmse < self.convergence["rmse"]:
                 converged = True
 
         training_time = time.time() - self.initial_time
 
         h, m, s = convert_elapsed_time(training_time)
-        logger.info('Training finished in {} hours {} minutes {:.2f} seconds.'
-                    .format(h, m, s))
+        logger.info(
+            "Training finished in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
+        )
 
     def train_batches(self, index, chunk, targets, model, lossfxn, device):
         """A function that allows training per batches
@@ -445,12 +521,20 @@ class train(object):
         """
         inputs = OrderedDict(chunk)
         outputs = model(inputs)
+        args = {"outputs": outputs, "targets": targets[index]}
 
-        if lossfxn is None:
-            loss = MSELoss(outputs, targets[index])
-            loss.backward()
-        else:
-            raise('I do not know what to do')
+        _args, _varargs, _keywords, _defaults = inspect.getargspec(lossfxn)
+
+        if "latent" in _args:
+            latent = model.get_latent_space(inputs, svm=False, purpose="preprocessing")
+            latent = {"latent": latent}
+            args.update(latent)
+
+            # In the case of using EncoderMapLoss the inputs are needed, too.
+            args.update({"inputs": self.inputs_chunk_vals[index]})
+
+        loss = lossfxn(**args)
+        loss.backward()
 
         gradients = []
 
@@ -477,10 +561,12 @@ class train(object):
         grads = []
         # Accumulation of gradients
         for index, chunk in enumerate(self.chunks):
-            accumulation.append(client.submit(self.train_batches,
-                                              *(index, chunk, self.targets,
-                                                self.model, self.lossfxn,
-                                                self.device)))
+            accumulation.append(
+                client.submit(
+                    self.train_batches,
+                    *(index, chunk, self.targets, self.model, self.lossfxn, self.device)
+                )
+            )
         dask.distributed.wait(accumulation)
         # accumulation = dask.compute(*accumulation,
         # scheduler='distributed')

@@ -29,17 +29,27 @@ class Potentials(Calculator, object):
         PATH where to save files.
     label : str
         Name for files. Default ml4chem.
+    preprocessor : str
+        The path to load the file with the sklearn preprocessor object.
     """
+
     # This is needed by ASE
-    implemented_properties = ['energy', 'forces']
+    implemented_properties = ["energy", "forces"]
 
     # This is a good way to make attributes available to the class. This can be
     # accessed as Potentials.attibute
-    svm_models = ['KernelRidge']
+    svm_models = ["KernelRidge"]
 
-    def __init__(self, fingerprints=None, model=None, path=None,
-                 label='ml4chem', atoms=None, ml4chem_path=None,
-                 preprocessor=None):
+    def __init__(
+        self,
+        fingerprints=None,
+        model=None,
+        path=None,
+        label="ml4chem",
+        atoms=None,
+        ml4chem_path=None,
+        preprocessor=None,
+    ):
 
         Calculator.__init__(self, label=label, atoms=atoms)
         self.fingerprints = fingerprints
@@ -51,7 +61,7 @@ class Potentials(Calculator, object):
         self.preprocessor = preprocessor
 
         logger.info(get_header_message())
-        logger.info('Available backends: {}.' .format(self.available_backends))
+        logger.info("Available backends: {}.".format(self.available_backends))
 
         self.reference_space = None
 
@@ -68,42 +78,43 @@ class Potentials(Calculator, object):
         preprocessor : str
             The path to load the file with the sklearn preprocessor object.
         """
-        kwargs['ml4chem_path'] = model
-        kwargs['preprocessor'] = preprocessor
+        kwargs["ml4chem_path"] = model
+        kwargs["preprocessor"] = preprocessor
 
         with open(params) as ml4chem_params:
             ml4chem_params = json.load(ml4chem_params)
-            model_type = ml4chem_params['model'].get('type')
+            model_type = ml4chem_params["model"].get("type")
 
-            if model_type == 'svm':
-                model_params = ml4chem_params['model']
-                del model_params['name']   # delete unneeded key, value
-                del model_params['type']   # delete unneeded key, value
+            if model_type == "svm":
+                model_params = ml4chem_params["model"]
+                del model_params["name"]  # delete unneeded key, value
+                del model_params["type"]  # delete unneeded key, value
                 from ml4chem.models.kernelridge import KernelRidge
+
                 weights = load(model)
                 # TODO remove after de/serialization is fixed.
-                weights = {key.decode('utf-8'): value for key, value in
-                           weights.items()}
-                model_params.update({'weights': weights})
+                weights = {key.decode("utf-8"): value for key, value in weights.items()}
+                model_params.update({"weights": weights})
                 model = KernelRidge(**model_params)
             else:
                 # Instantiate the model class
-                model_params = ml4chem_params['model']
-                del model_params['name']   # delete unneeded key, value
-                del model_params['type']   # delete unneeded key, value
+                model_params = ml4chem_params["model"]
+                del model_params["name"]  # delete unneeded key, value
+                del model_params["type"]  # delete unneeded key, value
                 from ml4chem.models.neuralnetwork import NeuralNetwork
+
                 model = NeuralNetwork(**model_params)
 
         # Instantiation of fingerprint class
-        fingerprint_params = ml4chem_params.get('fingerprints', None)
+        fingerprint_params = ml4chem_params.get("fingerprints", None)
 
         if fingerprint_params is None:
             fingerprints = fingerprint_params
         else:
-            name = fingerprint_params.get('name')
-            del fingerprint_params['name']
+            name = fingerprint_params.get("name")
+            del fingerprint_params["name"]
 
-            fingerprints = dynamic_import(name, 'ml4chem.fingerprints')
+            fingerprints = dynamic_import(name, "ml4chem.fingerprints")
             fingerprints = fingerprints(**fingerprint_params)
 
         calc = Cls(fingerprints=fingerprints, model=model, **kwargs)
@@ -111,7 +122,7 @@ class Potentials(Calculator, object):
         return calc
 
     @staticmethod
-    def save(model, features=None, path=None, label=None):
+    def save(model, features=None, path=None, label='ml4chem'):
         """Save a model
 
         Parameters
@@ -123,45 +134,65 @@ class Potentials(Calculator, object):
         path : str
             The path where to save the model.
         label : str
-            Name for files. Default ml4chem.
+            Name of files. Default ml4chem.
         """
 
         model_name = model.name()
 
-        if path is None and label is None:
-            path = 'model'
-        elif path is None and label is not None:
-            path = label
+        if path is None:
+            path = "model" + label
         else:
             path += label
 
         if model_name in Potentials.svm_models:
-            params = {'model': model.params}
+            params = {"model": model.params}
 
             # Save model weigths to file
-            dump(model.weights, path + '.ml4c')
+            dump(model.weights, path + ".ml4c")
         else:
 
-            params = {'model': {'name': model_name,
-                                'hiddenlayers': model.hiddenlayers,
-                                'activation': model.activation,
-                                'type': 'nn'}}
+            params = {
+                "model": {
+                    "name": model_name,
+                    "hiddenlayers": model.hiddenlayers,
+                    "activation": model.activation,
+                    "type": "nn",
+                    "input_dimension": model.input_dimension,
+                }
+            }
 
-            torch.save(model.state_dict(), path + '.ml4c')
+            torch.save(model.state_dict(), path + ".ml4c")
+
+        if model_name == "AutoEncoder":
+            output_dimension = {"output_dimension": model.output_dimension}
+            params["model"].update(output_dimension)
 
         if features is not None:
             # Adding fingerprints to .params json file.
-            fingerprints = {'fingerprints': features.params}
+            fingerprints = {"fingerprints": features.params}
             params.update(fingerprints)
 
         # Save parameters to file
-        with open(path + '.params', 'wb') as json_file:
-            json.dump(params, codecs.getwriter('utf-8')(json_file),
-                      ensure_ascii=False, indent=4)
+        with open(path + ".params", "wb") as json_file:
+            json.dump(
+                params,
+                codecs.getwriter("utf-8")(json_file),
+                ensure_ascii=False,
+                indent=4,
+            )
 
-    def train(self, training_set, epochs=100, lr=0.001, convergence=None,
-              device='cpu',  optimizer=(None, None), lossfxn=None,
-              regularization=0., batch_size=None):
+    def train(
+        self,
+        training_set,
+        epochs=100,
+        lr=0.001,
+        convergence=None,
+        device="cpu",
+        optimizer=(None, None),
+        lossfxn=None,
+        regularization=0.0,
+        batch_size=None,
+    ):
         """Method to train models
 
         Parameters
@@ -190,55 +221,53 @@ class Potentials(Calculator, object):
             None.
         """
 
-        data_handler = DataSet(training_set, purpose='training')
+        data_handler = DataSet(training_set, purpose="training")
 
         # Raw input and targets aka X, y
-        training_set, targets = data_handler.get_images(purpose='training')
+        training_set, targets = data_handler.get_images(purpose="training")
 
         # Now let's train
         if self.model.name() in Potentials.svm_models:
             # Mapping raw positions into a feature space aka X
-            feature_space, reference_features = \
-                    self.fingerprints.calculate_features(training_set,
-                                                         data=data_handler,
-                                                         purpose='training',
-                                                         svm=True)
-            self.model.prepare_model(feature_space, reference_features,
-                                     data=data_handler)
+            feature_space, reference_features = self.fingerprints.calculate_features(
+                training_set, data=data_handler, purpose="training", svm=True
+            )
+            self.model.prepare_model(
+                feature_space, reference_features, data=data_handler
+            )
 
             self.model.train(feature_space, targets)
         else:
             # Mapping raw positions into a feature space aka X
             feature_space = self.fingerprints.calculate_features(
-                    training_set,
-                    data=data_handler,
-                    purpose='training',
-                    svm=False)
+                training_set, data=data_handler, purpose="training", svm=False
+            )
 
             # Fixed fingerprint dimension
             input_dimension = len(list(feature_space.values())[0][0][-1])
             self.model.prepare_model(input_dimension, data=data_handler)
 
             # CUDA stuff
-            if device == 'cuda':
-                logger.info('Checking if CUDA is available...')
+            if device == "cuda":
+                logger.info("Checking if CUDA is available...")
                 use_cuda = torch.cuda.is_available()
                 if use_cuda:
                     count = torch.cuda.device_count()
-                    logger.info('ML4Chem found {} CUDA devices available.'
-                                .format(count))
+                    logger.info(
+                        "ML4Chem found {} CUDA devices available.".format(count)
+                    )
 
                     for index in range(count):
                         device_name = torch.cuda.get_device_name(index)
 
                         if index == 0:
-                            device_name += ' (Default)'
+                            device_name += " (Default)"
 
-                        logger.info('    - {}.'. format(device_name))
+                        logger.info("    - {}.".format(device_name))
 
                 else:
-                    logger.warning('No CUDA available. We will use CPU.')
-                    device = 'cpu'
+                    logger.warning("No CUDA available. We will use CPU.")
+                    device = "cpu"
 
             device_ = torch.device(device)
 
@@ -246,13 +275,24 @@ class Potentials(Calculator, object):
 
             # This is something specific of pytorch.
             from ml4chem.models.neuralnetwork import train
-            train(feature_space, targets, model=self.model, data=data_handler,
-                  optimizer=optimizer, regularization=regularization,
-                  epochs=epochs, convergence=convergence, lossfxn=lossfxn,
-                  device=device, batch_size=batch_size)
 
-        self.save(self.model, features=self.fingerprints, path=self.path,
-                  label=self.label)
+            train(
+                feature_space,
+                targets,
+                model=self.model,
+                data=data_handler,
+                optimizer=optimizer,
+                regularization=regularization,
+                epochs=epochs,
+                convergence=convergence,
+                lossfxn=lossfxn,
+                device=device,
+                batch_size=batch_size,
+            )
+
+        self.save(
+            self.model, features=self.fingerprints, path=self.path, label=self.label
+        )
 
     def calculate(self, atoms, properties, system_changes):
         """Calculate things
@@ -263,7 +303,7 @@ class Potentials(Calculator, object):
             List if images in ASE format.
         properties :
         """
-        purpose = 'inference'
+        purpose = "inference"
         Calculator.calculate(self, atoms, properties, system_changes)
         model_name = self.model.name()
 
@@ -273,34 +313,34 @@ class Potentials(Calculator, object):
 
         # We copy the loaded fingerprint class
         fingerprints = copy.deepcopy(self.fingerprints)
-        fingerprints.preprocessor = self.preprocessor
-        kwargs = {'data': data_handler, 'purpose': purpose}
+        kwargs = {"data": data_handler, "purpose": purpose}
 
         if model_name in Potentials.svm_models:
-            kwargs.update({'svm': True})
+            kwargs.update({"svm": True})
 
-        fingerprints = fingerprints.calculate_features(atoms, **kwargs)
+        if fingerprints.name() == "LatentFeatures":
+            fingerprints = fingerprints.calculate_features(atoms, **kwargs)
+        else:
+            fingerprints.preprocessor = self.preprocessor
+            fingerprints = fingerprints.calculate_features(atoms, **kwargs)
 
-        if 'energy' in properties:
-            logger.info('Calculating energy')
+        if "energy" in properties:
+            logger.info("Calculating energy")
             if model_name in Potentials.svm_models:
 
                 try:
                     reference_space = load(self.reference_space)
                 except:
-                    raise('This is not a database...')
+                    raise ("This is not a database...")
 
-                energy = self.model.get_potential_energy(fingerprints,
-                                                         reference_space)
+                energy = self.model.get_potential_energy(fingerprints, reference_space)
             else:
                 input_dimension = len(list(fingerprints.values())[0][0][-1])
                 model = copy.deepcopy(self.model)
-                model.prepare_model(input_dimension, data=data_handler,
-                                    purpose=purpose)
-                model.load_state_dict(torch.load(self.ml4chem_path),
-                                      strict=True)
+                model.prepare_model(input_dimension, data=data_handler, purpose=purpose)
+                model.load_state_dict(torch.load(self.ml4chem_path), strict=True)
                 model.eval()
                 energy = model(fingerprints).item()
 
             # Populate ASE's self.results dict
-            self.results['energy'] = energy
+            self.results["energy"] = energy

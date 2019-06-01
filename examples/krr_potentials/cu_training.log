@@ -1,4 +1,4 @@
-potentials.py:52 INFO:
+potentials.py:53 INFO:
 -------------------------------------------------------------------------------
 
           ███╗   ███╗██╗██╗  ██╗ ██████╗██╗  ██╗███████╗███╗   ███╗
@@ -17,7 +17,7 @@ workflows for chemical physics.
 This software is developed by Muammar El Khatib.
 -------------------------------------------------------------------------------
 
-potentials.py:53 INFO:Available backends: ['torch', 'torchvision', 'numpy'].
+potentials.py:54 INFO:Available backends: ['torch', 'torchvision', 'numpy'].
 handler.py:34 WARNING:Data structure is not compatible with ML4Chem
 handler.py:56 INFO:Preparing images...
 handler.py:87 INFO:Images hashed and processed...
@@ -50,10 +50,10 @@ preprocessing.py:93 INFO:    - feature_range: (-1, 1).
 preprocessing.py:95 INFO: 
 gaussian.py:138 INFO:
 gaussian.py:139 INFO:Adding atomic fingerprint calculations to scheduler...
-gaussian.py:167 INFO:... finished in 0 hours 0 minutes 0.77 seconds.
+gaussian.py:167 INFO:... finished in 0 hours 0 minutes 0.57 seconds.
 gaussian.py:170 INFO:
 gaussian.py:171 INFO:Computing fingerprints...
-gaussian.py:280 INFO:Fingerprinting finished in 0 hours 0 minutes 5.60 seconds.
+gaussian.py:280 INFO:Fingerprinting finished in 0 hours 0 minutes 4.39 seconds.
 kernelridge.py:162 INFO:Model Training
 kernelridge.py:163 INFO:Model name: KernelRidge.
 kernelridge.py:164 INFO:Kernel parameters:
@@ -62,12 +62,12 @@ kernelridge.py:166 INFO:    - Sigma: 1.0.
 kernelridge.py:167 INFO:    - Lamda: 1e-05.
 kernelridge.py:177 INFO:Computing Kernel Matrix...
 kernelridge.py:180 WARNING:    Adding calculations to scheduler...
-kernelridge.py:188 INFO:    1600 kernel evaluations added in 0 hours 0 minutes 0.20 seconds.
+kernelridge.py:188 INFO:    1600 kernel evaluations added in 0 hours 0 minutes 0.16 seconds.
 kernelridge.py:193 INFO:    The calculations were batched in groups of 160.
 kernelridge.py:197 INFO:    Evaluating atomic similarities...
-kernelridge.py:213 INFO:Kernel matrix built in 0 hours 0 minutes 3.68 seconds.
+kernelridge.py:213 INFO:Kernel matrix built in 0 hours 0 minutes 2.81 seconds.
 kernelridge.py:219 INFO:Building LT matrix
-kernelridge.py:230 INFO:LT matrix built in 0 hours 0 minutes 3.72 seconds.
+kernelridge.py:230 INFO:LT matrix built in 0 hours 0 minutes 2.84 seconds.
 kernelridge.py:274 INFO:Size of the Kernel matrix is (10, 10).
 kernelridge.py:275 INFO:Starting Cholesky Factorization...
 kernelridge.py:277 INFO:Cholesky Factorization finished...

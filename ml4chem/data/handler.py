@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from ml4chem.utils import get_hash
-import dask
 import logging
 
 logger = logging.getLogger()
@@ -24,6 +23,7 @@ class DataSet(object):
     purpose : str
         Are we needing the data for training or inferring?
     """
+
     def __init__(self, images, purpose=None):
 
         self.images = None
@@ -31,7 +31,7 @@ class DataSet(object):
         self.unique_element_symbols = None
 
         if self.is_valid_structure(images) is False:
-            logger.warning('Data structure is not compatible with ML4Chem')
+            logger.warning("Data structure is not compatible with ML4Chem")
             self.prepare_images(images, purpose=purpose)
 
     def prepare_images(self, images, purpose=None):
@@ -53,10 +53,10 @@ class DataSet(object):
         self.targets : list
             Targets used for training the model.
         """
-        logger.info('Preparing images...')
+        logger.info("Preparing images...")
         self.images = OrderedDict()
 
-        if purpose == 'training':
+        if purpose == "training":
             self.targets = []
             self.atoms_per_image = []
 
@@ -68,13 +68,13 @@ class DataSet(object):
                 duplicates += 1
             else:
                 self.images[key] = image
-                if purpose == 'training':
+                if purpose == "training":
                     # When purpose is training then you also need targets and
                     # number of atoms in each image
                     self.targets.append(image.get_potential_energy())
                     self.atoms_per_image.append(len(image))
 
-        if purpose == 'training':
+        if purpose == "training":
             max_energy = max(self.targets)
             max_index = self.targets.index(max_energy)
             min_energy = min(self.targets)
@@ -84,7 +84,7 @@ class DataSet(object):
             min_energy = min_energy / len(images[min_index])
 
             self.max_energy, self.min_energy = max_energy, min_energy
-        logger.info('Images hashed and processed...')
+        logger.info("Images hashed and processed...")
 
     def is_valid_structure(self, images):
         """Check if the data has a valid structure
@@ -121,7 +121,7 @@ class DataSet(object):
         if images is None:
             images = self.images
 
-        supported_categories = ['training', 'inference']
+        supported_categories = ["training", "inference"]
 
         symbols = {}
 
@@ -130,19 +130,27 @@ class DataSet(object):
             if purpose not in symbols.keys():
                 symbols[purpose] = {}
                 try:
-                    symbols[purpose] = sorted(list(set([atom.symbol for image
-                                                         in images for atom in
-                                                         image])))
+                    symbols[purpose] = sorted(
+                        list(set([atom.symbol for image in images for atom in image]))
+                    )
                 except AttributeError:
-                    symbols[purpose] = sorted(list(set([atom.symbol for
-                                                         key, image in
-                                                         images.items() for
-                                                         atom in image])))
+                    symbols[purpose] = sorted(
+                        list(
+                            set(
+                                [
+                                    atom.symbol
+                                    for key, image in images.items()
+                                    for atom in image
+                                ]
+                            )
+                        )
+                    )
 
             else:
-                logger.warning('what happens in the following case?')    # FIXME
+                # FIXME
+                logger.warning("what happens in the following case?")
         else:
-            logger.warning('The requested purpose is not supported...')
+            logger.warning("The requested purpose is not supported...")
             symbols = None
 
         self.unique_element_symbols = symbols
@@ -158,7 +166,7 @@ class DataSet(object):
             Supported are: 'training', 'inference'
         """
 
-        if purpose == 'training':
+        if purpose == "training":
             return self.images, self.targets
         else:
             return self.images

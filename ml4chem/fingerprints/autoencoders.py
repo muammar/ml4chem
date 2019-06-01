@@ -1,13 +1,9 @@
-import dask
 import json
 import logging
-import time
 import torch
-import numpy as np
 from collections import OrderedDict
 from ml4chem.data.preprocessing import Preprocessing
-from ml4chem.data.serialization import dump
-from ml4chem.utils import convert_elapsed_time, dynamic_import
+from ml4chem.utils import dynamic_import
 
 logger = logging.getLogger()
 
@@ -25,41 +21,50 @@ class LatentFeatures(object):
 
     Parameters
     ----------
-    encoder : obj
-        A ML4Chem AutoEncoder model to extract atomic features.
+    encoder : dict
+        Dictionary with structure:
+            >>> encoder = {'model': file.ml4c, 'params': file.params}
+
     scheduler : str
         The scheduler to be used with the dask backend.
     filename : str
         Name to save on disk of serialized database.
     preprocessor : tuple
         Use some scaling method to preprocess the data.
-    save_preprocessor : str
-        Save preprocessor to file.
-    features : obj or tuple
+    features : tuple
         Users can set the features keyword argument to a tuple with the
         structure ('Name', {kwargs})
+    save_preprocessor : str
+        Save preprocessor to file.
     """
-    NAME = 'LatentFeatures'
+
+    NAME = "LatentFeatures"
 
     @classmethod
     def name(cls):
         """Returns name of class"""
         return cls.NAME
 
-    def __init__(self, encoder=None, scheduler='distributed',
-                 filename='latent.db', preprocessor=None,
-                 save_preprocessor='ml4chem', features=None):
-
+    def __init__(
+        self,
+        encoder=None,
+        scheduler="distributed",
+        filename="latent.db",
+        preprocessor=None,
+        features=None,
+        save_preprocessor="latentfeatures.scaler",
+    ):
         self.encoder = encoder
         self.filename = filename
         self.scheduler = scheduler
         self.preprocessor = preprocessor
         self.save_preprocessor = save_preprocessor
 
+        # TODO features could be passed as a dictionary, too?
         if features is None:
             # Add user-defined exception?
             # https://docs.python.org/3/tutorial/errors.html#user-defined-exceptions
-            error = 'A fingerprint object or tuple has to be provided.'
+            error = "A fingerprint object or tuple has to be provided."
             logger.error(error)
         else:
             self.features = features
@@ -67,15 +72,14 @@ class LatentFeatures(object):
         # Let's add parameters that are going to be stored in the .params json
         # file.
         self.params = OrderedDict()
-        self.params['name'] = self.name()
+        self.params["name"] = self.name()
 
-    def calculate_features(self, images, purpose='training', data=None,
-                           svm=False):
+    def calculate_features(self, images, purpose="training", data=None, svm=False):
         """Return features per atom in an atoms object
 
         Parameters
         ----------
-        image : dict
+        images : dict
             Hashed images using the DataSet class.
         purpose : str
             The supported purposes are: 'training', 'inference'.
@@ -94,33 +98,115 @@ class LatentFeatures(object):
         # Now, we need to take the inputs and convert them to the right feature
         # space
         name, kwargs = self.features
-        features = dynamic_import(name, 'ml4chem.fingerprints')
+        features = dynamic_import(name, "ml4chem.fingerprints")
         features = features(**kwargs)
-        feature_space = features.calculate_features(images, data=data,
-                                                    purpose=purpose, svm=svm)
+
+        feature_space = features.calculate_features(
+            images, data=data, purpose=purpose, svm=svm
+        )
+
+        preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
+        preprocessor.set(purpose=purpose)
 
         encoder = self.load_encoder(self.encoder, data=data, purpose=purpose)
 
-        latent_space = encoder.get_latent_space(feature_space, svm=svm)
+        if self.preprocessor is not None and purpose == "training":
+            hashes, symbols, _latent_space = encoder.get_latent_space(
+                feature_space, svm=True, purpose="preprocessing"
+            )
+            _latent_space = preprocessor.fit(_latent_space, scheduler=self.scheduler)
+
+            latent_space = OrderedDict()
+
+            # TODO parallelize this.
+            index = 0
+            for i, hash in enumerate(hashes):
+                pairs = []
+
+                for symbol in symbols[i]:
+                    feature_vector = _latent_space[index]
+
+                    if svm is False:
+                        feature_vector = torch.tensor(
+                            feature_vector, requires_grad=True, dtype=torch.float
+                        )
+
+                    pairs.append((symbol, feature_vector))
+                    index += 1
+
+                latent_space[hash] = pairs
+
+            del _latent_space
+
+            # Save preprocessor.
+            preprocessor.save_to_file(preprocessor, self.save_preprocessor)
+
+        elif self.preprocessor is not None and purpose == "inference":
+            hashes, symbols, _latent_space = encoder.get_latent_space(
+                feature_space, svm=True, purpose="preprocessing"
+            )
+            scaled_latent_space = preprocessor.transform(_latent_space)
+
+            latent_space = OrderedDict()
+            # TODO parallelize this.
+            index = 0
+            for i, hash in enumerate(hashes):
+                pairs = []
+
+                for symbol in symbols[i]:
+                    feature_vector = scaled_latent_space[index]
+
+                    if svm is False:
+                        feature_vector = torch.tensor(
+                            feature_vector, requires_grad=True, dtype=torch.float
+                        )
+
+                    pairs.append((symbol, feature_vector))
+                    index += 1
+
+                latent_space[hash] = pairs
+
+            del _latent_space
+
+        else:
+            latent_space = encoder.get_latent_space(feature_space, svm=svm)
 
         return latent_space
 
     def load_encoder(self, encoder, **kwargs):
-        """Load an autoencoder in eval() mode"""
+        """Load an autoencoder in eval() mode
 
-        params_path = encoder.get('params')
-        model_path = encoder.get('model')
+        Parameters
+        ----------
+        encoder : dict
+            Dictionary with structure:
 
-        model_params = json.load(open(params_path, 'r'))
-        model_params = model_params.get('model')
-        name = model_params.pop('name')
-        del model_params['type']   # delete unneeded key, value
+                >>> encoder = {'model': file.ml4c, 'params': file.params}
 
-        input_dimension = model_params.pop('input_dimension')
-        output_dimension = model_params.pop('output_dimension')
+        data : obj
+            data object
+        svm : bool
+            Whether or not these features are going to be used for kernel
+            methods.
 
-        autoencoder = dynamic_import(name, 'ml4chem.models',
-                                     alt_name='autoencoders')
+        Returns
+        -------
+        autoencoder.eval() : obj
+            Autoencoder model object in eval mode to get the latent space.
+        """
+
+        params_path = encoder.get("params")
+        model_path = encoder.get("model")
+
+        model_params = json.load(open(params_path, "r"))
+        model_params = model_params.get("model")
+        name = model_params.pop("name")
+        del model_params["type"]  # delete unneeded key, value
+
+        input_dimension = model_params.pop("input_dimension")
+        output_dimension = model_params.pop("output_dimension")
+
+        autoencoder = dynamic_import(name, "ml4chem.models", alt_name="autoencoders")
         autoencoder = autoencoder(**model_params)
         autoencoder.prepare_model(input_dimension, output_dimension, **kwargs)
         autoencoder.load_state_dict(torch.load(model_path), strict=True)
