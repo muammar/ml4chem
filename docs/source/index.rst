@@ -7,8 +7,9 @@
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
-
+   :caption: Getting Started:
+   
+   install
    license
    docs
 

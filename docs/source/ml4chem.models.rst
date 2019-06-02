@@ -28,6 +28,14 @@ ml4chem.models.loss module
     :undoc-members:
     :show-inheritance:
 
+ml4chem.models.merger module
+----------------------------
+
+.. automodule:: ml4chem.models.merger
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 ml4chem.models.neuralnetwork module
 -----------------------------------
 
