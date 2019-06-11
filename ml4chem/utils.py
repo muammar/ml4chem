@@ -90,9 +90,11 @@ def dynamic_import(name, package, alt_name=None):
     Parameters
     ----------
     name : str
-        Name of the module to be imported
+        Name of the module to be imported.
     package : str
         Path to package. Example: ml4chem.fingerprints
+    alt_name : str
+        Alternative module_name.
 
     Returns
     -------
@@ -104,13 +106,14 @@ def dynamic_import(name, package, alt_name=None):
         module_name = ".{}".format(name.lower())
     else:
         module_name = ".{}".format(alt_name.lower())
+
     module = importlib.import_module(module_name, package=package)
     imported_class = getattr(module, name)
 
     return imported_class
 
 
-def logger(filename, level=None, format=None):
+def logger(filename=None, level=None, format=None):
     """A wrapper to the logging python module
     
     This module is useful for cases where we need to log in a for loop
@@ -119,8 +122,8 @@ def logger(filename, level=None, format=None):
 
     Parameters
     ----------
-    filename : str
-        Name of logfile. 
+    filename : str, optional
+        Name of logfile. If no filename is provided, we output to stdout. 
     level : str, optional
         Level of logging messages, by default 'info'. Supported are: 'info'
         and 'debug'.

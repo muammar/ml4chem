@@ -214,6 +214,10 @@ def get_distance(i, j, periodicity):
     Returns
     -------
         tensor with distances.
+    
+    Notes
+    -----
+    Cases where periodicity is present are not yet supported.
     """
     d = torch.abs(i - j)
 
@@ -221,7 +225,22 @@ def get_distance(i, j, periodicity):
 
 
 def get_pairwise_distances(positions, squared=False):
-    """docstring for pairwise_dist"""
+    """Get pairwise distances of a matrix
+    
+    Parameters
+    ----------
+    positions : tensor
+        Tensor with positions.
+    squared : bool, optional
+        Whether or not the squared of pairwise distances are computed, by
+        default False.
+    
+    Returns
+    -------
+    distances
+        Pairwise distances.
+    """
+
     dot_product = torch.matmul(positions, positions.t())
     square_norm = dot_product.diag()
     distances = square_norm.unsqueeze(0) - 2.0 * dot_product + square_norm.unsqueeze(1)

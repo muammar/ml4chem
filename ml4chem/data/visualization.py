@@ -130,17 +130,16 @@ def read_log(logfile, metric="loss", refresh=None):
                 values = loss
             elif metric == "rmse":
                 values = rmse
-        
-            reported = values [-1]
+
+            reported = values[-1]
             x = int(epochs[-1] * 0.9)
             y = float(reported * 1.3)
-            annotation.set_text('{:.5f}'.format(reported))
+            annotation.set_text("{:.5f}".format(reported))
             annotation.set_position((x, y))
 
         plt.legend(loc="upper left")
         axes.relim()
         axes.autoscale_view(True, True, True)
-
 
         # Draw the plot
         plt.draw()

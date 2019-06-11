@@ -5,6 +5,7 @@ from collections import OrderedDict
 from ml4chem.data.preprocessing import Preprocessing
 from ml4chem.utils import dynamic_import
 
+# Starting logger object
 logger = logging.getLogger()
 
 

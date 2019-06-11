@@ -65,7 +65,7 @@ class Gaussian(object):
         save_preprocessor="ml4chem",
         scheduler="distributed",
         filename="fingerprints.db",
-        overwrite=False
+        overwrite=False,
     ):
 
         self.cutoff = cutoff
@@ -128,18 +128,30 @@ class Gaussian(object):
         logger.info("Fingerprinting")
         logger.info("==============")
 
+        # FIXME the block below should become a function.
         if os.path.isfile(self.filename) and self.overwrite is False:
-            logger.warning('Loading features from {}.' .format(self.filename))
+            logger.warning("Loading features from {}.".format(self.filename))
             logger.info(" ")
-            svm_keys = [b'feature_space', b'reference_space']
+            svm_keys = [b"feature_space", b"reference_space"]
             data = load(self.filename)
+
+            data_hashes = list(data.keys())
+            image_hashes = list(images.keys())
+
+            if image_hashes == data_hashes:
+                # Check if both lists are the same.
+                return data
+            elif any(i in image_hashes for i in data_hashes):
+                # Check if any of the elem
+                _data = {}
+                for hash in image_hashes:
+                    _data[hash] = data[hash]
+                return _data
 
             if svm_keys == list(data.keys()):
                 feature_space = data[svm_keys[0]]
                 reference_space = data[svm_keys[1]]
                 return feature_space, reference_space
-            else:
-                return data
 
         initial_time = time.time()
 
@@ -327,17 +339,16 @@ class Gaussian(object):
                 " seconds.".format(h, m, s)
             )
 
-
             if svm:
                 if self.filename is not None:
-                    logger.info("Fingerprints saved to {}." .format(self.filename))
+                    logger.info("Fingerprints saved to {}.".format(self.filename))
                     data = {"feature_space": feature_space}
                     data.update({"reference_space": reference_space})
                     dump(data, filename=self.filename)
                 return feature_space, reference_space
             else:
                 if self.filename is not None:
-                    logger.info("Fingerprints saved to {}." .format(self.filename))
+                    logger.info("Fingerprints saved to {}.".format(self.filename))
                     dump(feature_space, filename=self.filename)
                 return feature_space
 

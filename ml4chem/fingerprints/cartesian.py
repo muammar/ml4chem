@@ -6,9 +6,10 @@ import torch
 import numpy as np
 from collections import OrderedDict
 from ml4chem.data.preprocessing import Preprocessing
-from ml4chem.data.serialization import dump
+from ml4chem.data.serialization import dump, load
 from ml4chem.utils import convert_elapsed_time
 
+# Starting logger object
 logger = logging.getLogger()
 
 
@@ -48,7 +49,7 @@ class Cartesian(object):
         filename="cartesians.db",
         preprocessor=("Normalizer",),
         save_preprocessor="ml4chem",
-        overwrite=False
+        overwrite=False,
     ):
 
         self.filename = filename
@@ -84,9 +85,9 @@ class Cartesian(object):
         logger.info("==============")
 
         if os.path.isfile(self.filename) and self.overwrite is False:
-            logger.warning('Loading features from {}.' .format(self.filename))
+            logger.warning("Loading features from {}.".format(self.filename))
             logger.info(" ")
-            svm_keys = [b'feature_space', b'reference_space']
+            svm_keys = [b"feature_space", b"reference_space"]
             data = load(self.filename)
 
             if svm_keys == list(data.keys()):
@@ -250,13 +251,12 @@ class Cartesian(object):
             "seconds.".format(h, m, s)
         )
 
-        data = {"feature_space": feature_space}
-
-        try:
+        if svm:
+            data = {"feature_space": feature_space}
             dump(data, filename=self.filename)
-        except TypeError:
-            # FIXME data has to be ndarray. Tensors are not supported.
-            logger.error("Msgpack cannot dump tensors...")
+        else:
+            dump(feature_space, filename=self.filename)
+
         return feature_space
 
     @dask.delayed

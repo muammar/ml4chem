@@ -11,6 +11,7 @@ from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 from ml4chem.utils import convert_elapsed_time, get_chunks
 
 
+# Setting precision and starting logger object
 torch.set_printoptions(precision=10)
 logger = logging.getLogger()
 
@@ -252,6 +253,7 @@ class train(object):
             batch_size = len(inputs.values())
 
         if isinstance(batch_size, int):
+            # Data batches
             chunks = list(get_chunks(inputs, batch_size, svm=False))
             targets = list(get_chunks(targets, batch_size, svm=False))
             atoms_per_image = list(get_chunks(atoms_per_image, batch_size, svm=False))
@@ -316,13 +318,15 @@ class train(object):
         )
         self.atoms_per_image = atoms_per_image
         self.convergence = convergence
-        client = dask.distributed.get_client()
-        self.chunks = [client.scatter(chunk) for chunk in chunks]
-        self.targets = [client.scatter(target) for target in targets]
         self.device = device
         self.epochs = epochs
         self.model = model
         self.lr_scheduler = lr_scheduler
+
+        # Data scattering
+        client = dask.distributed.get_client()
+        self.chunks = [client.scatter(chunk) for chunk in chunks]
+        self.targets = [client.scatter(target) for target in targets]
 
         if lossfxn is None:
             self.lossfxn = AtomicMSELoss
@@ -330,9 +334,9 @@ class train(object):
             self.lossfxn = lossfxn
 
         # Let the hunger games begin...
-        self.run()
+        self.trainer()
 
-    def run(self):
+    def trainer(self):
         """Run the training class"""
 
         converged = False
@@ -343,8 +347,16 @@ class train(object):
         while not converged:
             epoch += 1
 
-            loss = self.closure()
-
+            self.optimizer.zero_grad()  # clear previous gradients
+            loss, outputs_ = train.closure(
+                self.chunks,
+                self.targets,
+                self.model,
+                self.lossfxn,
+                self.atoms_per_image,
+                self.device,
+            )
+            # We step the optimizer
             if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
             else:
@@ -352,12 +364,11 @@ class train(object):
                 self.optimizer.step(options)
 
             # RMSE per image and per/atom
-
             client = dask.distributed.get_client()
 
-            rmse = client.submit(self.compute_rmse, *(self.outputs_, self.targets))
+            rmse = client.submit(self.compute_rmse, *(outputs_, self.targets))
             rmse_atom = client.submit(
-                self.compute_rmse, *(self.outputs_, self.targets, self.atoms_per_image)
+                self.compute_rmse, *(outputs_, self.targets, self.atoms_per_image)
             )
             rmse = rmse.result()
             rmse_atom = rmse_atom.result()
@@ -365,6 +376,7 @@ class train(object):
             _loss.append(loss.item())
             _rmse.append(rmse)
 
+            # In the case that lr_scheduler is not None
             if self.lr_scheduler is not None:
                 self.scheduler.step(loss)
 
@@ -386,8 +398,57 @@ class train(object):
             "Training finished in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
         )
 
+    @classmethod
+    def closure(Cls, chunks, targets, model, lossfxn, atoms_per_image, device):
+        """Closure
+
+        This method clears previous gradients, iterates over batches,
+        accumulates the gradients, reduces the gradients, update model
+        params, and finally returns loss and outputs_.
+        """
+
+        outputs_ = []
+        # Get client to send futures to the scheduler
+        client = dask.distributed.get_client()
+
+        loss_fn = torch.tensor(0, dtype=torch.float)
+        accumulation = []
+        grads = []
+
+        # Accumulation of gradients
+        for index, chunk in enumerate(chunks):
+            accumulation.append(
+                client.submit(
+                    train.train_batches,
+                    *(index, chunk, targets, model, lossfxn, atoms_per_image, device)
+                )
+            )
+        dask.distributed.wait(accumulation)
+        # accumulation = dask.compute(*accumulation,
+        # scheduler='distributed')
+        accumulation = client.gather(accumulation)
+
+        for index, chunk in enumerate(accumulation):
+            outputs = chunk[0]
+            loss = chunk[1]
+            grad = np.array(chunk[2])
+            loss_fn += loss
+            outputs_.append(outputs)
+            grads.append(grad)
+
+        grads = sum(grads)
+
+        for index, param in enumerate(model.parameters()):
+            param.grad = torch.tensor(grads[index])
+
+        del accumulation
+        del grads
+
+        return loss_fn, outputs_
+
+    @classmethod
     def train_batches(
-        self, index, chunk, targets, model, lossfxn, atoms_per_image, device
+        Cls, index, chunk, targets, model, lossfxn, atoms_per_image, device
     ):
         """A function that allows training per batches
 
@@ -404,7 +465,7 @@ class train(object):
             Pytorch model to perform forward() and get gradients.
         lossfxn : obj
             A loss function object.
-        atoms_per_image : lilst
+        atoms_per_image : list
             Atoms per image because we are doing atom-centered methods.
         device : str
             Are we running cuda or cpu?
@@ -426,62 +487,6 @@ class train(object):
             gradients.append(param.grad.detach().numpy())
 
         return outputs, loss, gradients
-
-    def closure(self):
-        """Closure
-
-        This method clears previous gradients, iterates over batches,
-        accumulates the gradiends, reduces the gradients,  update model params,
-        and return loss.
-        """
-
-        self.outputs_ = []
-        # Get client to send futures to the scheduler
-        client = dask.distributed.get_client()
-
-        self.optimizer.zero_grad()  # clear previous gradients
-
-        loss_fn = torch.tensor(0, dtype=torch.float)
-        accumulation = []
-        grads = []
-        # Accumulation of gradients
-        for index, chunk in enumerate(self.chunks):
-            accumulation.append(
-                client.submit(
-                    self.train_batches,
-                    *(
-                        index,
-                        chunk,
-                        self.targets,
-                        self.model,
-                        self.lossfxn,
-                        self.atoms_per_image,
-                        self.device,
-                    )
-                )
-            )
-        dask.distributed.wait(accumulation)
-        # accumulation = dask.compute(*accumulation,
-        # scheduler='distributed')
-        accumulation = client.gather(accumulation)
-
-        for index, chunk in enumerate(accumulation):
-            outputs = chunk[0]
-            loss = chunk[1]
-            grad = np.array(chunk[2])
-            loss_fn += loss
-            self.outputs_.append(outputs)
-            grads.append(grad)
-
-        grads = sum(grads)
-
-        for index, param in enumerate(self.model.parameters()):
-            param.grad = torch.tensor(grads[index])
-
-        del accumulation
-        del grads
-
-        return loss_fn
 
     def compute_rmse(self, predictions, outputs, atoms_per_image=None):
         """Compute RMSE

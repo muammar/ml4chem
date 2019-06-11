@@ -37,7 +37,7 @@ class Potentials(Calculator, object):
     implemented_properties = ["energy", "forces"]
 
     # This is a good way to make attributes available to the class. This can be
-    # accessed as Potentials.attibute
+    # accessed as Potentials.attribute
     svm_models = ["KernelRidge"]
 
     def __init__(
@@ -122,7 +122,7 @@ class Potentials(Calculator, object):
         return calc
 
     @staticmethod
-    def save(model, features=None, path=None, label='ml4chem'):
+    def save(model, features=None, path=None, label="ml4chem"):
         """Save a model
 
         Parameters

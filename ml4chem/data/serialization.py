@@ -22,7 +22,7 @@ def dump(data, filename="data.db"):
     # torch.
     try:
         with open(filename, "wb") as f:
-                f.write(msgpack.packb(data, default=m.encode, use_bin_type=True))
+            f.write(msgpack.packb(data, default=m.encode, use_bin_type=True))
     except TypeError:
         torch.save(data, filename)
 
