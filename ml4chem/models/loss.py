@@ -21,6 +21,7 @@ def AtomicMSELoss(outputs, targets, atoms_per_image):
         The value of the loss function.
     """
 
+    print(atoms_per_image)
     criterion = torch.nn.MSELoss(reduction="sum")
     outputs_atom = torch.div(outputs, atoms_per_image)
     targets_atom = torch.div(targets, atoms_per_image)
@@ -98,12 +99,6 @@ def EncoderMapLoss(
 ):
     """Encodermap loss function
 
-    This is the implementation of the encodermap loss function as proposed by:
-
-    Lemke, T., & Peter, C. (2019). EncoderMap: Dimensionality Reduction and
-    Generation of Molecule Conformations. Journal of Chemical Theory and
-    Computation, 15(2), 1209–1215. research-article.
-    https://doi.org/10.1021/acs.jctc.8b00975
 
     Parameters
     ----------
@@ -141,10 +136,19 @@ def EncoderMapLoss(
     atom-centered model with the encodermap variant.
 
     There is something to note about regularization for this loss function.
-    Autores of EncoderMap penalize both the weights using L2 regularization,
-    and the magnitude of activations in the latent space layer.  is added in
+    Autors of EncoderMap penalize both the weights using L2 regularization,
+    and the magnitude of activation in the latent space layer.  is added in
     the optimizer The L2 regularization is included using weight_decay in the
     optimizer of choice. The activation penalization is computed below.
+
+    References
+    ----------
+    This is the implementation of the encodermap loss function as proposed by:
+
+    1. Lemke, T., & Peter, C. (2019). EncoderMap: Dimensionality Reduction and
+       Generation of Molecule Conformations. Journal of Chemical Theory and
+       Computation, 15(2), 1209–1215. research-article.
+        https://doi.org/10.1021/acs.jctc.8b00975
     """
 
     loss = 0.0

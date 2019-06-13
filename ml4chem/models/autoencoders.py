@@ -324,7 +324,6 @@ class train(object):
     ):
 
         self.initial_time = time.time()
-        client = dask.distributed.get_client()
 
         if device == "cuda":
             pass
@@ -408,21 +407,14 @@ class train(object):
 
         if lossfxn is None:
             self.lossfxn = MSELoss
+            self.inputs_chunk_vals = None
+
         else:
             logger.info("Using custom loss function...")
             logger.info("")
-            self.lossfxn = lossfxn
 
-            self.inputs_chunk_vals = []
-            for c in chunks:
-                c = OrderedDict(c)
-                vectors = []
-                for hash in c.keys():
-                    features = c[hash]
-                    for symbol, vector in features:
-                        vectors.append(vector.detach().numpy())
-                vectors = torch.tensor(vectors, requires_grad=False)
-                self.inputs_chunk_vals.append(vectors)
+            self.lossfxn = lossfxn
+            self.inputs_chunk_vals = self.get_inputs_chunks(chunks)
 
         logger.info(" ")
         logger.info("Starting training...")
@@ -436,13 +428,17 @@ class train(object):
                 "------", "-------------------", "------------", "--------"
             )
         )
-        self.convergence = convergence
+
+        # Data scattering
+        client = dask.distributed.get_client()
         self.chunks = [client.scatter(chunk) for chunk in chunks]
         self.targets = [client.scatter(target) for target in targets]
+
         self.device = device
         self.epochs = epochs
         self.model = model
         self.lr_scheduler = lr_scheduler
+        self.convergence = convergence
 
         # Let the hunger game begin...
         self.trainer()
@@ -459,12 +455,14 @@ class train(object):
             epoch += 1
 
             self.optimizer.zero_grad()  # clear previous gradients
+
             args = {
                 "chunks": self.chunks,
                 "targets": self.targets,
                 "model": self.model,
                 "lossfxn": self.lossfxn,
                 "device": self.device,
+                "inputs_chunk_vals": self.inputs_chunk_vals
             }
 
             loss, outputs_ = train.closure(**args)
@@ -507,7 +505,7 @@ class train(object):
         )
 
     @classmethod
-    def closure(Cls, chunks, targets, model, lossfxn, device):
+    def closure(Cls, chunks, targets, model, lossfxn, device, inputs_chunk_vals=None):
         """Closure
 
         This method clears previous gradients, iterates over chunks, accumulate
@@ -526,7 +524,7 @@ class train(object):
             accumulation.append(
                 client.submit(
                     train.train_batches,
-                    *(index, chunk, targets, model, lossfxn, device)
+                    *(index, chunk, targets, model, lossfxn, device, inputs_chunk_vals)
                 )
             )
         dask.distributed.wait(accumulation)
@@ -553,7 +551,7 @@ class train(object):
         return loss_fn, outputs_
 
     @classmethod
-    def train_batches(Cls, index, chunk, targets, model, lossfxn, device):
+    def train_batches(Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals):
         """A function that allows training per batches
 
 
@@ -571,6 +569,8 @@ class train(object):
             A loss function object.
         device : str
             Are we running cuda or cpu?
+        inputs_chunk_vals : tensor or list
+            Inputs needed by EncoderMapLoss
 
         Returns
         -------
@@ -589,7 +589,7 @@ class train(object):
             args.update(latent)
 
             # In the case of using EncoderMapLoss the inputs are needed, too.
-            args.update({"inputs": self.inputs_chunk_vals[index]})
+            args.update({"inputs": inputs_chunk_vals[index]})
 
         loss = lossfxn(**args)
         loss.backward()
@@ -633,3 +633,26 @@ class train(object):
 
         rmse = torch.sqrt(torch.mean((predictions - outputs).pow(2))).item()
         return rmse
+
+    @staticmethod
+    def get_inputs_chunks(chunks):
+        """Get inputs in chunks for encodermap
+        
+        Returns
+        -------
+        inputs_chunk_vals
+            A list with inputs_chunk_vals.
+        """
+        inputs_chunk_vals = []
+
+        for c in chunks:
+            c = OrderedDict(c)
+            vectors = []
+            for hash in c.keys():
+                features = c[hash]
+                for symbol, vector in features:
+                    vectors.append(vector.detach().numpy())
+            vectors = torch.tensor(vectors, requires_grad=False)
+            inputs_chunk_vals.append(vectors)
+
+        return inputs_chunk_vals

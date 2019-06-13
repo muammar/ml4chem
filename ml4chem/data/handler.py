@@ -125,7 +125,7 @@ class DataSet(object):
 
         symbols = {}
 
-        # TODO make this parallel.
+        # FIXME make this parallel.
         if purpose in supported_categories:
             if purpose not in symbols.keys():
                 symbols[purpose] = {}

@@ -90,6 +90,11 @@ class KernelRidge(object):
         rely on the method in the algorithm shown in Rupp, M. (2015).  Machine
         learning for quantum mechanics in a nutshell. International Journal of
         Quantum Chemistry, 115(16), 1058-1073.
+    
+    References
+    ----------
+    1. Rupp, M. Machine learning for quantum mechanics in a nutshell. Int. J.
+       Quantum Chem. 115, 1058–1073 (2015).
     """
 
     NAME = "KernelRidge"

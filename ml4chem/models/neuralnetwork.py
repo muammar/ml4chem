@@ -17,7 +17,9 @@ logger = logging.getLogger()
 
 
 class NeuralNetwork(torch.nn.Module):
-    """Neural Network Regression with Pytorch
+    """Atom-centered Neural Network Regression with Pytorch
+
+    This model is based on the Ref. 1 by Behler and Parrinello.
 
     Parameters
     ----------
@@ -25,6 +27,15 @@ class NeuralNetwork(torch.nn.Module):
         Structure of hidden layers in the neural network.
     activation : str
         The activation function.
+    
+    References
+    ----------
+    1. Behler, J. & Parrinello, M. Generalized Neural-Network Representation
+       of High-Dimensional Potential-Energy Surfaces. Phys. Rev. Lett. 98,
+       146401 (2007).
+    2. Khorshidi, A. & Peterson, A. A. Amp : A modular approach to machine
+       learning in atomistic simulations. Comput. Phys. Commun. 207, 310–324
+       (2016).
     """
 
     NAME = "PytorchPotentials"
@@ -268,6 +279,7 @@ class train(object):
         atoms_per_image = torch.tensor(
             atoms_per_image, requires_grad=False, dtype=torch.float
         )
+
         targets = torch.tensor(targets, requires_grad=False)
 
         if device == "cuda":

@@ -1,3 +1,5 @@
+import dask
+import inspect
 import torch
 import logging
 from ml4chem.utils import convert_elapsed_time, dynamic_import, get_chunks
@@ -11,7 +13,9 @@ class ModelMerger(torch.nn.Module):
     """Model Merger
 
     A class that can merge models and train them simultaneously. Models are
-    executed sequentially, and are taken care of. 
+    executed sequentially. It is assumed that outputs of model1 are the
+    inputs of model2. This behavior can be modified by adding `extra_funcs`
+    to call external functions.
 
     Parameters
     ----------
@@ -82,25 +86,14 @@ class ModelMerger(torch.nn.Module):
         for model in self.merge.get("models"):
             logging.info("    - {}.".format(model.name()))
 
-        atoms_per_image = data.atoms_per_image
-
         # If no batch_size provided then the whole training set length is the batch.
         if batch_size is None:
             batch_size = len(inputs.values())
 
         if isinstance(batch_size, int):
-            self.chunks = list(get_chunks(inputs, batch_size, svm=False))
-            self.targets = list(get_chunks(targets, batch_size, svm=False))
-            self.atoms_per_image = list(
-                get_chunks(atoms_per_image, batch_size, svm=False)
-            )
-
-        logger.info(" ")
-        logging.info("Batch Information")
-        logging.info("-----------------")
-        logging.info("Number of batches: {}.".format(len(self.chunks)))
-        logging.info("Batch size: {} elements per batch.".format(batch_size))
-        logger.info(" ")
+            chunks = [list(get_chunks(inputs_, batch_size, svm=False)) for inputs_ in inputs]
+            targets = [list(get_chunks(target, batch_size, svm=False)) for target in targets]
+            atoms_per_image = list(get_chunks(data.atoms_per_image, batch_size, svm=False))
 
         models = self.merge.get("models")
 
@@ -111,8 +104,33 @@ class ModelMerger(torch.nn.Module):
 
         self.device = device
 
+        # Population of extra Attributes needed by the models
+
+        for index, loss in enumerate(lossfxn):
+            _args, _varargs, _keywords, _defaults = inspect.getargspec(loss)
+            if "latent" in _args:
+                train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
+                self.inputs_chunk_vals = train.get_inputs_chunks(chunks[index])
+
+        self.atoms_per_image = torch.tensor(
+            atoms_per_image, requires_grad=False, dtype=torch.float
+        )
+
+        # Data scattering
+        client = dask.distributed.get_client()
+        self.chunks = [client.scatter(chunk) for chunk in chunks]
+        self.targets = [client.scatter(target) for target in targets]
+
+        logger.info(" ")
+        logging.info("Batch Information")
+        logging.info("-----------------")
+        logging.info("Number of batches: {}.".format(len(self.chunks)))
+        logging.info("Batch size: {} elements per batch.".format(batch_size))
+        logger.info(" ")
+
         converged = False
         epoch = 0
+
         while not converged:
             epoch += 1
             losses = []
@@ -120,11 +138,12 @@ class ModelMerger(torch.nn.Module):
             for index, model in enumerate(models):
                 name = model.name()
                 loss = self.closure(index, name, model)
-                print(name)
 
-        raise NotImplementedError
+            raise NotImplementedError
 
     def closure(self, index, name, model):
+
+        loss_array = []
 
         if name == "PytorchPotentials":
             train = dynamic_import("train", "ml4chem.models", alt_name="neuralnetwork")
@@ -137,10 +156,16 @@ class ModelMerger(torch.nn.Module):
                 self.atoms_per_image,
                 self.device,
             )
+            loss_array.append(loss)
+            print(name, loss)
+            raise NotImplementedError
+
         elif name == "AutoEncoder":
             train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
+            # The [0] is needed because of the way the array is built above.
+            targets = self.targets[index][0]
 
             loss, outputs_ = train.closure(
-                self.chunks, self.targets, model, self.lossfxn[index], self.device
+                self.chunks[index], targets, model, self.lossfxn[index], self.device, self.inputs_chunk_vals
             )
-            raise NotImplementedError
+            loss_array.append(loss)
