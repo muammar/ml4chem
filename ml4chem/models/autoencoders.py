@@ -224,6 +224,7 @@ class AutoEncoder(torch.nn.Module):
         forward propagate and get the latent_space.
         """
 
+        # FIXME parallelize me
         if purpose == "preprocessing":
             hashes = []
             latent_space = []
