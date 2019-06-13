@@ -78,12 +78,14 @@ class ModelMerger(torch.nn.Module):
         lr_scheduler=None,
     ):
 
+        models = self.merge.get("models")
+
         logger.info(" ")
         logging.info("Model Merger")
         logging.info("============")
         logging.info("Merging the following models:")
 
-        for model in self.merge.get("models"):
+        for model in models:
             logging.info("    - {}.".format(model.name()))
 
         # If no batch_size provided then the whole training set length is the batch.
@@ -95,7 +97,6 @@ class ModelMerger(torch.nn.Module):
             targets = [list(get_chunks(target, batch_size, svm=False)) for target in targets]
             atoms_per_image = list(get_chunks(data.atoms_per_image, batch_size, svm=False))
 
-        models = self.merge.get("models")
 
         if lossfxn is None:
             self.lossfxn = [None for model in models]
@@ -112,9 +113,16 @@ class ModelMerger(torch.nn.Module):
                 train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
                 self.inputs_chunk_vals = train.get_inputs_chunks(chunks[index])
 
-        self.atoms_per_image = torch.tensor(
-            atoms_per_image, requires_grad=False, dtype=torch.float
-        )
+
+        for index, model in enumerate(models):
+            if model.name() == 'PytorchPotentials':
+                # These models require targets as tensors
+                self.atoms_per_image = torch.tensor(atoms_per_image,
+                                                    requires_grad=False,
+                                                    dtype=torch.float)
+                _targets = [torch.tensor(batch, requires_grad=False) for batch in targets[index]]
+                targets[index] = _targets
+                del _targets
 
         # Data scattering
         client = dask.distributed.get_client()
@@ -133,7 +141,6 @@ class ModelMerger(torch.nn.Module):
 
         while not converged:
             epoch += 1
-            losses = []
 
             for index, model in enumerate(models):
                 name = model.name()
@@ -149,16 +156,14 @@ class ModelMerger(torch.nn.Module):
             train = dynamic_import("train", "ml4chem.models", alt_name="neuralnetwork")
 
             loss, outputs_ = train.closure(
-                self.chunks,
-                self.targets,
+                self.chunks[index],
+                self.targets[index],
                 model,
                 self.lossfxn[index],
                 self.atoms_per_image,
                 self.device,
             )
             loss_array.append(loss)
-            print(name, loss)
-            raise NotImplementedError
 
         elif name == "AutoEncoder":
             train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")

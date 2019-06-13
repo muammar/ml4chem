@@ -21,7 +21,6 @@ def AtomicMSELoss(outputs, targets, atoms_per_image):
         The value of the loss function.
     """
 
-    print(atoms_per_image)
     criterion = torch.nn.MSELoss(reduction="sum")
     outputs_atom = torch.div(outputs, atoms_per_image)
     targets_atom = torch.div(targets, atoms_per_image)
