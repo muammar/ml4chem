@@ -311,6 +311,7 @@ class train(object):
         self.optimizer_name, self.optimizer = get_optimizer(
             optimizer, model.parameters()
         )
+
         if lr_scheduler is not None:
             self.scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
 

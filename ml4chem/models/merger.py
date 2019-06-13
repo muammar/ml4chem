@@ -3,6 +3,7 @@ import inspect
 import torch
 import logging
 from ml4chem.utils import convert_elapsed_time, dynamic_import, get_chunks
+from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 
 # Setting precision and starting logger object
 torch.set_printoptions(precision=10)
@@ -108,13 +109,16 @@ class ModelMerger(torch.nn.Module):
         # Population of extra Attributes needed by the models
 
         for index, loss in enumerate(lossfxn):
+
             _args, _varargs, _keywords, _defaults = inspect.getargspec(loss)
             if "latent" in _args:
                 train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
                 self.inputs_chunk_vals = train.get_inputs_chunks(chunks[index])
 
 
+        parameters = []
         for index, model in enumerate(models):
+            parameters += model.parameters()
             if model.name() == 'PytorchPotentials':
                 # These models require targets as tensors
                 self.atoms_per_image = torch.tensor(atoms_per_image,
@@ -136,21 +140,54 @@ class ModelMerger(torch.nn.Module):
         logging.info("Batch size: {} elements per batch.".format(batch_size))
         logger.info(" ")
 
+        # Define optimizer
+
+        self.optimizer_name, self.optimizer = get_optimizer(
+            optimizer, parameters
+        )
+
+        if lr_scheduler is not None:
+            self.scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
+
+        logger.info(" ")
+        logger.info("Starting training...")
+        logger.info(" ")
+
+        logger.info(
+            "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
+                "Epoch", "Time Stamp", "Loss", "RMSE/img", "RMSE/atom"
+            )
+        )
+        logger.info(
+            "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
+                "------", "-------------------", "------------", "--------", "---------"
+            )
+        )
+
         converged = False
         epoch = 0
 
         while not converged:
             epoch += 1
 
+            self.optimizer.zero_grad()  # clear previous gradients
+
+            losses = []
             for index, model in enumerate(models):
                 name = model.name()
-                loss = self.closure(index, name, model)
+                loss, outputs = self.closure(index, name, model)
+                losses.append(loss)
 
-            raise NotImplementedError
+            print(losses)
+            if self.optimizer_name != "LBFGS":
+                self.optimizer.step()
+            else:
+                options = {"closure": self.closure, "current_loss": loss, "max_ls": 10}
+                self.optimizer.step(options)
+
+            #raise NotImplementedError
 
     def closure(self, index, name, model):
-
-        loss_array = []
 
         if name == "PytorchPotentials":
             train = dynamic_import("train", "ml4chem.models", alt_name="neuralnetwork")
@@ -163,14 +200,15 @@ class ModelMerger(torch.nn.Module):
                 self.atoms_per_image,
                 self.device,
             )
-            loss_array.append(loss)
 
         elif name == "AutoEncoder":
             train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
-            # The [0] is needed because of the way the array is built above.
+            # The indexing [0] is needed because of the way the array is built
+            # above.
             targets = self.targets[index][0]
 
             loss, outputs_ = train.closure(
                 self.chunks[index], targets, model, self.lossfxn[index], self.device, self.inputs_chunk_vals
             )
-            loss_array.append(loss)
+        
+        return loss, outputs_

@@ -22,7 +22,7 @@ def get_optimizer(optimizer, params):
         Tuple with name of optimizer and keyword arguments of optimizer as
         shown above.
     params : list
-        Parameters obtained from .parameters().
+        Parameters obtained from model.parameters() method.
 
     Returns
     -------
@@ -51,6 +51,7 @@ def get_optimizer(optimizer, params):
             "dtype": torch.float,
             "debug": False,
         }
+
         from ml4chem.optim.LBFGS import FullBatchLBFGS
 
         optimizer_name = "LBFGS"
