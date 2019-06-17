@@ -45,6 +45,12 @@ class Gaussian(object):
     overwrite : bool
         If overwrite is set to true, ml4chem will not try to load existing
         databases.
+    
+    References
+    ----------
+    1. Behler, J. Atom-centered symmetry functions for constructing
+       high-dimensional neural network potentials. J. Chem. Phys. 134, 074106
+       (2011).
     """
 
     NAME = "Gaussian"
@@ -880,3 +886,6 @@ def calculate_G3(
             feature += term
     feature *= 2.0 ** (1.0 - zeta)
     return feature
+
+def calculate_G4():
+    raise NotImplementedError
