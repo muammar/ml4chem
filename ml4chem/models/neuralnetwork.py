@@ -27,7 +27,7 @@ class NeuralNetwork(torch.nn.Module):
         Structure of hidden layers in the neural network.
     activation : str
         The activation function.
-    
+
     References
     ----------
     1. Behler, J. & Parrinello, M. Generalized Neural-Network Representation
@@ -497,7 +497,18 @@ class train(object):
         gradients = []
 
         for param in model.parameters():
-            gradients.append(param.grad.detach().numpy())
+            try:
+                gradient = param.grad.detach().numpy()
+            except AttributeError:
+                # This exception catches  the case where an image does not
+                # contain variable that is following the gradient of certain
+                # atom. For example, suppose two batches with 2 molecules each.
+                # In the first batch we have only C, H, O but it turns out that
+                # N is also available only in the sencond batch. The
+                # contribution to the gradient of batch 1 to the N gradients is
+                # 0.
+                gradient = 0.
+            gradients.append(gradient)
 
         return outputs, loss, gradients
 

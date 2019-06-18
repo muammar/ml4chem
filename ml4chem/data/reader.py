@@ -57,7 +57,7 @@ def cjson_reader(cjsonfile, trajfile=None):
         atoms.append(molecule)
 
         if trajfile is not None:
-            traj.write(cjson_to_ase(cjson), energy=energy)
+            traj.write(molecule, energy=energy)
 
     return atoms
 
