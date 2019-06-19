@@ -877,7 +877,7 @@ def calculate_G3(
             feature += term
     feature *= 2.0 ** (1.0 - zeta)
     return feature
-
+  
 
 def calculate_G4(
     n_numbers,
@@ -947,3 +947,4 @@ def calculate_G4(
             feature += term
     feature *= 2.0 ** (1.0 - zeta)
     return feature
+
