@@ -222,11 +222,11 @@ class Potentials(Calculator, object):
         """
 
         data_handler = DataSet(training_set, purpose="training")
-
         # Raw input and targets aka X, y
         training_set, targets = data_handler.get_images(purpose="training")
 
         # Now let's train
+        # SVM models
         if self.model.name() in Potentials.svm_models:
             # Mapping raw positions into a feature space aka X
             feature_space, reference_features = self.fingerprints.calculate_features(

@@ -3,7 +3,7 @@ import inspect
 import torch
 import logging
 from collections import OrderedDict
-from ml4chem.utils import convert_elapsed_time, dynamic_import, get_chunks
+from ml4chem.utils import convert_elapsed_time, dynamic_import, get_chunks, lod_to_list
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 
 # Setting precision and starting logger object
@@ -50,16 +50,28 @@ class ModelMerger(torch.nn.Module):
         x
             A list with the forward propagation evaluation.
         """
-        models = self.models 
- 
-        _x = []
 
-        for index, model in models:
-            if index == 0:
-                x = model(X)
-            else:
-                x = model(x)
-        return x
+        outputs = []
+        for i, model in enumerate(self.models):
+            _output = []
+            name = model.name()
+            _X = X[i]
+            if inspect.ismethod(_X):
+                _X = X[i - 1]
+
+            for j, x in enumerate(_X):
+                # print(i, j, name)
+                if name == "AutoEncoder":
+                    x = OrderedDict(x)
+                    output = model(x)
+                elif name == "PytorchPotentials":
+                    x = X[i](OrderedDict(x))
+                    output = model(x)
+                
+                _output.append(output)
+
+            outputs.append(_output)
+        return outputs
 
     def train(
         self,
@@ -74,6 +86,7 @@ class ModelMerger(torch.nn.Module):
         device="cpu",
         batch_size=None,
         lr_scheduler=None,
+        independent_loss=True
     ):
 
         logger.info(" ")
@@ -82,7 +95,6 @@ class ModelMerger(torch.nn.Module):
         logging.info("Merging the following models:")
 
         for model in self.models:
-            print(model)
             logging.info("    - {}.".format(model.name()))
 
         # If no batch_size provided then the whole training set length is the batch.
@@ -97,10 +109,8 @@ class ModelMerger(torch.nn.Module):
                 else:
                     chunks.append(inputs_)
 
-            #chunks = [list(get_chunks(inputs_, batch_size, svm=False)) for inputs_ in inputs if inspect.ismethod(inputs_) is False]
             targets = [list(get_chunks(target, batch_size, svm=False)) for target in targets]
             atoms_per_image = list(get_chunks(data.atoms_per_image, batch_size, svm=False))
-
 
         if lossfxn is None:
             self.lossfxn = [None for model in self.models]
@@ -109,10 +119,10 @@ class ModelMerger(torch.nn.Module):
 
         self.device = device
 
-        # Population of extra Attributes needed by the models
+        # Population of extra Attributes needed by the models, and further data
+        # preprocessing
 
         for index, loss in enumerate(lossfxn):
-
             _args, _varargs, _keywords, _defaults = inspect.getargspec(loss)
             if "latent" in _args:
                 train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
@@ -130,6 +140,8 @@ class ModelMerger(torch.nn.Module):
                 _targets = [torch.tensor(batch, requires_grad=False) for batch in targets[index]]
                 targets[index] = _targets
                 del _targets
+            elif model.name() == 'AutoEncoder':
+                targets[index] = lod_to_list(targets[index])
 
         # Data scattering
         client = dask.distributed.get_client()
@@ -141,7 +153,6 @@ class ModelMerger(torch.nn.Module):
             else:
                 self.chunks.append(chunk)
 
-        #self.chunks = [client.scatter(chunk) for chunk in chunks]
         self.targets = [client.scatter(target) for target in targets]
 
         logger.info(" ")
@@ -183,13 +194,19 @@ class ModelMerger(torch.nn.Module):
 
             self.optimizer.zero_grad()  # clear previous gradients
 
-            losses = []
-            for index, model in enumerate(self.models):
-                name = model.name()
-                loss, outputs = self.closure(index, name, model)
-                losses.append(loss)
+            if independent_loss:
+                losses = []
+                for index, model in enumerate(self.models):
+                    name = model.name()
+                    loss, outputs = self.closure(index, model, independent_loss, name=name)
+                    losses.append(loss)
 
-            print(losses)
+                print(losses)
+            else:
+                    loss, outputs = self.closure(index, self.models, independent_loss)
+                    print(loss)
+                    loss.backward()
+
             if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
             else:
@@ -198,19 +215,15 @@ class ModelMerger(torch.nn.Module):
 
             #raise NotImplementedError
 
-    def closure(self, index, name, model):
+    def closure(self, index, model, independent_loss, name=None):
 
-        if name == "PytorchPotentials":
+        if name == "PytorchPotentials" and independent_loss:
             train = dynamic_import("train", "ml4chem.models", alt_name="neuralnetwork")
             client = dask.distributed.get_client()
 
             inputs = []
             for chunk in self.chunks[index-1]:
                 inputs_ = self.chunks[index](OrderedDict(chunk))
-                #try:
-                #    print(inputs_['b57e74028a8b592a0e35f83ee13f601fd9fa5dbf'][0][1])
-                #except:
-                #    pass
                 inputs.append(client.scatter(inputs_))
 
             loss, outputs_ = train.closure(
@@ -221,15 +234,34 @@ class ModelMerger(torch.nn.Module):
                 self.atoms_per_image,
                 self.device,
             )
+            return loss, outputs_
 
-        elif name == "AutoEncoder":
+        elif name == "AutoEncoder" and independent_loss:
             train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
             # The indexing [0] is needed because of the way the array is built
             # above.
-            targets = self.targets[index][0]
+            targets = self.targets[index]
 
             loss, outputs_ = train.closure(
                 self.chunks[index], targets, model, self.lossfxn[index], self.device, self.inputs_chunk_vals
             )
-        
-        return loss, outputs_
+            return loss, outputs_
+        else:
+            outputs = self.forward(self.chunks)
+
+            running_loss = torch.tensor(0, dtype=torch.float)
+
+            for i, model in enumerate(self.models):
+                name = model.name()
+                for j, output in enumerate(outputs[i]):
+
+                    if name == 'PytorchPotentials':
+                        loss = self.lossfxn[i](output, self.targets[i][j].result(), self.atoms_per_image[index])
+
+                    elif name == 'AutoEncoder':
+                        targets = self.targets[i][j].result()
+                        loss = self.lossfxn[i](output, targets)
+                    print(i, j, loss)
+                    running_loss += loss
+            
+            return running_loss, outputs

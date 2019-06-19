@@ -177,7 +177,7 @@ class NeuralNetwork(torch.nn.Module):
             atomic_energies = []
 
             for symbol, x in image:
-                # TODO this conditional can be removed after de/serialization
+                # FIXME this conditional can be removed after de/serialization
                 # is fixed.
                 if isinstance(symbol, bytes):
                     symbol = symbol.decode("utf-8")
@@ -252,11 +252,6 @@ class train(object):
     ):
 
         self.initial_time = time.time()
-
-        # old_state_dict = {}
-
-        # for key in model.state_dict():
-        #     old_state_dict[key] = model.state_dict()[key].clone()
 
         atoms_per_image = data.atoms_per_image
 
@@ -424,7 +419,7 @@ class train(object):
         # Get client to send futures to the scheduler
         client = dask.distributed.get_client()
 
-        loss_fn = torch.tensor(0, dtype=torch.float)
+        running_loss = torch.tensor(0, dtype=torch.float)
         accumulation = []
         grads = []
 
@@ -437,15 +432,13 @@ class train(object):
                 )
             )
         dask.distributed.wait(accumulation)
-        # accumulation = dask.compute(*accumulation,
-        # scheduler='distributed')
         accumulation = client.gather(accumulation)
 
         for index, chunk in enumerate(accumulation):
             outputs = chunk[0]
             loss = chunk[1]
             grad = np.array(chunk[2])
-            loss_fn += loss
+            running_loss += loss
             outputs_.append(outputs)
             grads.append(grad)
 
@@ -457,7 +450,7 @@ class train(object):
         del accumulation
         del grads
 
-        return loss_fn, outputs_
+        return running_loss, outputs_
 
     @classmethod
     def train_batches(

@@ -9,7 +9,7 @@ import numpy as np
 from collections import OrderedDict
 from ml4chem.models.loss import MSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
-from ml4chem.utils import convert_elapsed_time, get_chunks
+from ml4chem.utils import convert_elapsed_time, get_chunks, lod_to_list
 
 # Setting precision and starting logger object
 torch.set_printoptions(precision=10)
@@ -358,20 +358,10 @@ class train(object):
 
         del targets
 
-        targets = []
+        # This change is needed because the targets are fingerprints or
+        # positions and they are built as a dictionary.
 
-        # This loop is needed because the targets are fingerprints or positions
-        # and they are built as a dictionary.
-
-        for t in targets_:
-            t = OrderedDict(t)
-            vectors = []
-            for hash in t.keys():
-                features = t[hash]
-                for symbol, vector in features:
-                    vectors.append(vector.detach().numpy())
-            vectors = torch.tensor(vectors, requires_grad=False)
-            targets.append(vectors)
+        targets = dict_to_list(targets_)
 
         logging.info("Batch size: {} elements per batch.".format(batch_size))
 
