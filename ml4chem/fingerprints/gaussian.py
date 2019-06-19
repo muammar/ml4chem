@@ -16,12 +16,9 @@ logger = logging.getLogger()
 
 class Gaussian(object):
     """Behler-Parrinello symmetry functions
-
     This class builds local chemical environments for atoms based on the
     Behler-Parrinello Gaussian type symmetry functions. It is modular enough
     that can be used just for creating feature spaces.
-
-
     Parameters
     ----------
     cutoff : float
@@ -72,6 +69,7 @@ class Gaussian(object):
         scheduler="distributed",
         filename="fingerprints.db",
         overwrite=False,
+        angular_type="G3",
     ):
 
         self.cutoff = cutoff
@@ -81,6 +79,7 @@ class Gaussian(object):
         self.preprocessor = preprocessor
         self.save_preprocessor = save_preprocessor
         self.overwrite = overwrite
+        self.angular_type = angular_type
 
         # Let's add parameters that are going to be stored in the .params json
         # file.
@@ -108,7 +107,6 @@ class Gaussian(object):
 
     def calculate_features(self, images=None, purpose="training", data=None, svm=False):
         """Calculate the features per atom in an atoms objects
-
         Parameters
         ----------
         image : dict
@@ -120,7 +118,6 @@ class Gaussian(object):
         svm : bool
             Whether or not these features are going to be used for kernel
             methods.
-
         Returns
         -------
         feature_space : dict
@@ -176,7 +173,9 @@ class Gaussian(object):
         # If self.defaults is True we create default symmetry functions.
         if self.defaults:
             self.GP = self.make_symmetry_functions(
-                unique_element_symbols, defaults=self.defaults
+                unique_element_symbols,
+                defaults=self.defaults,
+                angular_type=self.angular_type,
             )
 
         self.print_fingerprint_params(self.GP)
@@ -410,7 +409,6 @@ class Gaussian(object):
     @dask.delayed
     def restack_atom(self, image_index, atom, scaled_feature_space):
         """Restack atoms to a raveled list to use with SVM
-
         Parameters
         ----------
         image_index : int
@@ -419,7 +417,6 @@ class Gaussian(object):
             An atom object.
         scaled_feature_space : np.array
             A numpy array with the scaled features
-
         Returns
         -------
         symbol, features : tuple
@@ -436,7 +433,6 @@ class Gaussian(object):
         self, index, image, feature_space=None, scaled_feature_space=None, svm=False
     ):
         """Restack images to correct dictionary's structure to train
-
         Parameters
         ----------
         index : int
@@ -447,7 +443,6 @@ class Gaussian(object):
             A numpy array with raw features.
         scaled_feature_space : np.array
             A numpy array with scaled features.
-
         Returns
         -------
         hash, features : tuple
@@ -479,12 +474,10 @@ class Gaussian(object):
     @dask.delayed
     def fingerprints_per_image(self, image):
         """A delayed function to parallelize fingerprints per image
-
         Parameters
         ----------
         image : obj
             An ASE image object.
-
         Notes
         -----
             This function is not being currently used.
@@ -526,8 +519,6 @@ class Gaussian(object):
         self, atom, index, symbol, n_symbols, neighborpositions, preprocessor
     ):
         """Delayed class method to compute atomic fingerprints
-
-
         Parameters
         ----------
         atom : object
@@ -608,22 +599,24 @@ class Gaussian(object):
             return fingerprint
 
     def make_symmetry_functions(
-        self, symbols, defaults=True, type=None, etas=None, zetas=None, gammas=None
+        self,
+        symbols,
+        defaults=True,
+        type=None,
+        etas=None,
+        zetas=None,
+        gammas=None,
+        angular_type="G3",
     ):
         """Function to make symmetry functions
-
         This method needs at least unique symbols and defaults set to true.
-
         Parameters
         ----------
         symbols : list
             List of strings with chemical symbols to create symmetry functions.
-
             >>> symbols = ['H', 'O']
-
         defaults : bool
             Are we building defaults symmetry functions or not?
-
         type : str
             The supported Gaussian type functions are 'G2', 'G3', and 'G4'.
         etas : list
@@ -632,12 +625,10 @@ class Gaussian(object):
             Lists of zeta values.
         gammas : list
             List of gammas.
-
         Return
         ------
         GP : dict
             Symmetry function parameters.
-
         """
 
         GP = {}
@@ -655,7 +646,11 @@ class Gaussian(object):
                 zetas = [1.0, 4.0]
                 gammas = [1.0, -1.0]
                 _GP += self.get_symmetry_functions(
-                    type="G3", symbols=symbols, etas=etas, zetas=zetas, gammas=gammas
+                    type=angular_type,
+                    symbols=symbols,
+                    etas=etas,
+                    zetas=zetas,
+                    gammas=gammas,
                 )
 
                 GP[symbol] = _GP
@@ -666,7 +661,6 @@ class Gaussian(object):
 
     def get_symmetry_functions(self, type, symbols, etas=None, zetas=None, gammas=None):
         """Get requested symmetry functions
-
         Parameters
         ----------
         type : str
@@ -766,7 +760,6 @@ def calculate_G2(
     normalized=True,
 ):
     """Calculate G2 symmetry function.
-
     Parameters
     ----------
     n_symbols : list of int
@@ -787,7 +780,6 @@ def calculate_G2(
         Position of the center atom. Should be fed as a list of three floats.
     normalized : bool
         Whether or not the symmetry function is normalized.
-
     Returns
     -------
     feature : float
@@ -832,7 +824,6 @@ def calculate_G3(
     Ri,
 ):
     """Calculate G3 symmetry function.
-
     Parameters
     ----------
     n_symbols : list of int
@@ -856,7 +847,7 @@ def calculate_G3(
         Cutoff function.
     Ri : list
         Position of the center atom. Should be fed as a list of three floats.
-
+        
     Returns
     -------
     feature : float
@@ -886,6 +877,74 @@ def calculate_G3(
             feature += term
     feature *= 2.0 ** (1.0 - zeta)
     return feature
+  
 
-def calculate_G4():
-    raise NotImplementedError
+def calculate_G4(
+    n_numbers,
+    neighborsymbols,
+    neighborpositions,
+    G_elements,
+    gamma,
+    zeta,
+    eta,
+    cutoff,
+    cutofffxn,
+    Ri,
+):
+    """Calculate G4 symmetry function.
+    Parameters
+    ----------
+    n_symbols : list of int
+        List of neighbors' chemical numbers.
+    neighborsymbols : list of str
+        List of symbols of neighboring atoms.
+    neighborpositions : list of list of floats
+        List of Cartesian atomic positions of neighboring atoms.
+    G_elements : list of str
+        A list of two members, each member is the chemical species of one of
+        the neighboring atoms forming the triangle with the center atom.
+    gamma : float
+        Parameter of Gaussian symmetry functions.
+    zeta : float
+        Parameter of Gaussian symmetry functions.
+    eta : float
+        Parameter of Gaussian symmetry functions.
+    cutoff : float
+        Cutoff radius.
+    cutofffxn : object
+        Cutoff function.
+    Ri : list
+        Position of the center atom. Should be fed as a list of three floats.
+
+    Returns
+    -------
+    feature : float
+        G4 feature value.
+
+    Notes
+    -------
+    The difference between the calculate_G3 and the calculate_G4 function is 
+    that calculate_G4 accounts for bond angles of 180 degrees. 
+    """
+    Rc = cutoff
+    feature = 0.0
+    counts = range(len(neighborpositions))
+    for j in counts:
+        for k in counts[(j + 1) :]:
+            els = sorted([neighborsymbols[j], neighborsymbols[k]])
+            if els != G_elements:
+                continue
+
+            Rij_vector = neighborpositions[j] - Ri
+            Rij = np.linalg.norm(Rij_vector)
+            Rik_vector = neighborpositions[k] - Ri
+            Rik = np.linalg.norm(Rik_vector)
+            cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
+            term = (1.0 + gamma * cos_theta_ijk) ** zeta
+            term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0) / (Rc ** 2.0))
+            term *= cutofffxn(Rij)
+            term *= cutofffxn(Rik)
+            feature += term
+    feature *= 2.0 ** (1.0 - zeta)
+    return feature
+
