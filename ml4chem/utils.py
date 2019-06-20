@@ -156,6 +156,7 @@ def logger(filename=None, level=None, format=None):
 
     return logger
 
+
 def lod_to_list(data, svm=False, requires_grad=False):
     """List Of Dict (lod) to list
     
@@ -190,7 +191,7 @@ def lod_to_list(data, svm=False, requires_grad=False):
             vectors = torch.tensor(vectors)
 
         _list.append(vectors)
-    
+
     return _list
 
 

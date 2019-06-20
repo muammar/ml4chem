@@ -7,6 +7,7 @@ import torch
 
 import numpy as np
 from collections import OrderedDict
+from ml4chem.metrics import compute_rmse
 from ml4chem.models.loss import MSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 from ml4chem.utils import convert_elapsed_time, get_chunks, lod_to_list
@@ -361,7 +362,7 @@ class train(object):
         # This change is needed because the targets are fingerprints or
         # positions and they are built as a dictionary.
 
-        targets = dict_to_list(targets_)
+        targets = lod_to_list(targets_)
 
         logging.info("Batch size: {} elements per batch.".format(batch_size))
 
@@ -453,7 +454,7 @@ class train(object):
                 "model": self.model,
                 "lossfxn": self.lossfxn,
                 "device": self.device,
-                "inputs_chunk_vals": self.inputs_chunk_vals
+                "inputs_chunk_vals": self.inputs_chunk_vals,
             }
 
             loss, outputs_ = train.closure(**args)
@@ -470,7 +471,7 @@ class train(object):
 
             client = dask.distributed.get_client()
 
-            rmse = client.submit(self.compute_rmse, *(outputs_, self.targets))
+            rmse = client.submit(compute_rmse, *(outputs_, self.targets))
             rmse = rmse.result()
 
             _loss.append(loss.item())
@@ -542,7 +543,9 @@ class train(object):
         return loss_fn, outputs_
 
     @classmethod
-    def train_batches(Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals):
+    def train_batches(
+        Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals
+    ):
         """A function that allows training per batches
 
 
@@ -591,39 +594,6 @@ class train(object):
             gradients.append(param.grad.detach().numpy())
 
         return outputs, loss, gradients
-
-    def compute_rmse(self, predictions, outputs, atoms_per_image=None):
-        """Compute RMSE
-
-        Useful when using futures.
-
-        Parameters
-        ----------
-        predictions : list
-            List of predictions.
-        outputs : list
-            List if outputs.
-        atoms_per_image : list
-            List of atoms per image.
-
-        Returns
-        -------
-        rmse : float
-            Root-mean squared error.
-        """
-
-        if isinstance(predictions, list):
-            predictions = torch.cat(predictions)
-
-        if isinstance(outputs, list):
-            outputs = torch.cat(outputs)
-
-        if atoms_per_image is not None:
-            predictions = predictions / atoms_per_image
-            outputs = outputs / atoms_per_image
-
-        rmse = torch.sqrt(torch.mean((predictions - outputs).pow(2))).item()
-        return rmse
 
     @staticmethod
     def get_inputs_chunks(chunks):

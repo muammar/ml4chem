@@ -6,6 +6,7 @@ import torch
 
 import numpy as np
 from collections import OrderedDict
+from ml4chem.metrics import compute_rmse
 from ml4chem.models.loss import AtomicMSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 from ml4chem.utils import convert_elapsed_time, get_chunks
@@ -374,9 +375,9 @@ class train(object):
             # RMSE per image and per/atom
             client = dask.distributed.get_client()
 
-            rmse = client.submit(self.compute_rmse, *(outputs_, self.targets))
+            rmse = client.submit(compute_rmse, *(outputs_, self.targets))
             rmse_atom = client.submit(
-                self.compute_rmse, *(outputs_, self.targets, self.atoms_per_image)
+                compute_rmse, *(outputs_, self.targets, self.atoms_per_image)
             )
             rmse = rmse.result()
             rmse_atom = rmse_atom.result()
@@ -500,41 +501,7 @@ class train(object):
                 # N is also available only in the sencond batch. The
                 # contribution to the gradient of batch 1 to the N gradients is
                 # 0.
-                gradient = 0.
+                gradient = 0.0
             gradients.append(gradient)
 
         return outputs, loss, gradients
-
-    def compute_rmse(self, predictions, outputs, atoms_per_image=None):
-        """Compute RMSE
-
-        Useful when using futures.
-
-        Parameters
-        ----------
-        predictions : list
-            List of predictions.
-        outputs : list
-            List if outputs.
-        atoms_per_image : list
-            List of atoms per image.
-
-        Returns
-        -------
-        rmse : float
-            Root-mean squared error.
-        """
-
-        if isinstance(predictions, list):
-            predictions = torch.cat(predictions)
-
-        if isinstance(outputs, list):
-            outputs = torch.cat(outputs)
-
-        if atoms_per_image is not None:
-            atoms_per_image = atoms_per_image.view(1, -1)
-            predictions = predictions / atoms_per_image
-            outputs = outputs / atoms_per_image
-
-        rmse = torch.sqrt(torch.mean((predictions - outputs).pow(2))).item()
-        return rmse

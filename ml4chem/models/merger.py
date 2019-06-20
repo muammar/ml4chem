@@ -1,8 +1,11 @@
 import dask
+import datetime
 import inspect
+import time
 import torch
 import logging
 from collections import OrderedDict
+from ml4chem.metrics import compute_rmse
 from ml4chem.utils import convert_elapsed_time, dynamic_import, get_chunks, lod_to_list
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 
@@ -67,7 +70,7 @@ class ModelMerger(torch.nn.Module):
                 elif name == "PytorchPotentials":
                     x = X[i](OrderedDict(x))
                     output = model(x)
-                
+
                 _output.append(output)
 
             outputs.append(_output)
@@ -86,7 +89,7 @@ class ModelMerger(torch.nn.Module):
         device="cpu",
         batch_size=None,
         lr_scheduler=None,
-        independent_loss=True
+        independent_loss=True,
     ):
 
         logger.info(" ")
@@ -109,8 +112,12 @@ class ModelMerger(torch.nn.Module):
                 else:
                     chunks.append(inputs_)
 
-            targets = [list(get_chunks(target, batch_size, svm=False)) for target in targets]
-            atoms_per_image = list(get_chunks(data.atoms_per_image, batch_size, svm=False))
+            targets = [
+                list(get_chunks(target, batch_size, svm=False)) for target in targets
+            ]
+            atoms_per_image = list(
+                get_chunks(data.atoms_per_image, batch_size, svm=False)
+            )
 
         if lossfxn is None:
             self.lossfxn = [None for model in self.models]
@@ -125,22 +132,25 @@ class ModelMerger(torch.nn.Module):
         for index, loss in enumerate(lossfxn):
             _args, _varargs, _keywords, _defaults = inspect.getargspec(loss)
             if "latent" in _args:
-                train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
+                train = dynamic_import(
+                    "train", "ml4chem.models", alt_name="autoencoders"
+                )
                 self.inputs_chunk_vals = train.get_inputs_chunks(chunks[index])
-
 
         parameters = []
         for index, model in enumerate(self.models):
             parameters += model.parameters()
-            if model.name() == 'PytorchPotentials':
+            if model.name() == "PytorchPotentials":
                 # These models require targets as tensors
-                self.atoms_per_image = torch.tensor(atoms_per_image,
-                                                    requires_grad=False,
-                                                    dtype=torch.float)
-                _targets = [torch.tensor(batch, requires_grad=False) for batch in targets[index]]
+                self.atoms_per_image = torch.tensor(
+                    atoms_per_image, requires_grad=False, dtype=torch.float
+                )
+                _targets = [
+                    torch.tensor(batch, requires_grad=False) for batch in targets[index]
+                ]
                 targets[index] = _targets
                 del _targets
-            elif model.name() == 'AutoEncoder':
+            elif model.name() == "AutoEncoder":
                 targets[index] = lod_to_list(targets[index])
 
         # Data scattering
@@ -164,9 +174,7 @@ class ModelMerger(torch.nn.Module):
 
         # Define optimizer
 
-        self.optimizer_name, self.optimizer = get_optimizer(
-            optimizer, parameters
-        )
+        self.optimizer_name, self.optimizer = get_optimizer(optimizer, parameters)
 
         if lr_scheduler is not None:
             self.scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
@@ -198,14 +206,21 @@ class ModelMerger(torch.nn.Module):
                 losses = []
                 for index, model in enumerate(self.models):
                     name = model.name()
-                    loss, outputs = self.closure(index, model, independent_loss, name=name)
+                    loss, outputs = self.closure(
+                        index, model, independent_loss, name=name
+                    )
                     losses.append(loss)
 
                 print(losses)
             else:
-                    loss, outputs = self.closure(index, self.models, independent_loss)
-                    print(loss)
-                    loss.backward()
+                loss, outputs = self.closure(index, self.models, independent_loss)
+                # print(epoch, loss)
+                loss.backward()
+
+            rmse = 0
+            for i, model in enumerate(self.models):
+                for j in range(len(outputs)):
+                    rmse += compute_rmse(outputs[i][j], self.targets[i][j].result())
 
             if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
@@ -213,7 +228,12 @@ class ModelMerger(torch.nn.Module):
                 options = {"closure": self.closure, "current_loss": loss, "max_ls": 10}
                 self.optimizer.step(options)
 
-            #raise NotImplementedError
+            ts = time.time()
+            ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
+            logger.info(
+                "{:6d} {} {:8e} {:8f} {:8f}".format(epoch, ts, loss, rmse, rmse)
+            )
+            # raise NotImplementedError
 
     def closure(self, index, model, independent_loss, name=None):
 
@@ -222,7 +242,7 @@ class ModelMerger(torch.nn.Module):
             client = dask.distributed.get_client()
 
             inputs = []
-            for chunk in self.chunks[index-1]:
+            for chunk in self.chunks[index - 1]:
                 inputs_ = self.chunks[index](OrderedDict(chunk))
                 inputs.append(client.scatter(inputs_))
 
@@ -243,7 +263,12 @@ class ModelMerger(torch.nn.Module):
             targets = self.targets[index]
 
             loss, outputs_ = train.closure(
-                self.chunks[index], targets, model, self.lossfxn[index], self.device, self.inputs_chunk_vals
+                self.chunks[index],
+                targets,
+                model,
+                self.lossfxn[index],
+                self.device,
+                self.inputs_chunk_vals,
             )
             return loss, outputs_
         else:
@@ -255,13 +280,17 @@ class ModelMerger(torch.nn.Module):
                 name = model.name()
                 for j, output in enumerate(outputs[i]):
 
-                    if name == 'PytorchPotentials':
-                        loss = self.lossfxn[i](output, self.targets[i][j].result(), self.atoms_per_image[index])
+                    if name == "PytorchPotentials":
+                        loss = self.lossfxn[i](
+                            output,
+                            self.targets[i][j].result(),
+                            self.atoms_per_image[index],
+                        )
 
-                    elif name == 'AutoEncoder':
+                    elif name == "AutoEncoder":
                         targets = self.targets[i][j].result()
                         loss = self.lossfxn[i](output, targets)
-                    print(i, j, loss)
+                    # print(i, j, loss)
                     running_loss += loss
-            
+
             return running_loss, outputs
