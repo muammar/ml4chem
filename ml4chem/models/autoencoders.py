@@ -21,12 +21,12 @@ class AutoEncoder(torch.nn.Module):
     """Fully connected atomic autoencoder
 
 
-    AutoEncoders are very intersting models where usually the input is
+    AutoEncoders are very interesting models where usually the input is
     reconstructed (input equals output). These models are able to learn data
-    codings in an unsupervised manner. They are composed by an encoder that
+    coding in an unsupervised manner. They are composed by an encoder that
     takes an input and concentrate (encodes) the information in a lower/larger
     dimensional space (aka latent space). Subsequently, a decoder takes the
-    latent space and tries to resconstruct the input. It is been reported that
+    latent space and tries to reconstruct the input. It is been reported that
     when the output is not equal to the input, the model learns how to
     'translate' input into output e.g. image coloring.
 
@@ -145,8 +145,7 @@ class AutoEncoder(torch.nn.Module):
             decoder.append(_decoder)
             # According to this video https://youtu.be/xTU79Zs4XKY?t=416
             # real numbered inputs need no activation function in the output
-            # layer
-            # decoder.append(activation[self.activation]())
+            # layer decoder.append(activation[self.activation]())
 
             # Stacking up the layers.
             decoder = torch.nn.Sequential(*decoder)

@@ -376,8 +376,9 @@ class train(object):
             client = dask.distributed.get_client()
 
             rmse = client.submit(compute_rmse, *(outputs_, self.targets))
+            atoms_per_image = self.atoms_per_image.view(1, -1)
             rmse_atom = client.submit(
-                compute_rmse, *(outputs_, self.targets, self.atoms_per_image)
+                compute_rmse, *(outputs_, self.targets, atoms_per_image)
             )
             rmse = rmse.result()
             rmse_atom = rmse_atom.result()

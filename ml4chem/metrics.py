@@ -28,6 +28,7 @@ def compute_rmse(outputs, targets, atoms_per_image=None):
         targets = torch.cat(targets)
 
     if atoms_per_image is not None:
+        # Dimensions do not match
         outputs = outputs / atoms_per_image
         targets = targets / atoms_per_image
 
