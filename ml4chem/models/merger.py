@@ -63,7 +63,6 @@ class ModelMerger(torch.nn.Module):
                 _X = X[i - 1]
 
             for j, x in enumerate(_X):
-                # print(i, j, name)
                 if name == "AutoEncoder":
                     x = OrderedDict(x)
                     output = model(x)
@@ -184,13 +183,13 @@ class ModelMerger(torch.nn.Module):
         logger.info(" ")
 
         logger.info(
-            "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
-                "Epoch", "Time Stamp", "Loss", "RMSE/img", "RMSE/atom"
+            "{:6s} {:19s} {:12s} {:8s}".format(
+                "Epoch", "Time Stamp", "Loss", "RMSE"
             )
         )
         logger.info(
-            "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
-                "------", "-------------------", "------------", "--------", "---------"
+            "{:6s} {:19s} {:12s} {:8s}".format(
+                "------", "-------------------", "------------", "--------"
             )
         )
 
@@ -211,10 +210,8 @@ class ModelMerger(torch.nn.Module):
                     )
                     losses.append(loss)
 
-                print(losses)
             else:
                 loss, outputs = self.closure(index, self.models, independent_loss)
-                # print(epoch, loss)
                 loss.backward()
 
             rmse = 0
@@ -231,9 +228,13 @@ class ModelMerger(torch.nn.Module):
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
             logger.info(
-                "{:6d} {} {:8e} {:8f} {:8f}".format(epoch, ts, loss, rmse, rmse)
+                "{:6d} {} {:8e} {:8f}".format(epoch, ts, loss, rmse)
             )
-            # raise NotImplementedError
+
+            if convergence is None and epoch == self.epochs:
+                converged = True
+            elif convergence is not None and rmse < convergence["rmse"]:
+                converged = True
 
     def closure(self, index, model, independent_loss, name=None):
 
@@ -290,7 +291,6 @@ class ModelMerger(torch.nn.Module):
                     elif name == "AutoEncoder":
                         targets = self.targets[i][j].result()
                         loss = self.lossfxn[i](output, targets)
-                    # print(i, j, loss)
                     running_loss += loss
 
             return running_loss, outputs
