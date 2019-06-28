@@ -107,12 +107,13 @@ class Gaussian(object):
         else:
             self.cutofffxn = cutofffxn
 
-    def calculate_features(self, images=None, purpose="training", data=None, svm=False):
+    def calculate_features(self, images=None, purpose="training", data=None, svm=False, 
+        weighted=False):
         """Calculate the features per atom in an atoms objects
         Parameters
         ----------
         image : dict
-            Hashed images using the DataSet class.
+            Hashed images using the class.
         purpose : str
             The supported purposes are: 'training', 'inference'.
         data : obj
@@ -911,7 +912,7 @@ def calculate_G3(
             cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1.0 + gamma * cos_theta_ijk) ** zeta
             term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
-            if weighted = True: 
+            if weighted ==True: 
                 term *= weighted_h(image_molecule, n_indices, weighted=True)
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
@@ -994,7 +995,7 @@ def calculate_G4(
             cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1.0 + gamma * cos_theta_ijk) ** zeta
             term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0) / (Rc ** 2.0))
-            if weighted = True: 
+            if weighted == True: 
                 term *= weighted_h(image_molecule, n_indices, weighted=True)
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
