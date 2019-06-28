@@ -107,13 +107,12 @@ class Gaussian(object):
         else:
             self.cutofffxn = cutofffxn
 
-    def calculate_features(self, images=None, purpose="training", data=None, svm=False, 
-        weighted=False):
+    def calculate_features(self, images=None, purpose="training", data=None, svm=False):
         """Calculate the features per atom in an atoms objects
         Parameters
         ----------
         image : dict
-            Hashed images using the class.
+            Hashed images using the DataSet class.
         purpose : str
             The supported purposes are: 'training', 'inference'.
         data : obj
@@ -195,7 +194,7 @@ class Gaussian(object):
             key, image = image
             feature_vectors = []
             computations.append(feature_vectors)
-            image_molecule = image 
+            image_molecule = image
 
             for atom in image:
                 index = atom.index
@@ -209,8 +208,14 @@ class Gaussian(object):
                 )
 
                 afp = self.get_atomic_fingerprint(
-                    atom, index, symbol, n_symbols, neighborpositions, self.preprocessor, 
-                    image_molecule, weighted
+                    atom,
+                    index,
+                    symbol,
+                    n_symbols,
+                    neighborpositions,
+                    self.preprocessor,
+                    image_molecule,
+                    weighted,
                 )
                 feature_vectors.append(afp)
 
@@ -506,8 +511,14 @@ class Gaussian(object):
             ]
 
             feature_vector = self.get_atomic_fingerprint(
-                atom, index, symbol, n_symbols, neighborpositions, self.preprocessor, 
-                image_molecule, weighted
+                atom,
+                index,
+                symbol,
+                n_symbols,
+                neighborpositions,
+                self.preprocessor,
+                image_molecule,
+                weighted,
             )
 
             if self.preprocessor is not None:
@@ -522,8 +533,15 @@ class Gaussian(object):
 
     @dask.delayed
     def get_atomic_fingerprint(
-        self, atom, index, symbol, n_symbols, neighborpositions, preprocessor, 
-        image_molecule=None, weighted=False
+        self,
+        atom,
+        index,
+        symbol,
+        n_symbols,
+        neighborpositions,
+        preprocessor,
+        image_molecule=None,
+        weighted=False,
     ):
         """Delayed class method to compute atomic fingerprints
         Parameters
@@ -567,10 +585,10 @@ class Gaussian(object):
                     self.cutoff,
                     self.cutofffxn,
                     Ri,
-                    image_molecule=image_molecule, 
-                    n_indices=n_indices, 
+                    image_molecule=image_molecule,
+                    n_indices=n_indices,
                     normalized=self.normalized,
-                    weighted=False
+                    weighted=False,
                 )
             elif GP["type"] == "G3":
                 feature = calculate_G3(
@@ -584,9 +602,9 @@ class Gaussian(object):
                     self.cutoff,
                     self.cutofffxn,
                     Ri,
-                    image_molecule=image_molecule, 
-                    n_indices=n_indices, 
-                    weighted=False
+                    image_molecule=image_molecule,
+                    n_indices=n_indices,
+                    weighted=False,
                 )
             elif GP["type"] == "G4":
                 feature = calculate_G4(
@@ -600,9 +618,9 @@ class Gaussian(object):
                     self.cutoff,
                     self.cutofffxn,
                     Ri,
-                    image_molecule=image_molecule, 
-                    n_indices=n_indices, 
-                    weighted=False
+                    image_molecule=image_molecule,
+                    n_indices=n_indices,
+                    weighted=False,
                 )
             else:
                 logger.error("not implemented")
@@ -778,9 +796,9 @@ def calculate_G2(
     cutofffxn,
     Ri,
     image_molecule=None,
-    n_indices=[], 
+    n_indices=[],
     normalized=True,
-    weighted=False
+    weighted=False,
 ):
     """Calculate G2 symmetry function.
     Parameters
@@ -854,9 +872,9 @@ def calculate_G3(
     cutoff,
     cutofffxn,
     Ri,
-    image_molecule=None, 
-    n_indices=[], 
-    weighted=False
+    image_molecule=None,
+    n_indices=[],
+    weighted=False,
 ):
     """Calculate G3 symmetry function.
     Parameters
@@ -912,7 +930,7 @@ def calculate_G3(
             cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1.0 + gamma * cos_theta_ijk) ** zeta
             term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
-            if weighted ==True: 
+            if weighted == True:
                 term *= weighted_h(image_molecule, n_indices, weighted=True)
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
@@ -920,7 +938,7 @@ def calculate_G3(
             feature += term
     feature *= 2.0 ** (1.0 - zeta)
     return feature
-  
+
 
 def calculate_G4(
     n_numbers,
@@ -933,9 +951,9 @@ def calculate_G4(
     cutoff,
     cutofffxn,
     Ri,
-    image_molecule=None, 
-    n_indices=[], 
-    weighted=False
+    image_molecule=None,
+    n_indices=[],
+    weighted=False,
 ):
     """Calculate G4 symmetry function.
     Parameters
@@ -981,7 +999,6 @@ def calculate_G4(
     feature = 0.0
     counts = range(len(neighborpositions))
 
-
     for j in counts:
         for k in counts[(j + 1) :]:
             els = sorted([neighborsymbols[j], neighborsymbols[k]])
@@ -995,7 +1012,7 @@ def calculate_G4(
             cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1.0 + gamma * cos_theta_ijk) ** zeta
             term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0) / (Rc ** 2.0))
-            if weighted == True: 
+            if weighted == True:
                 term *= weighted_h(image_molecule, n_indices, weighted=True)
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
@@ -1016,8 +1033,8 @@ def weighted_h(image_molecule, n_indices, weighted=False):
     weighted : bool
         True if applying weighted feature of gaussian function. 
     """
-    atomic_numbers = 1.
-    if weighted == True: 
+    atomic_numbers = 1.0
+    if weighted == True:
         for i in n_indices:
             atomic_numbers *= image_molecule[i].number
         return atomic_numbers
