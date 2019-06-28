@@ -70,6 +70,7 @@ class Gaussian(object):
         filename="fingerprints.db",
         overwrite=False,
         angular_type="G3",
+        weighted=False,
     ):
 
         self.cutoff = cutoff
@@ -80,6 +81,7 @@ class Gaussian(object):
         self.save_preprocessor = save_preprocessor
         self.overwrite = overwrite
         self.angular_type = angular_type
+        self.weighted = weighted
 
         # Let's add parameters that are going to be stored in the .params json
         # file.
@@ -192,6 +194,7 @@ class Gaussian(object):
             key, image = image
             feature_vectors = []
             computations.append(feature_vectors)
+            image_molecule = image 
 
             for atom in image:
                 index = atom.index
@@ -205,7 +208,8 @@ class Gaussian(object):
                 )
 
                 afp = self.get_atomic_fingerprint(
-                    atom, index, symbol, n_symbols, neighborpositions, self.preprocessor
+                    atom, index, symbol, n_symbols, neighborpositions, self.preprocessor, 
+                    image_molecule, weighted
                 )
                 feature_vectors.append(afp)
 
@@ -501,7 +505,8 @@ class Gaussian(object):
             ]
 
             feature_vector = self.get_atomic_fingerprint(
-                atom, index, symbol, n_symbols, neighborpositions, self.preprocessor
+                atom, index, symbol, n_symbols, neighborpositions, self.preprocessor, 
+                image_molecule, weighted
             )
 
             if self.preprocessor is not None:
@@ -516,7 +521,8 @@ class Gaussian(object):
 
     @dask.delayed
     def get_atomic_fingerprint(
-        self, atom, index, symbol, n_symbols, neighborpositions, preprocessor
+        self, atom, index, symbol, n_symbols, neighborpositions, preprocessor, 
+        image_molecule=None, weighted=False
     ):
         """Delayed class method to compute atomic fingerprints
         Parameters
@@ -535,6 +541,10 @@ class Gaussian(object):
             Array of neighbors' symbols.
         neighborpositions : ndarray of float
             Array of Cartesian atomic positions.
+        image_molecule : ase object, list
+            List of atoms in an image. 
+        weighted : bool
+            True if applying weighted feature of gaussian function. 
         """
 
         num_symmetries = len(self.GP[symbol])
@@ -556,7 +566,10 @@ class Gaussian(object):
                     self.cutoff,
                     self.cutofffxn,
                     Ri,
+                    image_molecule=image_molecule, 
+                    n_indices=n_indices, 
                     normalized=self.normalized,
+                    weighted=False
                 )
             elif GP["type"] == "G3":
                 feature = calculate_G3(
@@ -570,6 +583,9 @@ class Gaussian(object):
                     self.cutoff,
                     self.cutofffxn,
                     Ri,
+                    image_molecule=image_molecule, 
+                    n_indices=n_indices, 
+                    weighted=False
                 )
             elif GP["type"] == "G4":
                 feature = calculate_G4(
@@ -583,6 +599,9 @@ class Gaussian(object):
                     self.cutoff,
                     self.cutofffxn,
                     Ri,
+                    image_molecule=image_molecule, 
+                    n_indices=n_indices, 
+                    weighted=False
                 )
             else:
                 logger.error("not implemented")
@@ -757,7 +776,10 @@ def calculate_G2(
     cutoff,
     cutofffxn,
     Ri,
+    image_molecule=None,
+    n_indices=[], 
     normalized=True,
+    weighted=False
 ):
     """Calculate G2 symmetry function.
     Parameters
@@ -780,6 +802,13 @@ def calculate_G2(
         Position of the center atom. Should be fed as a list of three floats.
     normalized : bool
         Whether or not the symmetry function is normalized.
+    image_molecule : ase object, list
+        List of atoms in an image. 
+    n_indices : list
+        List of indices of neighboring atoms from the image object. 
+    weighted : bool
+        True if applying weighted feature of gaussian function. 
+
     Returns
     -------
     feature : float
@@ -798,15 +827,17 @@ def calculate_G2(
         Rc = cutoff
     else:
         Rc = 1.0
-
     for count in range(num_neighbors):
         symbol = neighborsymbols[count]
         Rj = neighborpositions[count]
+        weighted_atom = image_molecule[n_indices[count]].number
 
         if symbol == center_symbol:
             Rij = np.linalg.norm(Rj - Ri)
 
             feature += np.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
+            if weighted == True:
+                feature *= weighted_atom
 
     return feature
 
@@ -822,6 +853,9 @@ def calculate_G3(
     cutoff,
     cutofffxn,
     Ri,
+    image_molecule=None, 
+    n_indices=[], 
+    weighted=False
 ):
     """Calculate G3 symmetry function.
     Parameters
@@ -847,7 +881,13 @@ def calculate_G3(
         Cutoff function.
     Ri : list
         Position of the center atom. Should be fed as a list of three floats.
-        
+    image_molecule : ase object, list
+        List of atoms in an image. 
+    n_indices : list
+        List of indices of neighboring atoms from the image object. 
+    weighted : bool
+        True if applying weighted feature of gaussian function. 
+
     Returns
     -------
     feature : float
@@ -871,6 +911,8 @@ def calculate_G3(
             cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1.0 + gamma * cos_theta_ijk) ** zeta
             term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
+            if weighted = True: 
+                term *= weighted_h(image_molecule, n_indices, weighted=True)
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
             term *= cutofffxn(Rjk)
@@ -890,6 +932,9 @@ def calculate_G4(
     cutoff,
     cutofffxn,
     Ri,
+    image_molecule=None, 
+    n_indices=[], 
+    weighted=False
 ):
     """Calculate G4 symmetry function.
     Parameters
@@ -915,12 +960,17 @@ def calculate_G4(
         Cutoff function.
     Ri : list
         Position of the center atom. Should be fed as a list of three floats.
+    image_molecule : ase object, list
+        List of atoms in an image. 
+    n_indices : list
+        List of indices of neighboring atoms from the image object. 
+    weighted : bool
+        True if applying weighted feature of gaussian function. 
 
     Returns
     -------
     feature : float
         G4 feature value.
-
     Notes
     -------
     The difference between the calculate_G3 and the calculate_G4 function is 
@@ -929,6 +979,8 @@ def calculate_G4(
     Rc = cutoff
     feature = 0.0
     counts = range(len(neighborpositions))
+
+
     for j in counts:
         for k in counts[(j + 1) :]:
             els = sorted([neighborsymbols[j], neighborsymbols[k]])
@@ -942,9 +994,29 @@ def calculate_G4(
             cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1.0 + gamma * cos_theta_ijk) ** zeta
             term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0) / (Rc ** 2.0))
+            if weighted = True: 
+                term *= weighted_h(image_molecule, n_indices, weighted=True)
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
             feature += term
     feature *= 2.0 ** (1.0 - zeta)
     return feature
 
+
+def weighted_h(image_molecule, n_indices, weighted=False):
+    """ Calculate the atomic numbers of neighboring atoms for a molecule, 
+    then multiplies each neighor atomic number by each other. 
+    Parameters
+    ----------
+    image_molecule : ase object, list
+        List of atoms in an image. 
+    n_indices : list
+        List of indices of neighboring atoms from the image object. 
+    weighted : bool
+        True if applying weighted feature of gaussian function. 
+    """
+    atomic_numbers = 1.
+    if weighted == True: 
+        for i in n_indices:
+            atomic_numbers *= image_molecule[i].number
+        return atomic_numbers
