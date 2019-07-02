@@ -194,7 +194,6 @@ class Gaussian(object):
             key, image = image
             feature_vectors = []
             computations.append(feature_vectors)
-            image_molecule = image
 
             for atom in image:
                 index = atom.index
@@ -214,8 +213,9 @@ class Gaussian(object):
                     n_symbols,
                     neighborpositions,
                     self.preprocessor,
-                    image_molecule,
-                    weighted,
+                    image_molecule=image,
+                    weighted=self.weighted,
+                    n_indices=n_indices,
                 )
                 feature_vectors.append(afp)
 
@@ -517,8 +517,9 @@ class Gaussian(object):
                 n_symbols,
                 neighborpositions,
                 self.preprocessor,
-                image_molecule,
-                weighted,
+                n_indices=n_indices,
+                image_molecule=image,
+                weighted=self.weighted,
             )
 
             if self.preprocessor is not None:
@@ -540,6 +541,7 @@ class Gaussian(object):
         n_symbols,
         neighborpositions,
         preprocessor,
+        n_indices=None,
         image_molecule=None,
         weighted=False,
     ):
@@ -588,7 +590,7 @@ class Gaussian(object):
                     image_molecule=image_molecule,
                     n_indices=n_indices,
                     normalized=self.normalized,
-                    weighted=False,
+                    weighted=weighted,
                 )
             elif GP["type"] == "G3":
                 feature = calculate_G3(
@@ -604,7 +606,7 @@ class Gaussian(object):
                     Ri,
                     image_molecule=image_molecule,
                     n_indices=n_indices,
-                    weighted=False,
+                    weighted=weighted,
                 )
             elif GP["type"] == "G4":
                 feature = calculate_G4(
@@ -620,7 +622,7 @@ class Gaussian(object):
                     Ri,
                     image_molecule=image_molecule,
                     n_indices=n_indices,
-                    weighted=False,
+                    weighted=weighted,
                 )
             else:
                 logger.error("not implemented")
@@ -796,7 +798,7 @@ def calculate_G2(
     cutofffxn,
     Ri,
     image_molecule=None,
-    n_indices=[],
+    n_indices=None,
     normalized=True,
     weighted=False,
 ):
@@ -873,7 +875,7 @@ def calculate_G3(
     cutofffxn,
     Ri,
     image_molecule=None,
-    n_indices=[],
+    n_indices=None,
     weighted=False,
 ):
     """Calculate G3 symmetry function.
@@ -930,7 +932,7 @@ def calculate_G3(
             cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1.0 + gamma * cos_theta_ijk) ** zeta
             term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
-            if weighted == True:
+            if weighted:
                 term *= weighted_h(image_molecule, n_indices, weighted=True)
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
@@ -952,7 +954,7 @@ def calculate_G4(
     cutofffxn,
     Ri,
     image_molecule=None,
-    n_indices=[],
+    n_indices=None,
     weighted=False,
 ):
     """Calculate G4 symmetry function.
@@ -998,7 +1000,6 @@ def calculate_G4(
     Rc = cutoff
     feature = 0.0
     counts = range(len(neighborpositions))
-
     for j in counts:
         for k in counts[(j + 1) :]:
             els = sorted([neighborsymbols[j], neighborsymbols[k]])
@@ -1012,7 +1013,8 @@ def calculate_G4(
             cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1.0 + gamma * cos_theta_ijk) ** zeta
             term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0) / (Rc ** 2.0))
-            if weighted == True:
+
+            if weighted:
                 term *= weighted_h(image_molecule, n_indices, weighted=True)
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
@@ -1037,4 +1039,5 @@ def weighted_h(image_molecule, n_indices, weighted=False):
     if weighted == True:
         for i in n_indices:
             atomic_numbers *= image_molecule[i].number
+
         return atomic_numbers
