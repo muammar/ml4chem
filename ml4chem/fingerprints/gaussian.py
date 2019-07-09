@@ -1023,7 +1023,7 @@ def calculate_G4(
     return feature
 
 
-def weighted_h(image_molecule, n_indices, weighted=False):
+def weighted_h(image_molecule, n_indices):
     """ Calculate the atomic numbers of neighboring atoms for a molecule, 
     then multiplies each neighor atomic number by each other. 
     Parameters
@@ -1032,8 +1032,6 @@ def weighted_h(image_molecule, n_indices, weighted=False):
         List of atoms in an image. 
     n_indices : list
         List of indices of neighboring atoms from the image object. 
-    weighted : bool
-        True if applying weighted feature of gaussian function. 
     """
     atomic_numbers = 1.0
     if weighted == True:
