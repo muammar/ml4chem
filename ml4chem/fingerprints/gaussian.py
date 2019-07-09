@@ -359,7 +359,7 @@ class Gaussian(object):
                     else:
                         scaled = torch.tensor(
                             scaled_feature_space[index],
-                            requires_grad=True,
+                            requires_grad=False,
                             dtype=torch.float,
                         )
 
@@ -442,7 +442,7 @@ class Gaussian(object):
                 else:
                     scaled = torch.tensor(
                         scaled_feature_space[index][j],
-                        requires_grad=True,
+                        requires_grad=False,
                         dtype=torch.float,
                     )
                 features.append((symbol, scaled))
@@ -576,7 +576,7 @@ class Gaussian(object):
 
         if preprocessor is None:
             fingerprint = torch.tensor(
-                fingerprint, requires_grad=True, dtype=torch.float
+                fingerprint, requires_grad=False, dtype=torch.float
             )
 
         if preprocessor is None:

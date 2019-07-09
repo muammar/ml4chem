@@ -233,7 +233,7 @@ class Cartesian(object):
                     else:
                         scaled = torch.tensor(
                             scaled_feature_space[index],
-                            requires_grad=True,
+                            requires_grad=False,
                             dtype=torch.float,
                         )
 
@@ -248,7 +248,7 @@ class Cartesian(object):
 
         logger.info(
             "Fingerprinting finished in {} hours {} minutes {:.2f} "
-            "seconds.".format(h, m, s)
+            "seconds.\n".format(h, m, s)
         )
 
         if svm:
@@ -276,7 +276,7 @@ class Cartesian(object):
         position = atom.position
 
         if svm is False:
-            position = torch.tensor(position, requires_grad=True, dtype=torch.float)
+            position = torch.tensor(position, requires_grad=False, dtype=torch.float)
 
         return symbol, position
 
@@ -307,7 +307,7 @@ class Cartesian(object):
             else:
                 scaled = torch.tensor(
                     scaled_feature_space[index][j],
-                    requires_grad=True,
+                    requires_grad=False,
                     dtype=torch.float,
                 )
             features.append((symbol, scaled))
