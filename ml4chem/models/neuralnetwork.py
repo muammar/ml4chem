@@ -6,6 +6,7 @@ import torch
 
 import numpy as np
 from collections import OrderedDict
+from ml4chem.metrics import compute_rmse
 from ml4chem.models.loss import AtomicMSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 from ml4chem.utils import convert_elapsed_time, get_chunks
@@ -177,7 +178,7 @@ class NeuralNetwork(torch.nn.Module):
             atomic_energies = []
 
             for symbol, x in image:
-                # TODO this conditional can be removed after de/serialization
+                # FIXME this conditional can be removed after de/serialization
                 # is fixed.
                 if isinstance(symbol, bytes):
                     symbol = symbol.decode("utf-8")
@@ -252,11 +253,6 @@ class train(object):
     ):
 
         self.initial_time = time.time()
-
-        # old_state_dict = {}
-
-        # for key in model.state_dict():
-        #     old_state_dict[key] = model.state_dict()[key].clone()
 
         atoms_per_image = data.atoms_per_image
 
@@ -379,9 +375,10 @@ class train(object):
             # RMSE per image and per/atom
             client = dask.distributed.get_client()
 
-            rmse = client.submit(self.compute_rmse, *(outputs_, self.targets))
+            rmse = client.submit(compute_rmse, *(outputs_, self.targets))
+            atoms_per_image = self.atoms_per_image.view(1, -1)
             rmse_atom = client.submit(
-                self.compute_rmse, *(outputs_, self.targets, self.atoms_per_image)
+                compute_rmse, *(outputs_, self.targets, atoms_per_image)
             )
             rmse = rmse.result()
             rmse_atom = rmse_atom.result()
@@ -424,7 +421,7 @@ class train(object):
         # Get client to send futures to the scheduler
         client = dask.distributed.get_client()
 
-        loss_fn = torch.tensor(0, dtype=torch.float)
+        running_loss = torch.tensor(0, dtype=torch.float)
         accumulation = []
         grads = []
 
@@ -437,15 +434,13 @@ class train(object):
                 )
             )
         dask.distributed.wait(accumulation)
-        # accumulation = dask.compute(*accumulation,
-        # scheduler='distributed')
         accumulation = client.gather(accumulation)
 
         for index, chunk in enumerate(accumulation):
             outputs = chunk[0]
             loss = chunk[1]
             grad = np.array(chunk[2])
-            loss_fn += loss
+            running_loss += loss
             outputs_.append(outputs)
             grads.append(grad)
 
@@ -457,7 +452,7 @@ class train(object):
         del accumulation
         del grads
 
-        return loss_fn, outputs_
+        return running_loss, outputs_
 
     @classmethod
     def train_batches(
@@ -507,41 +502,7 @@ class train(object):
                 # N is also available only in the sencond batch. The
                 # contribution to the gradient of batch 1 to the N gradients is
                 # 0.
-                gradient = 0.
+                gradient = 0.0
             gradients.append(gradient)
 
         return outputs, loss, gradients
-
-    def compute_rmse(self, predictions, outputs, atoms_per_image=None):
-        """Compute RMSE
-
-        Useful when using futures.
-
-        Parameters
-        ----------
-        predictions : list
-            List of predictions.
-        outputs : list
-            List if outputs.
-        atoms_per_image : list
-            List of atoms per image.
-
-        Returns
-        -------
-        rmse : float
-            Root-mean squared error.
-        """
-
-        if isinstance(predictions, list):
-            predictions = torch.cat(predictions)
-
-        if isinstance(outputs, list):
-            outputs = torch.cat(outputs)
-
-        if atoms_per_image is not None:
-            atoms_per_image = atoms_per_image.view(1, -1)
-            predictions = predictions / atoms_per_image
-            outputs = outputs / atoms_per_image
-
-        rmse = torch.sqrt(torch.mean((predictions - outputs).pow(2))).item()
-        return rmse

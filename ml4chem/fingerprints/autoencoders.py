@@ -129,7 +129,7 @@ class LatentFeatures(object):
 
                     if svm is False:
                         feature_vector = torch.tensor(
-                            feature_vector, requires_grad=True, dtype=torch.float
+                            feature_vector, requires_grad=False, dtype=torch.float
                         )
 
                     pairs.append((symbol, feature_vector))
@@ -159,7 +159,7 @@ class LatentFeatures(object):
 
                     if svm is False:
                         feature_vector = torch.tensor(
-                            feature_vector, requires_grad=True, dtype=torch.float
+                            feature_vector, requires_grad=False, dtype=torch.float
                         )
 
                     pairs.append((symbol, feature_vector))

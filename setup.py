@@ -5,6 +5,7 @@ try:
         long_description = fh.read()
 except FileNotFoundError:
     import os
+
     dir_path = os.path.dirname(os.path.realpath(__file__))
     with open(dir_path + "/README.md", "r") as fh:
         long_description = fh.read()

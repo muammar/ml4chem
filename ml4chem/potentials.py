@@ -122,7 +122,7 @@ class Potentials(Calculator, object):
         return calc
 
     @staticmethod
-    def save(model, features=None, path=None, label="ml4chem"):
+    def save(model, features=None, path="", label="ml4chem"):
         """Save a model
 
         Parameters
@@ -139,10 +139,7 @@ class Potentials(Calculator, object):
 
         model_name = model.name()
 
-        if path is None:
-            path = "model" + label
-        else:
-            path += label
+        path += label
 
         if model_name in Potentials.svm_models:
             params = {"model": model.params}
@@ -222,11 +219,11 @@ class Potentials(Calculator, object):
         """
 
         data_handler = DataSet(training_set, purpose="training")
-
         # Raw input and targets aka X, y
         training_set, targets = data_handler.get_images(purpose="training")
 
         # Now let's train
+        # SVM models
         if self.model.name() in Potentials.svm_models:
             # Mapping raw positions into a feature space aka X
             feature_space, reference_features = self.fingerprints.calculate_features(

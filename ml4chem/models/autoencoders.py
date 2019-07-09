@@ -7,9 +7,10 @@ import torch
 
 import numpy as np
 from collections import OrderedDict
+from ml4chem.metrics import compute_rmse
 from ml4chem.models.loss import MSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
-from ml4chem.utils import convert_elapsed_time, get_chunks
+from ml4chem.utils import convert_elapsed_time, get_chunks, lod_to_list
 
 # Setting precision and starting logger object
 torch.set_printoptions(precision=10)
@@ -20,12 +21,12 @@ class AutoEncoder(torch.nn.Module):
     """Fully connected atomic autoencoder
 
 
-    AutoEncoders are very intersting models where usually the input is
+    AutoEncoders are very interesting models where usually the input is
     reconstructed (input equals output). These models are able to learn data
-    codings in an unsupervised manner. They are composed by an encoder that
+    coding in an unsupervised manner. They are composed by an encoder that
     takes an input and concentrate (encodes) the information in a lower/larger
     dimensional space (aka latent space). Subsequently, a decoder takes the
-    latent space and tries to resconstruct the input. It is been reported that
+    latent space and tries to reconstruct the input. It is been reported that
     when the output is not equal to the input, the model learns how to
     'translate' input into output e.g. image coloring.
 
@@ -144,8 +145,7 @@ class AutoEncoder(torch.nn.Module):
             decoder.append(_decoder)
             # According to this video https://youtu.be/xTU79Zs4XKY?t=416
             # real numbered inputs need no activation function in the output
-            # layer
-            # decoder.append(activation[self.activation]())
+            # layer decoder.append(activation[self.activation]())
 
             # Stacking up the layers.
             decoder = torch.nn.Sequential(*decoder)
@@ -358,20 +358,10 @@ class train(object):
 
         del targets
 
-        targets = []
+        # This change is needed because the targets are fingerprints or
+        # positions and they are built as a dictionary.
 
-        # This loop is needed because the targets are fingerprints or positions
-        # and they are built as a dictionary.
-
-        for t in targets_:
-            t = OrderedDict(t)
-            vectors = []
-            for hash in t.keys():
-                features = t[hash]
-                for symbol, vector in features:
-                    vectors.append(vector.detach().numpy())
-            vectors = torch.tensor(vectors, requires_grad=False)
-            targets.append(vectors)
+        targets = lod_to_list(targets_)
 
         logging.info("Batch size: {} elements per batch.".format(batch_size))
 
@@ -463,7 +453,7 @@ class train(object):
                 "model": self.model,
                 "lossfxn": self.lossfxn,
                 "device": self.device,
-                "inputs_chunk_vals": self.inputs_chunk_vals
+                "inputs_chunk_vals": self.inputs_chunk_vals,
             }
 
             loss, outputs_ = train.closure(**args)
@@ -480,7 +470,7 @@ class train(object):
 
             client = dask.distributed.get_client()
 
-            rmse = client.submit(self.compute_rmse, *(outputs_, self.targets))
+            rmse = client.submit(compute_rmse, *(outputs_, self.targets))
             rmse = rmse.result()
 
             _loss.append(loss.item())
@@ -552,7 +542,9 @@ class train(object):
         return loss_fn, outputs_
 
     @classmethod
-    def train_batches(Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals):
+    def train_batches(
+        Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals
+    ):
         """A function that allows training per batches
 
 
@@ -601,39 +593,6 @@ class train(object):
             gradients.append(param.grad.detach().numpy())
 
         return outputs, loss, gradients
-
-    def compute_rmse(self, predictions, outputs, atoms_per_image=None):
-        """Compute RMSE
-
-        Useful when using futures.
-
-        Parameters
-        ----------
-        predictions : list
-            List of predictions.
-        outputs : list
-            List if outputs.
-        atoms_per_image : list
-            List of atoms per image.
-
-        Returns
-        -------
-        rmse : float
-            Root-mean squared error.
-        """
-
-        if isinstance(predictions, list):
-            predictions = torch.cat(predictions)
-
-        if isinstance(outputs, list):
-            outputs = torch.cat(outputs)
-
-        if atoms_per_image is not None:
-            predictions = predictions / atoms_per_image
-            outputs = outputs / atoms_per_image
-
-        rmse = torch.sqrt(torch.mean((predictions - outputs).pow(2))).item()
-        return rmse
 
     @staticmethod
     def get_inputs_chunks(chunks):

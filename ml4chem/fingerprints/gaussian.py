@@ -19,6 +19,7 @@ class Gaussian(object):
     This class builds local chemical environments for atoms based on the
     Behler-Parrinello Gaussian type symmetry functions. It is modular enough
     that can be used just for creating feature spaces.
+
     Parameters
     ----------
     cutoff : float
@@ -42,6 +43,8 @@ class Gaussian(object):
     overwrite : bool
         If overwrite is set to true, ml4chem will not try to load existing
         databases.
+    angular_type : str
+        Compute "G3" or "G4" angular symmetry functions.
     
     References
     ----------
@@ -109,6 +112,7 @@ class Gaussian(object):
 
     def calculate_features(self, images=None, purpose="training", data=None, svm=False):
         """Calculate the features per atom in an atoms objects
+
         Parameters
         ----------
         image : dict
@@ -120,6 +124,7 @@ class Gaussian(object):
         svm : bool
             Whether or not these features are going to be used for kernel
             methods.
+
         Returns
         -------
         feature_space : dict
@@ -189,16 +194,22 @@ class Gaussian(object):
         logger.info("")
         logger.info("Adding atomic fingerprint calculations to scheduler...")
 
+        ini = end = 0
+
         computations = []
+        atoms_index_map = []    # This list is used to reconstruct images from atoms.
+
         for image in images.items():
             key, image = image
-            feature_vectors = []
-            computations.append(feature_vectors)
-
+            end = ini + len(image)
+            atoms_index_map.append(list(range(ini, end)))
+            ini = end
             for atom in image:
                 index = atom.index
                 symbol = atom.symbol
                 nl = get_neighborlist(image, cutoff=self.cutoff)
+                # n_indices: neighbor indices for central atom_i.
+                # n_offsets: neighbor offsets for central atom_i.
                 n_indices, n_offsets = nl[atom.index]
 
                 n_symbols = np.array(image.get_chemical_symbols())[n_indices]
@@ -217,7 +228,8 @@ class Gaussian(object):
                     weighted=self.weighted,
                     n_indices=n_indices,
                 )
-                feature_vectors.append(afp)
+
+                computations.append(afp)
 
         scheduler_time = time.time() - initial_time
 
@@ -234,71 +246,37 @@ class Gaussian(object):
             feature_space = dask.compute(*computations, scheduler=self.scheduler)
         else:
             stacked_features = dask.compute(*computations, scheduler=self.scheduler)
-
             stacked_features = np.array(stacked_features)
 
-            dim = stacked_features.shape
-
-            if len(dim) > 1:
-                d1, d2, d3 = dim
-                stacked_features = stacked_features.reshape(d1 * d2, d3)
-            else:
-                atoms_index_map = []
-                stack = []
-
-                d1 = ini = end = 0
-
-                for i in stacked_features:
-                    end = ini + len(i)
-                    atoms_index_map.append(list(range(ini, end)))
-                    ini = end
-
-                    for j in i:
-                        stack.append(j)
-                        d1 += 1
-
-                stacked_features = np.array(stack)
-
-                d2 = len(stack[0])
-                del stack
+        # Clean
+        del computations
 
         if purpose == "training":
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
             if self.preprocessor is not None:
-                if len(dim) > 1:
-                    stacked_features = dask.array.from_array(
-                        stacked_features, chunks=(d1 * d2, d3)
+                scaled_feature_space = []
+                dim = stacked_features.shape
+                stacked_features = dask.array.from_array(
+                    stacked_features, chunks=dim
+                )
+                stacked_features = preprocessor.fit(
+                    stacked_features, scheduler=self.scheduler
+                )
+
+                client = dask.distributed.get_client()
+                atoms_index_map = [
+                    client.scatter(chunk) for chunk in atoms_index_map
+                ]
+
+                for indices in atoms_index_map:
+                    features = client.submit(
+                        self.stack_features, *(indices, stacked_features)
                     )
-                    stacked_features = preprocessor.fit(
-                        stacked_features, scheduler=self.scheduler
-                    )
-
-                    scaled_feature_space = stacked_features.reshape(d1, d2, d3)
-                else:
-                    stacked_features = dask.array.from_array(
-                        stacked_features, chunks=(d1, d2)
-                    )
-
-                    stacked_features = preprocessor.fit(
-                        stacked_features, scheduler=self.scheduler
-                    )
-                    scaled_feature_space = []
-
-                    client = dask.distributed.get_client()
-                    atoms_index_map = [
-                        client.scatter(chunk) for chunk in atoms_index_map
-                    ]
-
-                    self.stacked_features = client.scatter(stacked_features)
-
-                    for indices in atoms_index_map:
-                        features = client.submit(
-                            self.stack_features, *(indices, stacked_features)
-                        )
-                        scaled_feature_space.append(features)
+                    scaled_feature_space.append(features)
 
             # More data processing depending on the method used.
+            del stacked_features
             computations = []
 
             if svm:
@@ -343,6 +321,7 @@ class Gaussian(object):
 
             feature_space = dask.compute(*computations, scheduler=self.scheduler)
             feature_space = OrderedDict(feature_space)
+            del computations
 
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
@@ -390,7 +369,7 @@ class Gaussian(object):
                     else:
                         scaled = torch.tensor(
                             scaled_feature_space[index],
-                            requires_grad=True,
+                            requires_grad=False,
                             dtype=torch.float,
                         )
 
@@ -419,6 +398,7 @@ class Gaussian(object):
     @dask.delayed
     def restack_atom(self, image_index, atom, scaled_feature_space):
         """Restack atoms to a raveled list to use with SVM
+
         Parameters
         ----------
         image_index : int
@@ -427,6 +407,7 @@ class Gaussian(object):
             An atom object.
         scaled_feature_space : np.array
             A numpy array with the scaled features
+
         Returns
         -------
         symbol, features : tuple
@@ -443,6 +424,7 @@ class Gaussian(object):
         self, index, image, feature_space=None, scaled_feature_space=None, svm=False
     ):
         """Restack images to correct dictionary's structure to train
+
         Parameters
         ----------
         index : int
@@ -453,6 +435,7 @@ class Gaussian(object):
             A numpy array with raw features.
         scaled_feature_space : np.array
             A numpy array with scaled features.
+
         Returns
         -------
         hash, features : tuple
@@ -469,7 +452,7 @@ class Gaussian(object):
                 else:
                     scaled = torch.tensor(
                         scaled_feature_space[index][j],
-                        requires_grad=True,
+                        requires_grad=False,
                         dtype=torch.float,
                     )
                 features.append((symbol, scaled))
@@ -484,10 +467,12 @@ class Gaussian(object):
     @dask.delayed
     def fingerprints_per_image(self, image):
         """A delayed function to parallelize fingerprints per image
+
         Parameters
         ----------
         image : obj
             An ASE image object.
+
         Notes
         -----
             This function is not being currently used.
@@ -546,6 +531,7 @@ class Gaussian(object):
         weighted=False,
     ):
         """Delayed class method to compute atomic fingerprints
+
         Parameters
         ----------
         atom : object
@@ -630,7 +616,7 @@ class Gaussian(object):
 
         if preprocessor is None:
             fingerprint = torch.tensor(
-                fingerprint, requires_grad=True, dtype=torch.float
+                fingerprint, requires_grad=False, dtype=torch.float
             )
 
         if preprocessor is None:
@@ -649,8 +635,10 @@ class Gaussian(object):
         angular_type="G3",
     ):
         """Function to make symmetry functions
+
         This method needs at least unique symbols and defaults set to true.
         Parameters
+
         ----------
         symbols : list
             List of strings with chemical symbols to create symmetry functions.
@@ -665,6 +653,9 @@ class Gaussian(object):
             Lists of zeta values.
         gammas : list
             List of gammas.
+        angular_type : str
+            Compute "G3" or "G4" angular symmetry functions.
+
         Return
         ------
         GP : dict
@@ -701,6 +692,7 @@ class Gaussian(object):
 
     def get_symmetry_functions(self, type, symbols, etas=None, zetas=None, gammas=None):
         """Get requested symmetry functions
+
         Parameters
         ----------
         type : str
@@ -745,7 +737,7 @@ class Gaussian(object):
             return GP
         else:
             logger.error(
-                "The requested type of angular symmetry function is " "not supported."
+                "The requested type of angular symmetry function is not supported."
             )
 
     def print_fingerprint_params(self, GP):
@@ -803,6 +795,9 @@ def calculate_G2(
     weighted=False,
 ):
     """Calculate G2 symmetry function.
+    
+    These correspond to 2 body, or radial interactions. 
+
     Parameters
     ----------
     n_symbols : list of int
@@ -830,20 +825,18 @@ def calculate_G2(
     weighted : bool
         True if applying weighted feature of gaussian function. 
 
+
     Returns
     -------
     feature : float
         Radial feature.
     """
     feature = 0.0
-
     num_neighbors = len(neighborpositions)
-
     Rc = cutoff
-    feature = 0.0
     num_neighbors = len(neighborpositions)
 
-    # Are we normalzing the feature?
+    # Are we normalizing the feature?
     if normalized:
         Rc = cutoff
     else:
@@ -879,6 +872,9 @@ def calculate_G3(
     weighted=False,
 ):
     """Calculate G3 symmetry function.
+
+    These are 3 body or angular interactions. 
+
     Parameters
     ----------
     n_symbols : list of int
@@ -958,6 +954,9 @@ def calculate_G4(
     weighted=False,
 ):
     """Calculate G4 symmetry function.
+
+    These are 3 body or angular interactions. 
+
     Parameters
     ----------
     n_symbols : list of int
@@ -993,7 +992,7 @@ def calculate_G4(
     feature : float
         G4 feature value.
     Notes
-    -------
+    -----
     The difference between the calculate_G3 and the calculate_G4 function is 
     that calculate_G4 accounts for bond angles of 180 degrees. 
     """

@@ -1,7 +1,9 @@
 import hashlib
 import importlib
 import logging
+import torch
 from ase.neighborlist import NeighborList
+from collections import OrderedDict
 
 
 def get_hash(image):
@@ -153,6 +155,44 @@ def logger(filename=None, level=None, format=None):
     logger = logging.basicConfig(filename=filename, level=level, format=format)
 
     return logger
+
+
+def lod_to_list(data, svm=False, requires_grad=False):
+    """List Of Dict (lod) to list
+    
+    Parameters
+    ----------
+    data : list
+        A list with ml4chem dictionaries. Those ones coming from get_chunks()
+    svm : bool, optional.
+        Whether or not these chunks are going to be used for kernel methods,
+        by default False.
+    requires_grad : bool, optional.
+        Do we require gradients?, by default False.
+    
+    Returns
+    -------
+    _list
+        A list of tensors or list of float.
+    """
+    _list = []
+
+    for d in data:
+        t = OrderedDict(d)
+        vectors = []
+        for hash in t.keys():
+            features = t[hash]
+            for symbol, vector in features:
+                vectors.append(vector.detach().numpy())
+
+        if svm is False:
+            vectors = torch.tensor(vectors, requires_grad=requires_grad)
+        else:
+            vectors = torch.tensor(vectors)
+
+        _list.append(vectors)
+
+    return _list
 
 
 def get_header_message():
