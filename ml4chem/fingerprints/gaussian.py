@@ -23,7 +23,7 @@ class Gaussian(object):
     Parameters
     ----------
     cutoff : float
-        Cutoff radius used for computing fingerprints.
+        Cutoff radius used for computing features.
     cutofffxn : object
         A Cutoff function object.
     normalized : bool
@@ -31,8 +31,13 @@ class Gaussian(object):
         cutoff radius.
     preprocessor : str
         Use some scaling method to preprocess the data. Default MinMaxScaler.
-    defaults : bool
-        Are we creating default symmetry functions?
+    custom : dict, opt
+        Create custom symmetry functions, and override defaults. Default is
+        None. The structure of the dictionary is as follows:
+
+        >>> custom = {'G2': {'etas': etas},
+                      'G3': {'etas': a_etas, 'zetas': zetas, 'gammas': gammas}}
+
     save_preprocessor : str
         Save preprocessor to file.
     scheduler : str
@@ -45,7 +50,7 @@ class Gaussian(object):
         databases.
     angular_type : str
         Compute "G3" or "G4" angular symmetry functions.
-    
+
     References
     ----------
     1. Behler, J. Atom-centered symmetry functions for constructing
@@ -67,7 +72,7 @@ class Gaussian(object):
         cutofffxn=None,
         normalized=True,
         preprocessor=("MinMaxScaler", None),
-        defaults=True,
+        custom=None,
         save_preprocessor="ml4chem",
         scheduler="distributed",
         filename="fingerprints.db",
@@ -91,6 +96,8 @@ class Gaussian(object):
         self.params = OrderedDict()
         self.params["name"] = self.name()
 
+        self.custom = custom
+
         # This is a very general way of not forgetting to save variables
         _params = vars()
 
@@ -102,8 +109,6 @@ class Gaussian(object):
         for k, v in _params.items():
             if v is not None:
                 self.params[k] = v
-
-        self.defaults = defaults
 
         if cutofffxn is None:
             self.cutofffxn = Cosine(cutoff=cutoff)
@@ -177,13 +182,18 @@ class Gaussian(object):
 
             logger.info("Unique chemical elements: {}".format(unique_element_symbols))
 
-        # If self.defaults is True we create default symmetry functions.
-        if self.defaults:
-            self.GP = self.make_symmetry_functions(
-                unique_element_symbols,
-                defaults=self.defaults,
-                angular_type=self.angular_type,
-            )
+        # We verify that values of parameters are list otherwise they cannot be
+        # serialized by json.
+        if self.custom is not None:
+            for key, value in self.custom.items():
+                for k, v in value.items():
+                    if isinstance(v, list) is False:
+                        value[k] = list(v)
+
+        # we make the features
+        self.GP = self.make_symmetry_functions(
+            unique_element_symbols, custom=self.custom, angular_type=self.angular_type
+        )
 
         self.print_fingerprint_params(self.GP)
 
@@ -192,12 +202,12 @@ class Gaussian(object):
 
         # We start populating computations to get atomic fingerprints.
         logger.info("")
-        logger.info("Adding atomic fingerprint calculations to scheduler...")
+        logger.info("Adding atomic feature calculations to scheduler...")
 
         ini = end = 0
 
         computations = []
-        atoms_index_map = []    # This list is used to reconstruct images from atoms.
+        atoms_index_map = []  # This list is used to reconstruct images from atoms.
 
         for image in images.items():
             key, image = image
@@ -242,10 +252,9 @@ class Gaussian(object):
         logger.info("")
         logger.info("Computing fingerprints...")
 
-        if self.preprocessor is None:
-            feature_space = dask.compute(*computations, scheduler=self.scheduler)
-        else:
-            stacked_features = dask.compute(*computations, scheduler=self.scheduler)
+        stacked_features = dask.compute(*computations, scheduler=self.scheduler)
+
+        if self.preprocessor is not None:
             stacked_features = np.array(stacked_features)
 
         # Clean
@@ -254,20 +263,16 @@ class Gaussian(object):
         if purpose == "training":
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
+            client = dask.distributed.get_client()
+
             if self.preprocessor is not None:
                 scaled_feature_space = []
                 dim = stacked_features.shape
-                stacked_features = dask.array.from_array(
-                    stacked_features, chunks=dim
-                )
+                stacked_features = dask.array.from_array(stacked_features, chunks=dim)
                 stacked_features = preprocessor.fit(
                     stacked_features, scheduler=self.scheduler
                 )
-
-                client = dask.distributed.get_client()
-                atoms_index_map = [
-                    client.scatter(chunk) for chunk in atoms_index_map
-                ]
+                atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
 
                 for indices in atoms_index_map:
                     features = client.submit(
@@ -275,7 +280,18 @@ class Gaussian(object):
                     )
                     scaled_feature_space.append(features)
 
-            # More data processing depending on the method used.
+                # More data processing depending on the method used.
+
+            else:
+                feature_space = []
+                atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
+
+                for indices in atoms_index_map:
+                    features = client.submit(
+                        self.stack_features, *(indices, stacked_features)
+                    )
+                    feature_space.append(features)
+
             del stacked_features
             computations = []
 
@@ -321,6 +337,7 @@ class Gaussian(object):
 
             feature_space = dask.compute(*computations, scheduler=self.scheduler)
             feature_space = OrderedDict(feature_space)
+            print(feature_space)
             del computations
 
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
@@ -457,12 +474,10 @@ class Gaussian(object):
                     )
                 features.append((symbol, scaled))
 
-            return hash, features
-
         elif feature_space is not None:
             features = feature_space[index]
 
-            return hash, features
+        return hash, features
 
     @dask.delayed
     def fingerprints_per_image(self, image):
@@ -549,9 +564,9 @@ class Gaussian(object):
         neighborpositions : ndarray of float
             Array of Cartesian atomic positions.
         image_molecule : ase object, list
-            List of atoms in an image. 
+            List of atoms in an image.
         weighted : bool
-            True if applying weighted feature of gaussian function. 
+            True if applying weighted feature of gaussian function.
         """
 
         num_symmetries = len(self.GP[symbol])
@@ -590,6 +605,7 @@ class Gaussian(object):
                     self.cutoff,
                     self.cutofffxn,
                     Ri,
+                    normalized=self.normalized,
                     image_molecule=image_molecule,
                     n_indices=n_indices,
                     weighted=weighted,
@@ -606,6 +622,7 @@ class Gaussian(object):
                     self.cutoff,
                     self.cutofffxn,
                     Ri,
+                    normalized=self.normalized,
                     image_molecule=image_molecule,
                     n_indices=n_indices,
                     weighted=weighted,
@@ -618,22 +635,11 @@ class Gaussian(object):
             fingerprint = torch.tensor(
                 fingerprint, requires_grad=False, dtype=torch.float
             )
-
-        if preprocessor is None:
             return symbol, fingerprint
         else:
             return fingerprint
 
-    def make_symmetry_functions(
-        self,
-        symbols,
-        defaults=True,
-        type=None,
-        etas=None,
-        zetas=None,
-        gammas=None,
-        angular_type="G3",
-    ):
+    def make_symmetry_functions(self, symbols, custom=None, angular_type="G3"):
         """Function to make symmetry functions
 
         This method needs at least unique symbols and defaults set to true.
@@ -643,16 +649,14 @@ class Gaussian(object):
         symbols : list
             List of strings with chemical symbols to create symmetry functions.
             >>> symbols = ['H', 'O']
-        defaults : bool
-            Are we building defaults symmetry functions or not?
-        type : str
-            The supported Gaussian type functions are 'G2', 'G3', and 'G4'.
-        etas : list
-            List of etas.
-        zetas : list
-            Lists of zeta values.
-        gammas : list
-            List of gammas.
+
+        custom : dict, opt
+            Create custom symmetry functions, and override defaults. Default is
+            None. The structure of the dictionary is as follows:
+
+            >>> custom = {'G2': {'etas': etas},
+                          'G3': {'etas': a_etas, 'zetas': zetas, 'gammas': gammas}}
+
         angular_type : str
             Compute "G3" or "G4" angular symmetry functions.
 
@@ -664,8 +668,8 @@ class Gaussian(object):
 
         GP = {}
 
-        if defaults:
-            logger.warning("Making default symmetry functions")
+        if custom is None:
+            logger.warning("Making default symmetry functions...")
 
             for symbol in symbols:
                 # Radial
@@ -686,7 +690,25 @@ class Gaussian(object):
 
                 GP[symbol] = _GP
         else:
-            pass
+            logger.warning("Making custom symmetry functions...")
+            types = sorted(custom.keys())
+
+            _GP = []
+            for symbol in symbols:
+                for type in types:
+                    if type.upper() == "G2":
+                        _GP += self.get_symmetry_functions(
+                            type=type, etas=custom[type]["etas"], symbols=symbols
+                        )
+                    else:
+                        _GP += self.get_symmetry_functions(
+                            type=type,
+                            symbols=symbols,
+                            etas=custom[type]["etas"],
+                            zetas=custom[type]["zetas"],
+                            gammas=custom[type]["gammas"],
+                        )
+                GP[symbol] = _GP
 
         return GP
 
@@ -736,9 +758,9 @@ class Gaussian(object):
                                 )
             return GP
         else:
-            logger.error(
-                "The requested type of angular symmetry function is not supported."
-            )
+            error = "The requested type of symmetry function is not supported."
+            logger.error(error)
+            raise (error)
 
     def print_fingerprint_params(self, GP):
         """Print fingerprint parameters"""
@@ -795,8 +817,8 @@ def calculate_G2(
     weighted=False,
 ):
     """Calculate G2 symmetry function.
-    
-    These correspond to 2 body, or radial interactions. 
+
+    These correspond to 2 body, or radial interactions.
 
     Parameters
     ----------
@@ -819,11 +841,11 @@ def calculate_G2(
     normalized : bool
         Whether or not the symmetry function is normalized.
     image_molecule : ase object, list
-        List of atoms in an image. 
+        List of atoms in an image.
     n_indices : list
-        List of indices of neighboring atoms from the image object. 
+        List of indices of neighboring atoms from the image object.
     weighted : bool
-        True if applying weighted feature of gaussian function. 
+        True if applying weighted feature of gaussian function.
 
 
     Returns
@@ -832,8 +854,6 @@ def calculate_G2(
         Radial feature.
     """
     feature = 0.0
-    num_neighbors = len(neighborpositions)
-    Rc = cutoff
     num_neighbors = len(neighborpositions)
 
     # Are we normalizing the feature?
@@ -850,7 +870,7 @@ def calculate_G2(
             Rij = np.linalg.norm(Rj - Ri)
 
             feature += np.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
-            if weighted == True:
+            if weighted:
                 feature *= weighted_atom
 
     return feature
@@ -867,13 +887,14 @@ def calculate_G3(
     cutoff,
     cutofffxn,
     Ri,
+    normalized=True,
     image_molecule=None,
     n_indices=None,
     weighted=False,
 ):
     """Calculate G3 symmetry function.
 
-    These are 3 body or angular interactions. 
+    These are 3 body or angular interactions.
 
     Parameters
     ----------
@@ -898,21 +919,29 @@ def calculate_G3(
         Cutoff function.
     Ri : list
         Position of the center atom. Should be fed as a list of three floats.
+    normalized : bool
+        Whether or not the symmetry function is normalized.
     image_molecule : ase object, list
-        List of atoms in an image. 
+        List of atoms in an image.
     n_indices : list
-        List of indices of neighboring atoms from the image object. 
+        List of indices of neighboring atoms from the image object.
     weighted : bool
-        True if applying weighted feature of gaussian function. 
+        True if applying weighted feature of gaussian function.
 
     Returns
     -------
     feature : float
         G3 feature value.
     """
-    Rc = cutoff
     feature = 0.0
     counts = range(len(neighborpositions))
+
+    # Are we normalizing the feature?
+    if normalized:
+        Rc = cutoff
+    else:
+        Rc = 1.0
+
     for j in counts:
         for k in counts[(j + 1) :]:
             els = sorted([neighborsymbols[j], neighborsymbols[k]])
@@ -949,13 +978,14 @@ def calculate_G4(
     cutoff,
     cutofffxn,
     Ri,
+    normalized=True,
     image_molecule=None,
     n_indices=None,
     weighted=False,
 ):
     """Calculate G4 symmetry function.
 
-    These are 3 body or angular interactions. 
+    These are 3 body or angular interactions.
 
     Parameters
     ----------
@@ -980,12 +1010,14 @@ def calculate_G4(
         Cutoff function.
     Ri : list
         Position of the center atom. Should be fed as a list of three floats.
+    normalized : bool
+        Whether or not the symmetry function is normalized.
     image_molecule : ase object, list
-        List of atoms in an image. 
+        List of atoms in an image.
     n_indices : list
-        List of indices of neighboring atoms from the image object. 
+        List of indices of neighboring atoms from the image object.
     weighted : bool
-        True if applying weighted feature of gaussian function. 
+        True if applying weighted feature of gaussian function.
 
     Returns
     -------
@@ -993,12 +1025,16 @@ def calculate_G4(
         G4 feature value.
     Notes
     -----
-    The difference between the calculate_G3 and the calculate_G4 function is 
-    that calculate_G4 accounts for bond angles of 180 degrees. 
+    The difference between the calculate_G3 and the calculate_G4 function is
+    that calculate_G4 accounts for bond angles of 180 degrees.
     """
-    Rc = cutoff
     feature = 0.0
     counts = range(len(neighborpositions))
+    # Are we normalizing the feature?
+    if normalized:
+        Rc = cutoff
+    else:
+        Rc = 1.0
     for j in counts:
         for k in counts[(j + 1) :]:
             els = sorted([neighborsymbols[j], neighborsymbols[k]])
@@ -1023,14 +1059,14 @@ def calculate_G4(
 
 
 def weighted_h(image_molecule, n_indices):
-    """ Calculate the atomic numbers of neighboring atoms for a molecule, 
-    then multiplies each neighor atomic number by each other. 
+    """ Calculate the atomic numbers of neighboring atoms for a molecule,
+    then multiplies each neighor atomic number by each other.
     Parameters
     ----------
     image_molecule : ase object, list
-        List of atoms in an image. 
+        List of atoms in an image.
     n_indices : list
-        List of indices of neighboring atoms from the image object. 
+        List of indices of neighboring atoms from the image object.
     """
     atomic_numbers = 1.0
     if weighted == True:
