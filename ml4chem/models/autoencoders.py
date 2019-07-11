@@ -102,7 +102,11 @@ class AutoEncoder(torch.nn.Module):
                 )
             )
 
-        unique_element_symbols = data.unique_element_symbols[purpose]
+        try:
+            unique_element_symbols = data.unique_element_symbols[purpose]
+        except TypeError:
+            unique_element_symbols = data.get_unique_element_symbols(purpose=purpose)
+            unique_element_symbols = unique_element_symbols[purpose]
 
         symbol_encoder_pair = []
         symbol_decoder_pair = []
@@ -597,7 +601,7 @@ class train(object):
     @staticmethod
     def get_inputs_chunks(chunks):
         """Get inputs in chunks for encodermap
-        
+
         Returns
         -------
         inputs_chunk_vals

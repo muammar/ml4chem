@@ -21,12 +21,14 @@ def compute_rmse(outputs, targets, atoms_per_image=None):
         Root-mean squared error.
     """
 
+    # Concatenate outputs and targets if they come as list of tensors
     if isinstance(outputs, list):
         outputs = torch.cat(outputs)
 
     if isinstance(targets, list):
         targets = torch.cat(targets)
 
+    # When doing atomistic models then atoms_per_image exists.
     if atoms_per_image is not None:
         # Dimensions do not match
         outputs = outputs / atoms_per_image

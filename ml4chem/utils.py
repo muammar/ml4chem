@@ -195,6 +195,25 @@ def lod_to_list(data, svm=False, requires_grad=False):
     return _list
 
 
+def get_number_of_parameters(model):
+    """Get the number of parameters
+    
+    Parameters
+    ----------
+    model : obj
+        Pytorch model to perform forward() and get gradients.
+    
+    Returns
+    -------
+    (total_params, train_params) tuple with total number of parameters and
+    number of trainable parameters.
+    """
+    total_params = sum(p.numel() for p in model.parameters())
+    train_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    return total_params, train_params
+
+
 def get_header_message():
     """Function that returns ML4Chem header"""
 
@@ -209,11 +228,12 @@ def get_header_message():
           ╚═╝     ╚═╝╚══════╝╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝\n
 
 
-ML4Chem is Machine Learning for Chemistry. This package is written in Python 3,
-and intends to offer modern and rich features to perform machine learning
+ML4Chem is Machine Learning for Chemistry. This package is written in Python
+3, and intends to offer modern and rich features to perform machine learning
 workflows for chemical physics.
 
-This software is developed by Muammar El Khatib.
+This project is directed by Muammar El Khatib.
+
 -------------------------------------------------------------------------------
 """
     return header

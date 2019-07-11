@@ -9,7 +9,7 @@ from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
 from ml4chem.models.loss import AtomicMSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
-from ml4chem.utils import convert_elapsed_time, get_chunks
+from ml4chem.utils import convert_elapsed_time, get_chunks, get_number_of_parameters
 
 
 # Setting precision and starting logger object
@@ -84,8 +84,9 @@ class NeuralNetwork(torch.nn.Module):
                     "(input, " + str(self.hiddenlayers)[1:-1] + ", output)"
                 )
             )
-            logger.info(" ")
+
         layers = range(len(self.hiddenlayers) + 1)
+
         try:
             unique_element_symbols = data.unique_element_symbols[purpose]
         except TypeError:
@@ -144,6 +145,10 @@ class NeuralNetwork(torch.nn.Module):
         self.linears = torch.nn.ModuleDict(symbol_model_pair)
 
         if purpose == "training":
+            total_params, train_params = get_number_of_parameters(self)
+            logger.info("Total number of parameters: {}.".format(total_params))
+            logger.info("Number of training parameters: {}.".format(train_params))
+            logger.info(" ")
             logger.info(self.linears)
             # Iterate over all modules and just intialize those that are
             # a linear layer.
@@ -412,9 +417,26 @@ class train(object):
     def closure(Cls, chunks, targets, model, lossfxn, atoms_per_image, device):
         """Closure
 
-        This method clears previous gradients, iterates over batches,
+        This class method clears previous gradients, iterates over batches,
         accumulates the gradients, reduces the gradients, update model
         params, and finally returns loss and outputs_.
+
+        Parameters
+        ----------
+        Cls : object
+            Class object.
+        chunks : tensor or list
+            Tensor with input data points in batch with index.
+        targets : tensor or list
+            The targets.
+        model : obj
+            Pytorch model to perform forward() and get gradients.
+        lossfxn : obj
+            A loss function object.
+        atoms_per_image : list
+            Atoms per image because we are doing atom-centered methods.
+        device : str
+            Are we running cuda or cpu?
         """
 
         outputs_ = []
@@ -436,10 +458,8 @@ class train(object):
         dask.distributed.wait(accumulation)
         accumulation = client.gather(accumulation)
 
-        for index, chunk in enumerate(accumulation):
-            outputs = chunk[0]
-            loss = chunk[1]
-            grad = np.array(chunk[2])
+        for outputs, loss, grad in accumulation:
+            grad = np.array(grad)
             running_loss += loss
             outputs_.append(outputs)
             grads.append(grad)
@@ -499,9 +519,8 @@ class train(object):
                 # contain variable that is following the gradient of certain
                 # atom. For example, suppose two batches with 2 molecules each.
                 # In the first batch we have only C, H, O but it turns out that
-                # N is also available only in the sencond batch. The
-                # contribution to the gradient of batch 1 to the N gradients is
-                # 0.
+                # N is also available only in the second batch. The
+                # contribution of the total gradient from the first batch for N is 0.
                 gradient = 0.0
             gradients.append(gradient)
 
