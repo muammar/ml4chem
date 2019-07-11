@@ -4,6 +4,7 @@ import inspect
 import time
 import torch
 import logging
+import numpy as np
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
 from ml4chem.utils import convert_elapsed_time, dynamic_import, get_chunks, lod_to_list
@@ -40,39 +41,40 @@ class ModelMerger(torch.nn.Module):
         super(ModelMerger, self).__init__()
         self.models = models
 
-    def forward(self, X):
+    def forward(self, X, models):
         """Forward propagation
         
         Parameters
         ----------
         X : list
-            List of model inputs. 
+            List of models' inputs. 
+        models : list
+            List of model objects.
         
         Returns
         -------
-        x
+        outputs
             A list with the forward propagation evaluation.
         """
 
         outputs = []
-        for i, model in enumerate(self.models):
-            _output = []
+        for i, model in enumerate(models):
+            # _output = []
             name = model.name()
-            _X = X[i]
-            if inspect.ismethod(_X):
-                _X = X[i - 1]
+            x = X[i]
+            if inspect.ismethod(x):
+                x = X[i - 1]
 
-            for j, x in enumerate(_X):
-                if name == "AutoEncoder":
-                    x = OrderedDict(x)
-                    output = model(x)
-                elif name == "PytorchPotentials":
-                    x = X[i](OrderedDict(x))
-                    output = model(x)
+            if name == "AutoEncoder":
+                x = OrderedDict(x)
+            elif name == "PytorchPotentials":
+                x = X[i](OrderedDict(x))
 
-                _output.append(output)
+            output = model(x)
+            # _output.append(output)
 
-            outputs.append(_output)
+            # outputs.append(_output)
+            outputs.append(output)
         return outputs
 
     def train(
@@ -106,10 +108,11 @@ class ModelMerger(torch.nn.Module):
         if isinstance(batch_size, int):
             chunks = []
             for inputs_ in inputs:
-                if inspect.ismethod(inputs_) is False:
-                    chunks.append(list(get_chunks(inputs_, batch_size, svm=False)))
-                else:
+
+                if inspect.ismethod(inputs_):
                     chunks.append(inputs_)
+                else:
+                    chunks.append(list(get_chunks(inputs_, batch_size, svm=False)))
 
             targets = [
                 list(get_chunks(target, batch_size, svm=False)) for target in targets
@@ -155,14 +158,19 @@ class ModelMerger(torch.nn.Module):
         # Data scattering
         client = dask.distributed.get_client()
 
+        # self.targets = [client.scatter(target) for target in targets]
+        self.targets = [target for target in targets]
+
         self.chunks = []
-        for chunk in chunks:
-            if inspect.ismethod(inputs_) is False:
+
+        for i, chunk in enumerate(chunks):
+            if inspect.ismethod(chunk) is False:
                 self.chunks.append(client.scatter(chunk))
             else:
+                # This list comprehension is useful to have the same number of
+                # functions as the same number of chunks without users' input.
+                chunk = [chunk for _ in range(len(self.targets[i]))]
                 self.chunks.append(chunk)
-
-        self.targets = [client.scatter(target) for target in targets]
 
         logger.info(" ")
         logging.info("Batch Information")
@@ -183,9 +191,7 @@ class ModelMerger(torch.nn.Module):
         logger.info(" ")
 
         logger.info(
-            "{:6s} {:19s} {:12s} {:8s}".format(
-                "Epoch", "Time Stamp", "Loss", "RMSE"
-            )
+            "{:6s} {:19s} {:12s} {:8s}".format("Epoch", "Time Stamp", "Loss", "RMSE")
         )
         logger.info(
             "{:6s} {:19s} {:12s} {:8s}".format(
@@ -195,6 +201,10 @@ class ModelMerger(torch.nn.Module):
 
         converged = False
         epoch = 0
+
+        if independent_loss is False:
+            # Convert list of chunks from [[a, c], [b, d]] to [[a, b], [c, d]]
+            self.chunks = list(map(list, zip(*self.chunks)))
 
         while not converged:
             epoch += 1
@@ -212,12 +222,10 @@ class ModelMerger(torch.nn.Module):
 
             else:
                 loss, outputs = self.closure(index, self.models, independent_loss)
-                loss.backward()
 
-            rmse = 0
+            rmse = 0.0
             for i, model in enumerate(self.models):
-                for j in range(len(outputs)):
-                    rmse += compute_rmse(outputs[i][j], self.targets[i][j].result())
+                rmse += compute_rmse(outputs[i], self.targets[i])
 
             if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
@@ -229,6 +237,7 @@ class ModelMerger(torch.nn.Module):
             ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
             logger.info(
                 "{:6d} {} {:8e} {:8f}".format(epoch, ts, loss, rmse)
+                # "{:6d} {} {:8e}".format(epoch, ts, loss)
             )
 
             if convergence is None and epoch == self.epochs:
@@ -237,10 +246,33 @@ class ModelMerger(torch.nn.Module):
                 converged = True
 
     def closure(self, index, model, independent_loss, name=None):
+        """Closure
+        
+        This method clears previous gradients, iterates over batches,
+        accumulates the gradients, reduces the gradients, update model
+        params, and finally returns loss and outputs_.
+
+        Parameters
+        ----------
+        index : int
+            Index of model.
+        model : obj
+            Model object. 
+        independent_loss : bool
+            Whether or not models' weight are optimized independently. 
+        name : str, optional
+            Model class's name, by default None.
+        
+        Returns
+        -------
+        loss, outputs
+            A tuple with loss function magnitudes and tensor with outputs.
+        """
+
+        client = dask.distributed.get_client()
 
         if name == "PytorchPotentials" and independent_loss:
             train = dynamic_import("train", "ml4chem.models", alt_name="neuralnetwork")
-            client = dask.distributed.get_client()
 
             inputs = []
             for chunk in self.chunks[index - 1]:
@@ -273,24 +305,96 @@ class ModelMerger(torch.nn.Module):
             )
             return loss, outputs_
         else:
-            outputs = self.forward(self.chunks)
 
             running_loss = torch.tensor(0, dtype=torch.float)
+            accumulation = []
 
-            for i, model in enumerate(self.models):
-                name = model.name()
-                for j, output in enumerate(outputs[i]):
-
-                    if name == "PytorchPotentials":
-                        loss = self.lossfxn[i](
-                            output,
-                            self.targets[i][j].result(),
-                            self.atoms_per_image[index],
+            for index, chunk in enumerate(self.chunks):
+                accumulation.append(
+                    client.submit(
+                        self.train_batches,
+                        *(
+                            index,
+                            chunk,
+                            self.targets,
+                            self.models,
+                            self.lossfxn,
+                            self.atoms_per_image,
+                            self.device,
                         )
+                    )
+                )
 
-                    elif name == "AutoEncoder":
-                        targets = self.targets[i][j].result()
-                        loss = self.lossfxn[i](output, targets)
-                    running_loss += loss
+            dask.distributed.wait(accumulation)
+            accumulation = client.gather(accumulation)
 
-            return running_loss, outputs
+            grads = {}
+            outputs_ = {}
+            for batch_index, (outputs, loss, grad) in enumerate(accumulation):
+                for model_index in range(len(self.models)):
+                    if model_index not in grads.keys():
+                        grads[model_index] = []
+                        outputs_[model_index] = []
+                    running_loss += loss[model_index]
+                    grads[model_index].append(np.array(grad[model_index]))
+                    outputs_[model_index].append(outputs[model_index])
+
+            # Sum gradients per model
+            for key, grad in grads.items():
+                grads[key] = sum(grad)
+
+            # Update the gradients of the model
+            for model_index, model in enumerate(self.models):
+                for index, param in enumerate(model.parameters()):
+                    param.grad = torch.tensor(grads[model_index][index])
+            return running_loss, outputs_
+
+    def train_batches(
+        self, chunk_index, chunk, targets, models, lossfxn, atoms_per_image, device
+    ):
+        outputs = self.forward(chunk, models)
+
+        batch_loss = torch.tensor(0, dtype=torch.float)
+
+        losses = []
+        for model_index, model in enumerate(models):
+            # _losses = []
+            name = model.name()
+            # for j, output in enumerate(outputs[i]):
+
+            output = outputs[model_index]
+            if name == "PytorchPotentials":
+                loss = lossfxn[model_index](
+                    output,
+                    targets[model_index][chunk_index],
+                    atoms_per_image[chunk_index],
+                )
+
+            elif name == "AutoEncoder":
+                loss = lossfxn[model_index](output, targets[model_index][chunk_index])
+
+            batch_loss += loss
+            losses.append(loss)
+
+        # We sum the loss of all models and backward propagate them
+        batch_loss.backward()
+
+        gradients = []
+        for model in models:
+            _gradients = []
+            for param in model.parameters():
+                try:
+                    gradient = param.grad.detach().numpy()
+                except AttributeError:
+                    # This exception catches  the case where an image does not
+                    # contain variable that is following the gradient of certain
+                    # atom. For example, suppose two batches with 2 molecules each.
+                    # In the first batch we have only C, H, O but it turns out that
+                    # N is also available only in the second batch. The
+                    # contribution of the total gradient from the first batch for N is 0.
+                    gradient = np.float(0.0)
+                _gradients.append(gradient)
+
+            gradients.append(_gradients)
+
+        return outputs, losses, gradients
