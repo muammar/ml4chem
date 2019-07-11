@@ -337,7 +337,6 @@ class Gaussian(object):
 
             feature_space = dask.compute(*computations, scheduler=self.scheduler)
             feature_space = OrderedDict(feature_space)
-            print(feature_space)
             del computations
 
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
@@ -693,8 +692,8 @@ class Gaussian(object):
             logger.warning("Making custom symmetry functions...")
             types = sorted(custom.keys())
 
-            _GP = []
             for symbol in symbols:
+                _GP = []
                 for type in types:
                     if type.upper() == "G2":
                         _GP += self.get_symmetry_functions(
@@ -769,15 +768,17 @@ class Gaussian(object):
         for symbol, v in GP.items():
             logger.info("    - {}: {}.".format(symbol, len(v)))
 
-        logger.info(" ")
-        logger.info("Symmetry function parameters:")
-        logger.info("-----------------------------")
-        logging.info(
-            "{:^5} {:^12} {:4.4} {}".format("#", "Symbol", "Type", "Parameters")
-        )
-
         _symbols = []
         for symbol, value in GP.items():
+            logger.info(" ")
+            logger.info("Symmetry function parameters for {} atom:".format(symbol))
+            underline = "---------------------------------------"
+            for char in range(len(symbol)):
+                underline += "-"
+            logger.info(underline)
+            logging.info(
+                "{:^5} {:^12} {:4.4} {}".format("#", "Symbol", "Type", "Parameters")
+            )
             if symbol not in _symbols:
                 _symbols.append(symbol)
                 for i, v in enumerate(value):
