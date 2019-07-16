@@ -10,6 +10,8 @@ from ml4chem.data.serialization import dump, load
 from ml4chem.utils import get_header_message, dynamic_import
 
 
+import inspect
+
 logger = logging.getLogger()
 
 
@@ -49,6 +51,7 @@ class Potentials(Calculator, object):
         atoms=None,
         ml4chem_path=None,
         preprocessor=None,
+        ionic=False,
     ):
 
         Calculator.__init__(self, label=label, atoms=atoms)
@@ -59,6 +62,8 @@ class Potentials(Calculator, object):
         self.model = model
         self.ml4chem_path = ml4chem_path
         self.preprocessor = preprocessor
+        self.optimizer = None
+        self.ionic = ionic
 
         logger.info(get_header_message())
         logger.info("Available backends: {}.".format(self.available_backends))
@@ -122,7 +127,7 @@ class Potentials(Calculator, object):
         return calc
 
     @staticmethod
-    def save(model, features=None, path=None, label="ml4chem"):
+    def save(model, features=None, path="", label="ml4chem"):
         """Save a model
 
         Parameters
@@ -138,9 +143,6 @@ class Potentials(Calculator, object):
         """
 
         model_name = model.name()
-
-        if path is None:
-            path = ""
 
         path += label
 
@@ -193,6 +195,7 @@ class Potentials(Calculator, object):
         regularization=0.0,
         batch_size=None,
     ):
+
         """Method to train models
 
         Parameters
@@ -225,6 +228,8 @@ class Potentials(Calculator, object):
         # Raw input and targets aka X, y
         training_set, targets = data_handler.get_images(purpose="training")
 
+        self.optimizer = optimizer
+
         # Now let's train
         # SVM models
         if self.model.name() in Potentials.svm_models:
@@ -232,11 +237,13 @@ class Potentials(Calculator, object):
             feature_space, reference_features = self.fingerprints.calculate_features(
                 training_set, data=data_handler, purpose="training", svm=True
             )
+
             self.model.prepare_model(
                 feature_space, reference_features, data=data_handler
             )
 
-            self.model.train(feature_space, targets)
+            self.model.train(feature_space, targets, atoms=training_set)
+
         else:
             # Mapping raw positions into a feature space aka X
             feature_space = self.fingerprints.calculate_features(
@@ -272,9 +279,11 @@ class Potentials(Calculator, object):
             device_ = torch.device(device)
 
             self.model.to(device_)
-
             # This is something specific of pytorch.
-            from ml4chem.models.neuralnetwork import train
+            if self.ionic:
+                from ml4chem.models.Ionic_NeuralNetwork import train
+            else:
+                from ml4chem.models.NeuralNetwork import train
 
             train(
                 feature_space,
@@ -288,6 +297,7 @@ class Potentials(Calculator, object):
                 lossfxn=lossfxn,
                 device=device,
                 batch_size=batch_size,
+                atoms=training_set,
             )
 
         self.save(
@@ -334,6 +344,7 @@ class Potentials(Calculator, object):
                     raise ("This is not a database...")
 
                 energy = self.model.get_potential_energy(fingerprints, reference_space)
+
             else:
                 input_dimension = len(list(fingerprints.values())[0][0][-1])
                 model = copy.deepcopy(self.model)
