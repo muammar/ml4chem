@@ -32,8 +32,8 @@ class Cartesian(object):
     save_preprocessor : str
         Save preprocessor to file.
     overwrite : bool
-        If overwrite is set to true, ml4chem will not try to load existing
-        databases.
+        If overwrite is set to True, ml4chem will not try to load existing
+        databases. Default is True.
     """
 
     NAME = "Cartesian"
@@ -49,7 +49,7 @@ class Cartesian(object):
         filename="cartesians.db",
         preprocessor=("Normalizer",),
         save_preprocessor="ml4chem",
-        overwrite=False,
+        overwrite=True,
     ):
 
         self.filename = filename

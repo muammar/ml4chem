@@ -46,16 +46,22 @@ class Gaussian(object):
         Path to save database. Note that if the filename exists, the features
         will be loaded without being recomputed.
     overwrite : bool
-        If overwrite is set to true, ml4chem will not try to load existing
-        databases.
+        If overwrite is set to True, ml4chem will not try to load existing
+        databases. Default is True.
     angular_type : str
         Compute "G3" or "G4" angular symmetry functions.
+    weighted : bool
+        True if applying weighted feature of Gaussian function. See Ref. 2. 
 
     References
     ----------
     1. Behler, J. Atom-centered symmetry functions for constructing
        high-dimensional neural network potentials. J. Chem. Phys. 134, 074106
        (2011).
+    2. Gastegger, M., Schwiedrzik, L., Bittermann, M., Berzsenyi, F. &
+       Marquetand, P. wACSF—Weighted atom-centered symmetry functions as
+       descriptors in machine learning potentials. J. Chem. Phys. 148, 241709
+       (2018).
     """
 
     NAME = "Gaussian"
@@ -76,7 +82,7 @@ class Gaussian(object):
         save_preprocessor="ml4chem",
         scheduler="distributed",
         filename="fingerprints.db",
-        overwrite=False,
+        overwrite=True,
         angular_type="G3",
         weighted=False,
     ):
@@ -96,15 +102,33 @@ class Gaussian(object):
         self.params = OrderedDict()
         self.params["name"] = self.name()
 
+        # We verify that values of parameters are list otherwise they cannot be
+        # serialized by json.
+        
+        # These keys are very likely to exist when doing inference
+        keys = ["user_input", "GP"]
+
+        if custom is not None and len(list(set(keys).intersection(custom.keys()))) == 0:
+            for value in custom.values():
+                for k, v in value.items():
+                    if isinstance(v, list) is False:
+                        value[k] = v.tolist()
+            custom = {"user_input": custom}
+
         self.custom = custom
 
         # This is a very general way of not forgetting to save variables
         _params = vars()
 
         # Delete useless variables
-        del _params["self"]
-        del _params["scheduler"]
-        del _params["overwrite"]
+        delete = ["self", "scheduler", "overwrite", "k", "v", "value", "keys"]
+
+        for param  in delete:
+            try:
+                del _params[param]
+            except KeyError:
+                # In case the variable does not exist we just pass.
+                pass
 
         for k, v in _params.items():
             if v is not None:
@@ -182,18 +206,17 @@ class Gaussian(object):
 
             logger.info("Unique chemical elements: {}".format(unique_element_symbols))
 
-        # We verify that values of parameters are list otherwise they cannot be
-        # serialized by json.
-        if self.custom is not None:
-            for key, value in self.custom.items():
-                for k, v in value.items():
-                    if isinstance(v, list) is False:
-                        value[k] = list(v)
-
         # we make the features
-        self.GP = self.make_symmetry_functions(
-            unique_element_symbols, custom=self.custom, angular_type=self.angular_type
-        )
+        self.GP = self.custom.get("GP", None) 
+
+        if self.GP is None:
+            custom = self.custom.get("user_input", None)
+            self.GP = self.make_symmetry_functions(
+                unique_element_symbols, custom=custom, angular_type=self.angular_type
+            )
+            self.custom.update({"GP": self.GP})
+        else:
+            logger.info('Using parameters from file to create symmetry functions...\n')
 
         self.print_fingerprint_params(self.GP)
 
@@ -565,7 +588,8 @@ class Gaussian(object):
         image_molecule : ase object, list
             List of atoms in an image.
         weighted : bool
-            True if applying weighted feature of gaussian function.
+            True if applying weighted feature of Gaussian function. See Ref.
+            2.
         """
 
         num_symmetries = len(self.GP[symbol])
@@ -773,12 +797,15 @@ class Gaussian(object):
             logger.info(" ")
             logger.info("Symmetry function parameters for {} atom:".format(symbol))
             underline = "---------------------------------------"
+
             for char in range(len(symbol)):
                 underline += "-"
+
             logger.info(underline)
             logging.info(
                 "{:^5} {:^12} {:4.4} {}".format("#", "Symbol", "Type", "Parameters")
             )
+
             if symbol not in _symbols:
                 _symbols.append(symbol)
                 for i, v in enumerate(value):
@@ -846,7 +873,7 @@ def calculate_G2(
     n_indices : list
         List of indices of neighboring atoms from the image object.
     weighted : bool
-        True if applying weighted feature of gaussian function.
+        True if applying weighted feature of Gaussian function. See Ref. 2.
 
 
     Returns
@@ -927,7 +954,7 @@ def calculate_G3(
     n_indices : list
         List of indices of neighboring atoms from the image object.
     weighted : bool
-        True if applying weighted feature of gaussian function.
+        True if applying weighted feature of Gaussian function. See Ref. 2.
 
     Returns
     -------
@@ -1018,7 +1045,7 @@ def calculate_G4(
     n_indices : list
         List of indices of neighboring atoms from the image object.
     weighted : bool
-        True if applying weighted feature of gaussian function.
+        True if applying weighted feature of Gaussian function. See Ref. 2.
 
     Returns
     -------

@@ -29,6 +29,8 @@ class DataSet(object):
         self.images = None
         self.targets = None
         self.unique_element_symbols = None
+        logger.info("Data")
+        logger.info("====")
 
         if self.is_valid_structure(images) is False:
             logger.warning("Data structure is not compatible with ML4Chem")

@@ -61,7 +61,6 @@ class Potentials(Calculator, object):
         self.preprocessor = preprocessor
 
         logger.info(get_header_message())
-        logger.info("Available backends: {}.".format(self.available_backends))
 
         self.reference_space = None
 
@@ -147,7 +146,7 @@ class Potentials(Calculator, object):
         if model_name in Potentials.svm_models:
             params = {"model": model.params}
 
-            # Save model weigths to file
+            # Save model weights to file
             dump(model.weights, path + ".ml4c")
         else:
 
