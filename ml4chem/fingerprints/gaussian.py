@@ -108,7 +108,9 @@ class Gaussian(object):
         # These keys are very likely to exist when doing inference
         keys = ["user_input", "GP"]
 
-        if custom is not None and len(list(set(keys).intersection(custom.keys()))) == 0:
+        if custom is None:
+            custom = {key: custom for key in keys}
+        elif custom is not None and len(list(set(keys).intersection(custom.keys()))) == 0:
             for value in custom.values():
                 for k, v in value.items():
                     if isinstance(v, list) is False:
