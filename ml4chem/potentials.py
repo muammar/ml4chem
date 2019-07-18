@@ -324,7 +324,7 @@ class Potentials(Calculator, object):
             fingerprints = fingerprints.calculate_features(atoms, **kwargs)
 
         if "energy" in properties:
-            logger.info("Calculating energy")
+            logger.info("Computing energy...")
             if model_name in Potentials.svm_models:
 
                 try:
@@ -337,7 +337,11 @@ class Potentials(Calculator, object):
                 input_dimension = len(list(fingerprints.values())[0][0][-1])
                 model = copy.deepcopy(self.model)
                 model.prepare_model(input_dimension, data=data_handler, purpose=purpose)
-                model.load_state_dict(torch.load(self.ml4chem_path), strict=True)
+                try:
+                    model.load_state_dict(torch.load(self.ml4chem_path), strict=True)
+                except RuntimeError:
+                    logger.warning('Your image does not have some atoms present in the loaded model.\n')
+                    model.load_state_dict(torch.load(self.ml4chem_path), strict=False)
                 model.eval()
                 energy = model(fingerprints).item()
 
