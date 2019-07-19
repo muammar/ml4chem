@@ -174,9 +174,9 @@ def read_log(logfile, metric="loss", refresh=None):
 
 def plot_atomic_features(latent_space, method="PCA", dimensions=2):
     """Plot high dimensional atomic feature vectors
-    
+
     This function can take a feature space dictionary, or a database file
-    and plot the atomic features using PCA or t-SNE. 
+    and plot the atomic features using PCA or t-SNE.
 
     $ mlchem --plot tsne --file path.db
 
@@ -205,8 +205,16 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2):
 
     for hash, feature_space in latent_space.items():
         for symbol, feature_vector in feature_space:
+            try:
+                symbol = symbol.decode("utf-8")
+            except AttributeError:
+                pass
+
+            if isinstance(feature_vector, np.ndarray) is False:
+                feature_vector = feature_vector.numpy()
+
+            full_symbols.append(symbol)
             full_ls.append(feature_vector)
-            full_symbols.append(symbol.decode("utf-8"))
 
     if method == "pca":
         from sklearn.decomposition import PCA
