@@ -14,23 +14,24 @@ logger = logging.getLogger()
 
 
 class Potentials(Calculator, object):
-    """Machine-Learning for Chemistry
+    """Atomistic Machine Learning Potentials
 
-    This class is highly inspired on the Atomistic Machine-Learning package
+    This class is highly inspired by the Atomistic Machine-Learning package
     (Amp).
 
     Parameters
     ----------
     fingerprints : object
-        Local chemical environments to build the feature space.
+        Atomic feature vectors (local chemical environments) from any of the
+        fingerprints module.
     model : object
-        Machine-learning model to perform training.
+        Machine learning algorithm to build a model.
     path : str
-        PATH where to save files.
+        Path to save files.
     label : str
-        Name for files. Default ml4chem.
+        Name of files. Default ml4chem.
     preprocessor : str
-        The path to load the file with the sklearn preprocessor object.
+        Path to load sklearn preprocessor object. Useful when doing inference.
     """
 
     # This is needed by ASE
@@ -222,7 +223,7 @@ class Potentials(Calculator, object):
 
         data_handler = DataSet(training_set, purpose="training")
         # Raw input and targets aka X, y
-        training_set, targets = data_handler.get_images(purpose="training")
+        training_set, targets = data_handler.get_data(purpose="training")
 
         # Now let's train
         # SVM models
@@ -273,7 +274,10 @@ class Potentials(Calculator, object):
             self.model.to(device_)
 
             # This is something specific of pytorch.
-            from ml4chem.models.neuralnetwork import train
+            if self.model.name() == 'RetentionTimes':
+                from ml4chem.models.rt import train
+            else:
+                from ml4chem.models.neuralnetwork import train
 
             train(
                 feature_space,
@@ -308,7 +312,7 @@ class Potentials(Calculator, object):
 
         # We convert the atoms in atomic fingerprints
         data_handler = DataSet([atoms], purpose=purpose)
-        atoms = data_handler.get_images(purpose=purpose)
+        atoms = data_handler.get_data(purpose=purpose)
 
         # We copy the loaded fingerprint class
         fingerprints = copy.deepcopy(self.fingerprints)

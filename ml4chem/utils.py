@@ -115,9 +115,9 @@ def dynamic_import(name, package, alt_name=None):
     return imported_class
 
 
-def logger(filename=None, level=None, format=None):
+def logger(filename=None, level=None, format=None, filemode="a"):
     """A wrapper to the logging python module
-    
+
     This module is useful for cases where we need to log in a for loop
     different files. It also will allow more flexibility later on how the
     logging format could evolve.
@@ -125,13 +125,17 @@ def logger(filename=None, level=None, format=None):
     Parameters
     ----------
     filename : str, optional
-        Name of logfile. If no filename is provided, we output to stdout. 
+        Name of logfile. If no filename is provided, we output to stdout.
     level : str, optional
         Level of logging messages, by default 'info'. Supported are: 'info'
         and 'debug'.
     format : str, optional
         Format of logging messages, by default '%(message)s'.
-    
+    filemode : str, optional
+        If filename is specified, open the file in this mode. Defaults to
+        "a". Supported modes are: "r" (read), "w" (write), "a" (append).
+
+
     Returns
     -------
     logger
@@ -152,14 +156,14 @@ def logger(filename=None, level=None, format=None):
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
 
-    logger = logging.basicConfig(filename=filename, level=level, format=format)
+    logger = logging.basicConfig(filename=filename, level=level, format=format, filemode=filemode)
 
     return logger
 
 
 def lod_to_list(data, svm=False, requires_grad=False):
     """List Of Dict (lod) to list
-    
+
     Parameters
     ----------
     data : list
@@ -169,7 +173,7 @@ def lod_to_list(data, svm=False, requires_grad=False):
         by default False.
     requires_grad : bool, optional.
         Do we require gradients?, by default False.
-    
+
     Returns
     -------
     _list
@@ -197,12 +201,12 @@ def lod_to_list(data, svm=False, requires_grad=False):
 
 def get_number_of_parameters(model):
     """Get the number of parameters
-    
+
     Parameters
     ----------
     model : obj
         Pytorch model to perform forward() and get gradients.
-    
+
     Returns
     -------
     (total_params, train_params) tuple with total number of parameters and
@@ -218,7 +222,7 @@ def get_header_message():
     """Function that returns ML4Chem header"""
 
     header = """
--------------------------------------------------------------------------------
+===============================================================================
 
           ███╗   ███╗██╗██╗  ██╗ ██████╗██╗  ██╗███████╗███╗   ███╗
           ████╗ ████║██║██║  ██║██╔════╝██║  ██║██╔════╝████╗ ████║
@@ -234,6 +238,6 @@ workflows for chemical physics.
 
 This project is directed by Muammar El Khatib.
 
--------------------------------------------------------------------------------
+===============================================================================
 """
     return header

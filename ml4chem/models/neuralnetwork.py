@@ -20,14 +20,14 @@ logger = logging.getLogger()
 class NeuralNetwork(torch.nn.Module):
     """Atom-centered Neural Network Regression with Pytorch
 
-    This model is based on the Ref. 1 by Behler and Parrinello.
+    This model is based on Ref. 1 by Behler and Parrinello.
 
     Parameters
     ----------
     hiddenlayers : tuple
         Structure of hidden layers in the neural network.
     activation : str
-        The activation function.
+        Activation functions. Supported "tanh", "relu", or "celu".
 
     References
     ----------
