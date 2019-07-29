@@ -29,6 +29,8 @@ class DataSet(object):
         self.images = None
         self.targets = None
         self.unique_element_symbols = None
+        self.sorted_molecules = None
+        self.forces = []
 
         if self.is_valid_structure(images) is False:
             logger.warning("Data structure is not compatible with ML4Chem")
@@ -52,6 +54,13 @@ class DataSet(object):
             list.
         self.targets : list
             Targets used for training the model.
+        self.sorted_molecules : dict
+            Ordereddict of images of the same molecule type
+        self.max_energies_hashed : dict
+            Ordereddict of the max energies of the particular molecule type
+        self.max_energies : list
+            List of the max value of each molecule type
+
         """
         logger.info("Preparing images...")
         self.images = OrderedDict()
@@ -62,7 +71,14 @@ class DataSet(object):
 
         duplicates = 0
 
+        self.sorted_molecules = OrderedDict()
+        string_hash = str(images[0].symbols)
+        if images[0].get_tags()[0] != 0:
+            string_hash += "_" + str(images[0].get_tags()[0])
+        self.sorted_molecules[string_hash] = []
+        self.sorted_molecules[string_hash].append(images[0])
         for image in images:
+            self.forces.append(image.get_forces())
             key = get_hash(image)
             if key in self.images.keys():
                 duplicates += 1
@@ -71,19 +87,47 @@ class DataSet(object):
                 if purpose == "training":
                     # When purpose is training then you also need targets and
                     # number of atoms in each image
+
+                    #Deals with molecules with the same symbol but different structures
+                    string_hash = str(image.symbols)
+                    if image.get_tags()[0] != 0:
+                        string_hash += "_" + str(image.get_tags()[0])
+
+                    if (str(image.symbols) not in self.sorted_molecules.keys()):
+                        self.sorted_molecules[string_hash] = []
+                        self.sorted_molecules[string_hash].append(image)
+                    else:
+                        self.sorted_molecules[string_hash].append(image)
+
                     self.targets.append(image.get_potential_energy())
                     self.atoms_per_image.append(len(image))
 
         if purpose == "training":
-            max_energy = max(self.targets)
-            max_index = self.targets.index(max_energy)
-            min_energy = min(self.targets)
-            min_index = self.targets.index(min_energy)
+            max_energies_hashed = OrderedDict()
+            min_energies_hashed = OrderedDict()
+            max_energies = []
+            min_energies = []
+            for hash in self.sorted_molecules:
+                energies = []
+                for energy in range(len(self.sorted_molecules[hash])):
+                    energies.append(self.sorted_molecules[hash][energy].get_potential_energy())
+                max_energy = max(energies)
+                max_index = energies.index(max_energy)
+                min_energy = min(energies)
+                min_index = energies.index(min_energy)
 
-            max_energy = max_energy / len(images[max_index])
-            min_energy = min_energy / len(images[min_index])
+                max_energy = max_energy / len(images[max_index])
+                min_energy = min_energy / len(images[min_index])
 
-            self.max_energy, self.min_energy = max_energy, min_energy
+                max_energies_hashed[hash] = max_energy
+                min_energies_hashed[hash] = min_energy
+                max_energies.append(max_energy)
+                min_energies.append(min_energy)
+
+                self.max_energies, self.min_energies = max_energies, min_energies
+                self.max_energies_hashed = max_energies_hashed
+                self.min_energies_hashed = min_energies_hashed
+
         logger.info("Images hashed and processed...\n")
 
         if purpose == "training":
@@ -159,6 +203,7 @@ class DataSet(object):
         self.unique_element_symbols = symbols
 
         return self.unique_element_symbols
+
 
     def get_images(self, purpose=None):
         """
