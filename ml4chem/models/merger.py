@@ -43,14 +43,14 @@ class ModelMerger(torch.nn.Module):
 
     def forward(self, X, models):
         """Forward propagation
-        
+
         Parameters
         ----------
         X : list
-            List of models' inputs. 
+            List of models' inputs.
         models : list
             List of model objects.
-        
+
         Returns
         -------
         outputs
@@ -79,8 +79,8 @@ class ModelMerger(torch.nn.Module):
 
     def train(
         self,
-        inputs=None,
-        targets=None,
+        inputs,
+        targets,
         data=None,
         optimizer=(None, None),
         regularization=None,
@@ -91,6 +91,7 @@ class ModelMerger(torch.nn.Module):
         batch_size=None,
         lr_scheduler=None,
         independent_loss=True,
+        loss_weights=None
     ):
 
         logger.info(" ")
@@ -100,6 +101,16 @@ class ModelMerger(torch.nn.Module):
 
         for model in self.models:
             logging.info("    - {}.".format(model.name()))
+
+        logging.info("Loss functions:")
+        
+        if loss_weights is None:
+            self.loss_weights = [1. / len(lossfxn) for l in lossfxn]
+        else:
+            self.loss_weights = loss_weights
+
+        for l in lossfxn:
+            logging.info("    - {}.".format(l.__name__))
 
         # If no batch_size provided then the whole training set length is the batch.
         if batch_size is None:
@@ -172,12 +183,15 @@ class ModelMerger(torch.nn.Module):
                 chunk = [chunk for _ in range(len(self.targets[i]))]
                 self.chunks.append(chunk)
 
+        del chunks
+
         logger.info(" ")
         logging.info("Batch Information")
         logging.info("-----------------")
-        logging.info("Number of batches: {}.".format(len(self.chunks)))
-        logging.info("Batch size: {} elements per batch.".format(batch_size))
-        logger.info(" ")
+        logging.info("Number of batches:")
+        for index, c in enumerate(self.chunks):
+            logging.info('    - Model {}, {}.'.format(index, len(c)))
+        logging.info("Batch size: {} elements per batch.\n".format(batch_size))
 
         # Define optimizer
 
@@ -191,11 +205,11 @@ class ModelMerger(torch.nn.Module):
         logger.info(" ")
 
         logger.info(
-            "{:6s} {:19s} {:12s} {:8s}".format("Epoch", "Time Stamp", "Loss", "RMSE")
+            "{:6s} {:19s} {:12s} {:8s}".format("Epoch", "Time Stamp", "Loss", "RMSE (ave)")
         )
         logger.info(
             "{:6s} {:19s} {:12s} {:8s}".format(
-                "------", "-------------------", "------------", "--------"
+                "------", "-------------------", "------------", "--------------"
             )
         )
 
@@ -206,6 +220,11 @@ class ModelMerger(torch.nn.Module):
             # Convert list of chunks from [[a, c], [b, d]] to [[a, b], [c, d]]
             self.chunks = list(map(list, zip(*self.chunks)))
 
+        old_state_dict = {}
+
+        for key in self.models[1].state_dict():
+            old_state_dict[key] = self.models[1].state_dict()[key].clone()
+
         while not converged:
             epoch += 1
 
@@ -213,19 +232,24 @@ class ModelMerger(torch.nn.Module):
 
             if independent_loss:
                 losses = []
-                for index, model in enumerate(self.models):
+                for model_index, model in enumerate(self.models):
                     name = model.name()
                     loss, outputs = self.closure(
-                        index, model, independent_loss, name=name
+                        model_index, model, independent_loss, name=name
                     )
                     losses.append(loss)
 
             else:
                 loss, outputs = self.closure(index, self.models, independent_loss)
 
-            rmse = 0.0
+            rmse = []
             for i, model in enumerate(self.models):
-                rmse += compute_rmse(outputs[i], self.targets[i])
+                rmse.append(compute_rmse(outputs[i], self.targets[i]))
+            # print(outputs[1])
+            # print(targets[1])
+
+            # print(rmse)
+            _rmse = np.average(rmse)
 
             if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
@@ -236,18 +260,30 @@ class ModelMerger(torch.nn.Module):
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
             logger.info(
-                "{:6d} {} {:8e} {:8f}".format(epoch, ts, loss, rmse)
-                # "{:6d} {} {:8e}".format(epoch, ts, loss)
+                "{:6d} {} {:8e} {:8f}".format(epoch, ts, loss, _rmse)
             )
 
             if convergence is None and epoch == self.epochs:
                 converged = True
-            elif convergence is not None and rmse < convergence["rmse"]:
+            elif convergence is not None and all(i <= convergence["rmse"] for i in rmse):
                 converged = True
+                new_state_dict = {}
+
+                for key in self.models[1].state_dict():
+                    new_state_dict[key] = self.models[1].state_dict()[key].clone()
+
+                for key in old_state_dict:
+                    if not (old_state_dict[key] == new_state_dict[key]).all():
+                        print('Diff in {}'.format(key))
+                    else:
+                        print('No diff in {}'.format(key))
+
+            # print(rmse)
+
 
     def closure(self, index, model, independent_loss, name=None):
         """Closure
-        
+
         This method clears previous gradients, iterates over batches,
         accumulates the gradients, reduces the gradients, update model
         params, and finally returns loss and outputs_.
@@ -257,12 +293,12 @@ class ModelMerger(torch.nn.Module):
         index : int
             Index of model.
         model : obj
-            Model object. 
+            Model object.
         independent_loss : bool
-            Whether or not models' weight are optimized independently. 
+            Whether or not models' weight are optimized independently.
         name : str, optional
             Model class's name, by default None.
-        
+
         Returns
         -------
         loss, outputs
@@ -330,12 +366,15 @@ class ModelMerger(torch.nn.Module):
 
             grads = {}
             outputs_ = {}
-            for batch_index, (outputs, loss, grad) in enumerate(accumulation):
+            losses = {}
+            for model_index, (outputs, loss, grad) in enumerate(accumulation):
                 for model_index in range(len(self.models)):
                     if model_index not in grads.keys():
                         grads[model_index] = []
                         outputs_[model_index] = []
+                        losses[model_index] = []
                     running_loss += loss[model_index]
+                    losses[model_index].append(loss[model_index])
                     grads[model_index].append(np.array(grad[model_index]))
                     outputs_[model_index].append(outputs[model_index])
 
@@ -347,6 +386,7 @@ class ModelMerger(torch.nn.Module):
             for model_index, model in enumerate(self.models):
                 for index, param in enumerate(model.parameters()):
                     param.grad = torch.tensor(grads[model_index][index])
+
             return running_loss, outputs_
 
     def train_batches(
@@ -373,7 +413,7 @@ class ModelMerger(torch.nn.Module):
             elif name == "AutoEncoder":
                 loss = lossfxn[model_index](output, targets[model_index][chunk_index])
 
-            batch_loss += loss
+            batch_loss += loss * self.loss_weights[model_index]
             losses.append(loss)
 
         # We sum the loss of all models and backward propagate them

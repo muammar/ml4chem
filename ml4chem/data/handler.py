@@ -19,9 +19,10 @@ class DataSet(object):
     Parameters
     ----------
     images : list or object
-        List of images.
+        List of images. Supported format is from ASE.
     purpose : str
-        Are we needing the data for training or inferring?
+        Is this data for training or inference purpose?. Supported strings are:
+        "training", and "inference".
     """
 
     def __init__(self, images, purpose=None):
@@ -31,9 +32,11 @@ class DataSet(object):
         self.unique_element_symbols = None
         self.sorted_molecules = None
         self.forces = []
+        logger.info("Data")
+        logger.info("====")
 
         if self.is_valid_structure(images) is False:
-            logger.warning("Data structure is not compatible with ML4Chem")
+            logger.warning("Data structure is not compatible with ML4Chem.")
             self.prepare_images(images, purpose=purpose)
 
     def prepare_images(self, images, purpose=None):
@@ -62,7 +65,7 @@ class DataSet(object):
             List of the max value of each molecule type
 
         """
-        logger.info("Preparing images...")
+        logger.info("Preparing images for {}...".format(purpose))
         self.images = OrderedDict()
 
         if purpose == "training":
@@ -131,7 +134,7 @@ class DataSet(object):
         logger.info("Images hashed and processed...\n")
 
         if purpose == "training":
-            logger.info("There are {} atoms in your data set".format(sum(self.atoms_per_image)))
+            logger.info("There are {} atoms in your data set.".format(sum(self.atoms_per_image)))
 
     def is_valid_structure(self, images):
         """Check if the data has a valid structure
@@ -205,7 +208,7 @@ class DataSet(object):
         return self.unique_element_symbols
 
 
-    def get_images(self, purpose=None):
+    def get_data(self, purpose=None):
         """
         Parameters
         ----------

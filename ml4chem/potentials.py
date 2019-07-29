@@ -16,23 +16,24 @@ logger = logging.getLogger()
 
 
 class Potentials(Calculator, object):
-    """Machine-Learning for Chemistry
+    """Atomistic Machine Learning Potentials
 
-    This class is highly inspired on the Atomistic Machine-Learning package
+    This class is highly inspired by the Atomistic Machine-Learning package
     (Amp).
 
     Parameters
     ----------
     fingerprints : object
-        Local chemical environments to build the feature space.
+        Atomic feature vectors (local chemical environments) from any of the
+        fingerprints module.
     model : object
-        Machine-learning model to perform training.
+        Machine learning algorithm to build a model.
     path : str
-        PATH where to save files.
+        Path to save files.
     label : str
-        Name for files. Default ml4chem.
+        Name of files. Default ml4chem.
     preprocessor : str
-        The path to load the file with the sklearn preprocessor object.
+        Path to load sklearn preprocessor object. Useful when doing inference.
     """
 
     # This is needed by ASE
@@ -66,7 +67,6 @@ class Potentials(Calculator, object):
         self.ionic = ionic
 
         logger.info(get_header_message())
-        logger.info("Available backends: {}.".format(self.available_backends))
 
         self.reference_space = None
 
@@ -149,7 +149,7 @@ class Potentials(Calculator, object):
         if model_name in Potentials.svm_models:
             params = {"model": model.params}
 
-            # Save model weigths to file
+            # Save model weights to file
             dump(model.weights, path + ".ml4c")
         else:
 
@@ -226,7 +226,7 @@ class Potentials(Calculator, object):
 
         data_handler = DataSet(training_set, purpose="training")
         # Raw input and targets aka X, y
-        training_set, targets = data_handler.get_images(purpose="training")
+        training_set, targets = data_handler.get_data(purpose="training")
 
         self.optimizer = optimizer
 
@@ -280,10 +280,11 @@ class Potentials(Calculator, object):
 
             self.model.to(device_)
             # This is something specific of pytorch.
-            if self.ionic:
-                from ml4chem.models.Ionic_NeuralNetwork import train
+
+            if self.model.name() == 'RetentionTimes':
+                from ml4chem.models.rt import train
             else:
-                from ml4chem.models.NeuralNetwork import train
+                from ml4chem.models.neuralnetwork import train
 
             train(
                 feature_space,
@@ -319,7 +320,7 @@ class Potentials(Calculator, object):
 
         # We convert the atoms in atomic fingerprints
         data_handler = DataSet([atoms], purpose=purpose)
-        atoms = data_handler.get_images(purpose=purpose)
+        atoms = data_handler.get_data(purpose=purpose)
 
         # We copy the loaded fingerprint class
         fingerprints = copy.deepcopy(self.fingerprints)
@@ -335,7 +336,7 @@ class Potentials(Calculator, object):
             fingerprints = fingerprints.calculate_features(atoms, **kwargs)
 
         if "energy" in properties:
-            logger.info("Calculating energy")
+            logger.info("Computing energy...")
             if model_name in Potentials.svm_models:
 
                 try:
@@ -349,7 +350,11 @@ class Potentials(Calculator, object):
                 input_dimension = len(list(fingerprints.values())[0][0][-1])
                 model = copy.deepcopy(self.model)
                 model.prepare_model(input_dimension, data=data_handler, purpose=purpose)
-                model.load_state_dict(torch.load(self.ml4chem_path), strict=True)
+                try:
+                    model.load_state_dict(torch.load(self.ml4chem_path), strict=True)
+                except RuntimeError:
+                    logger.warning('Your image does not have some atoms present in the loaded model.\n')
+                    model.load_state_dict(torch.load(self.ml4chem_path), strict=False)
                 model.eval()
                 energy = model(fingerprints).item()
 
