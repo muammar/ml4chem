@@ -17,7 +17,7 @@ torch.set_printoptions(precision=10)
 logger = logging.getLogger()
 
 
-#FIXME to be moved to separate dictionary file
+# FIXME to be moved to separate dictionary file
 EN_HD = {
     "H": (0.264, 0.236),
     "He": (0.443, 0.461),
@@ -141,14 +141,14 @@ EN_HD = {
 
 
 ALPHA_DICT = {
-    "H": 1.0,
+    "H": 10.0,
     "He": 1.0,
     "Li": 1.0,
     "Be": 1.0,
     "B": 1.0,
     "C": 1.0,
     "N": 1.0,
-    "O": -2.0,
+    "O": -20.0,
     "F": 1.0,
     "Ne": 1.0,
     "Na": 1.0,
@@ -321,6 +321,9 @@ class NeuralNetwork(torch.nn.Module):
             Input's dimension.
         data : object
             DataSet object created from the handler.
+        self.data_type : str
+            Used to allow training of diatomic molecules which would
+            differentiate between atoms with different atomic charges
         purpose : str
             Purpose of this model: 'training', 'inference'.
         """
@@ -354,8 +357,12 @@ class NeuralNetwork(torch.nn.Module):
 
         symbol_model_pair = []
 
+        # FIXME
+        # Look over this area/and handler in data/ to see if logic is sound
+        # suppose to account for clustering of molecule types in training set
+        # E.I multiple molecules in data, and to differentiate between atomic energies of different atoms
         for hash in data.images:
-            image = data.images[hash]        
+            image = data.images[hash]
             key = ""
             for symbol in image.get_chemical_symbols():
                 key += symbol
@@ -386,33 +393,34 @@ class NeuralNetwork(torch.nn.Module):
                     except KeyError:
                         print("nope")
 
-                intercept = torch.nn.Parameter(torch.tensor(intercept, requires_grad=True))
+                intercept = torch.nn.Parameter(
+                    torch.tensor(intercept, requires_grad=True)
+                )
                 slope = torch.nn.Parameter(torch.tensor(slope, requires_grad=True))
                 self.register_parameter(intercept_name, intercept)
                 self.register_parameter(slope_name, slope)
-
 
                 if self.parameterize:
                     alpha = self.alpha[symbol]
                     alpha = torch.nn.Parameter(torch.tensor(alpha, requires_grad=True))
                     hardness = EN_HD[symbol][1]
-                    hardness = torch.nn.Parameter(torch.tensor(EN_HD[symbol][1], requires_grad=True))
+                    hardness = torch.nn.Parameter(
+                        torch.tensor(EN_HD[symbol][1], requires_grad=True)
+                    )
                     self.register_parameter(hardness_name, hardness)
                     self.register_parameter(alpha_name, alpha)
-        
+
             elif purpose == "inference":
                 intercept = torch.nn.Parameter(torch.tensor(0.0))
                 slope = torch.nn.Parameter(torch.tensor(0.0))
                 self.register_parameter(intercept_name, intercept)
                 self.register_parameter(slope_name, slope)
 
-
                 if self.parameterize:
                     alpha = torch.nn.Parameter(torch.tensor(0.0))
                     hardness = torch.nn.Parameter(torch.tensor(0.0))
                     self.register_parameter(hardness_name, hardness)
                     self.register_parameter(alpha_name, alpha)
-                
 
             for index in layers:
                 # This is the input layer
@@ -441,8 +449,6 @@ class NeuralNetwork(torch.nn.Module):
 
         self.linears = torch.nn.ModuleDict(symbol_model_pair)
 
-
-
         if purpose == "training":
             logger.info(self.linears)
             # Iterate over all modules and just intialize those that are
@@ -458,10 +464,10 @@ class NeuralNetwork(torch.nn.Module):
     def forward(self, X, atoms):
         """Forward propagation
 
-        This is forward propagation and it returns the atomic energy.
+        This is forward propagation and it returns the atomic energies in the output value.
 
 
-        FILE
+        Alireza et all, 2015, Interatomic Potentials for ionic systems...
         -----------
         Calculation of atomic charges and total charge is based this paper
             N = number of atoms in the given molecule
@@ -489,16 +495,19 @@ class NeuralNetwork(torch.nn.Module):
 
         Returns
         -------
-        outputs : tensor
-            A list of tensors with energies per image.
+        outputs : matrix
+            A [atoms per data][atoms per molecule] sized lists with energies per image.
 
         latent_space: OrderedDict
-            An orderedDict of the atomic energies, A_ij, electronegativities, atomic charges, chemical symbols
+            An orderedDict of the atomic energies, A_ij, atomic charges, chemical symbols, electronegativities
             latent_space[hash] represents one molecule
             latent_space[hash][0] represents atomic energies, [1] represents A_ij etc...
+        r_j: autograd variable
+            Used to calculate a derivative needed for calculated forces(which are used in the loss function)
+        fct1: function
+            The function that uses r_j
         """
 
-        print(X)
         outputs = []
         latent_space = OrderedDict()
         counter = 0
@@ -506,12 +515,11 @@ class NeuralNetwork(torch.nn.Module):
             outputs.append([])
             latent_space[hash], r_j, fct1 = self.get_latent_space(X, atoms, hash)
             electronegativities = self.get_electronegativities(X, hash)
-            latent_space[hash].append(electronegativities)        
+            latent_space[hash].append(electronegativities)
             outputs[counter].append(latent_space[hash][0])
             counter += 1
         return outputs, latent_space, r_j, fct1
 
-    # gets atomic energies, atomic charges, electronegativities
     def get_latent_space(self, X, atoms, hash):
 
         """
@@ -559,8 +567,8 @@ class NeuralNetwork(torch.nn.Module):
 
         Returns
         -------
-        latent_space : tensor
-            A list of tensors with energies per image.
+        atomic_energies: list
+            A list of atomic_energies for each atom in the given molecule(determined by hash value)
 
         """
         image = X[hash]
@@ -571,21 +579,15 @@ class NeuralNetwork(torch.nn.Module):
             x = self.linears[symbol](x)
             slope = getattr(self, "slope_" + symbol)
             intercept = getattr(self, "intercept_" + symbol)
-            x = x*(slope) + intercept
-            if self.data_type == "diatomic_molecules" and 1==0:
-                if random.random() > 0.5:
-                    x -= random.random()*slope*10
-                else:
-                    x += random.random()*slope*10
+            x = x * (slope) + intercept
             atomic_energies.append(x)
         return atomic_energies
 
     def get_electronegativities(self, X, hash, total_charge=0):
-        """Returns the calculated electronegativity vector mentioned in forward propogation        """
-        electronegativities = torch.ones(len(X[hash])+1)
+        """Returns the calculated electronegativity vector mentioned in forward propogation"""
+        electronegativities = torch.ones(len(X[hash]) + 1)
         image = X[hash]
 
-        
         key = ""
         counter = 0
         for symbol, x in image:
@@ -593,34 +595,28 @@ class NeuralNetwork(torch.nn.Module):
                 symbol = symbol.decode("utf-8")
             key += symbol
             x = self.linears[symbol](x)
-            electronegativities[counter] = EN_HD[symbol][0]
             electronegativities[counter] = -x
-            #print(-x)
             counter += 1
 
-            
-        try:
-            total_charge = self.charges[key]
-        except KeyError:
-            print("it's recommended to input the charges of your training set. Otherwise, the default value is 0.")
-            total_charge = 0.0
+        # FIXME
+        # Still need to implement variability in total charge (optimizer isn't working for this attribute)
+        total_charge = self.charges[key]
         total_charge = getattr(self, "q_tot_" + key)
-        if 1==0:
-            if random.random() > 0.5:
-                total_charge = total_charge + random.random()/10.0
-            else:
-                total_charge = total_charge - random.random()/10.0
-            
-
-        electronegativities[len(electronegativities)-1] = total_charge
+        electronegativities[len(electronegativities) - 1] = total_charge
         return electronegativities
-
-
 
     def calculate_Aij(self, X, atoms, hash):
         """
-        Returns A_ij for given hash(molecule) as a list
-        Returns the associated symbols for the molecule in a list
+        Returns
+        -------
+            A_ij: matrix
+                Matrix used to calculate atomic charges described further in forward
+            Symbols: matrix
+                Keeps track of the atomic symbols of each atom for each molecule in the data
+            Distance2: autograd variable
+                Used to calculate derivative value for calculating forces
+            fct1: function
+                The function that uses Distance2
         """
         A_ij = []
         positions = atoms[hash].get_positions()
@@ -634,11 +630,12 @@ class NeuralNetwork(torch.nn.Module):
         for i in range(N):
             for j in range(N):
                 if i == j:
+                    # FIXME
+                    # Alpha/hardness values dont' seem to update or change even though in optimizer
                     alpha_i = getattr(self, "alpha_" + symbols[i])
                     lamba = 1 / (abs(alpha_i.detach_().numpy()) * (2 ** 0.5))
                     hardness = getattr(self, "hardness_" + symbols[i])
                     A_ij[i][j] = hardness.detach().numpy() + 2 * lamba / (np.pi ** 0.5)
-                    A_ij[i][j] /= 1.0
                 else:
                     distance = 0
                     x = positions[i][0] - positions[j][0]
@@ -653,16 +650,20 @@ class NeuralNetwork(torch.nn.Module):
                     alpha_j = getattr(self, "alpha_" + symbols[j])
                     temp1 = alpha_i.detach_().numpy()
                     temp2 = alpha_j.detach_().numpy()
-                    lamba = 1 / (
-                        abs((         temp1 ** 2 + temp2 ** 2          )) ** 0.5
+                    lamba = 1 / (abs((temp1 ** 2 + temp2 ** 2)) ** 0.5)
+                    distance2.append(
+                        torch.autograd.Variable(
+                            torch.tensor(distance), requires_grad=True
+                        )
                     )
-                    distance2.append(torch.autograd.Variable(torch.tensor(distance), requires_grad=True))
-                    fct1.append(scipy.special.erf(lamba*distance2[len(distance2)-1].detach().numpy())/distance2[len(distance2)-1])
-                    
-                    
+                    fct1.append(
+                        scipy.special.erf(
+                            lamba * distance2[len(distance2) - 1].detach().numpy()
+                        )
+                        / distance2[len(distance2) - 1]
+                    )
 
                     A_ij[i][j] = scipy.special.erf(lamba * distance) / distance
-                    A_ij[i][j] /= 1.0
         return A_ij, symbols, distance2, fct1
 
     def get_atomic_charges(self, X, atoms, hash):
@@ -680,8 +681,8 @@ class NeuralNetwork(torch.nn.Module):
 
         Returns
         -------
-        latent_space : tensor
-            A list of tensors with energies per image.
+        charges : tensor
+            A tensor of the atomic charges for the given molecule(determined by hash value)
 
         """
         electronegativities = self.get_electronegativities(X, hash)
@@ -834,7 +835,7 @@ class train(object):
             self.lossfxn = AtomicMSELoss
         else:
             self.lossfxn = lossfxn
-        #self.lossfxn = ionic_loss
+        # self.lossfxn = ionic_loss
         # Let the hunger games begin...
         self.trainer()
 
@@ -877,8 +878,15 @@ class train(object):
             rmse_atom = client.submit(
                 compute_rmse, *(outputs_, self.targets, atoms_per_image)
             )
-            rmse = rmse.result()
-            rmse_atom = rmse_atom.result()
+
+            # FIXME
+            # wrong data type for calculating results--> looks like a list imbedded unnecessarily e.i. [[[], [], []]]
+            try:
+                rmse = rmse.result()
+                rmse_atom = rmse_atom.result()
+            except TypeError:
+                rmse = -1.0
+                rmse_atom = -1.0
 
             _loss.append(loss.item())
             _rmse.append(rmse)
@@ -953,11 +961,10 @@ class train(object):
             latent_space.append(latent_chunk)
 
         grads = sum(grads)
-        try:
-            for index, param in enumerate(model.parameters()):
-                param.grad = torch.tensor(grads[index])
-        except RuntimeError:
-            print("broke")    
+
+        for index, param in enumerate(model.parameters()):
+            param.grad = torch.tensor(grads[index])
+
         del accumulation
         del grads
 
@@ -999,23 +1006,17 @@ class train(object):
         counter = 0
         total_energies = []
         temp_el = []
+        total_energies = torch.tensor(torch.zeros(len(atoms)), requires_grad=False)
         for hash in latent_space:
-            #Calculation of total energy
+            total_energy = torch.tensor(torch.zeros(1), requires_grad=True)
             atomic_energies = latent_space[hash][0]
-
 
             A_ij = latent_space[hash][1]
             atomic_charges = latent_space[hash][2]
             electronegativities = latent_space[hash][4]
 
-            x_el = torch.autograd.Variable(electronegativities, requires_grad=True)
-            temp_el.append(x_el)
-
-
-
-            eq1 = 0.0
             for i in range(len(atoms[hash])):
-                eq1 += (
+                total_energy = total_energy + (
                     atomic_energies[i]
                     - electronegativities[i] * atomic_charges[i]
                     + 0.5 * A_ij[i][i] * (atomic_charges[i] ** 2)
@@ -1023,19 +1024,14 @@ class train(object):
             eq2 = 0.0
             for i in range(len(atoms)):
                 for j in range(i + 1, len(atoms[hash])):
-                    eq2 = atomic_charges[i] * atomic_charges[j] * A_ij[i][j]
-            total_energy = eq1 + eq2
-            total_energies.append(total_energy)
+                    total_energy += atomic_charges[i] * atomic_charges[j] * A_ij[i][j]
+
+            total_energies[counter] = total_energy
             counter += 1
-
-
-
-
-
-        #r_j.grad
-        #fct1.backward()
-
-        
+        # FIXME
+        # Still need to calculate derivative values in Alireza Paper
+        # Probably using pytorch auto grad functionalities
+        # Then the ionic_loss function can be used i place of ASELoss
         forces = []
         for hash in atoms:
             eq1 = 0.0
@@ -1044,17 +1040,14 @@ class train(object):
 
             eq2 = 0.0
             for i in range(len(atoms[hash])):
-                for j in range(i+1, len(atoms[hash])):
-                    eq2 += atomic_charges[i]*atomic_charges[j]
+                for j in range(i + 1, len(atoms[hash])):
+                    eq2 += atomic_charges[i] * atomic_charges[j]
             force = eq1 + eq2
             forces.append(force)
 
-                
-
-        outputs = torch.tensor(total_energies, requires_grad=True)
-
-        loss = lossfxn(outputs, targets[index], atoms_per_image[index])
-        #loss = paper_loss(outputs, forces, targets[index], model.forces, 1, atoms_per_image[index])
+        loss = lossfxn(total_energies, targets[index], atoms_per_image[index])
+        # FIXME to be added once derivative values are calculated
+        # loss = paper_loss(outputs, forces, targets[index], model.forces, 1, atoms_per_image[index])
         loss.backward()
 
         gradients = []
@@ -1073,5 +1066,3 @@ class train(object):
                 gradient = 0.0
             gradients.append(gradient)
         return outputs, loss, gradients, latent_space
-
-
