@@ -238,6 +238,13 @@ workflows for chemical physics.
 
 This project is directed by Muammar El Khatib.
 
+
+Contributors (in alphabetic order):
+-----------------------------------
+    Elijah Gardella     : Interatomic potentials for ionic systems.
+    Jacklyn Gee         : Gaussian features class improvements, and cjson
+                          reader.
+
 ===============================================================================
 """
     return header

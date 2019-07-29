@@ -99,9 +99,14 @@ class Potentials(Calculator, object):
             else:
                 # Instantiate the model class
                 model_params = ml4chem_params["model"]
-                del model_params["name"]  # delete unneeded key, value
                 del model_params["type"]  # delete unneeded key, value
-                from ml4chem.models.neuralnetwork import NeuralNetwork
+
+                if model_params["name"] == "RetentionTimes":
+                    del model_params["name"]  # delete unneeded key, value
+                    from ml4chem.models.rt import NeuralNetwork
+                else:
+                    del model_params["name"]  # delete unneeded key, value
+                    from ml4chem.models.neuralnetwork import NeuralNetwork
 
                 model = NeuralNetwork(**model_params)
 

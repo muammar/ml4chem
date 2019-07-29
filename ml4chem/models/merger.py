@@ -94,6 +94,8 @@ class ModelMerger(torch.nn.Module):
         loss_weights=None
     ):
 
+        self.epochs = epochs
+
         logger.info(" ")
         logging.info("Model Merger")
         logging.info("============")
@@ -103,14 +105,14 @@ class ModelMerger(torch.nn.Module):
             logging.info("    - {}.".format(model.name()))
 
         logging.info("Loss functions:")
-        
+
         if loss_weights is None:
             self.loss_weights = [1. / len(lossfxn) for l in lossfxn]
         else:
             self.loss_weights = loss_weights
 
-        for l in lossfxn:
-            logging.info("    - {}.".format(l.__name__))
+        for index, l in enumerate(lossfxn):
+            logging.info("    - Name: {}; Weight: {}.".format(l.__name__, self.loss_weights[index]))
 
         # If no batch_size provided then the whole training set length is the batch.
         if batch_size is None:

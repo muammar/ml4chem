@@ -51,7 +51,7 @@ class Gaussian(object):
     angular_type : str
         Compute "G3" or "G4" angular symmetry functions.
     weighted : bool
-        True if applying weighted feature of Gaussian function. See Ref. 2. 
+        True if applying weighted feature of Gaussian function. See Ref. 2.
 
     References
     ----------
@@ -104,7 +104,7 @@ class Gaussian(object):
 
         # We verify that values of parameters are list otherwise they cannot be
         # serialized by json.
-        
+
         # These keys are very likely to exist when doing inference
         keys = ["user_input", "GP"]
 
@@ -209,7 +209,7 @@ class Gaussian(object):
             logger.info("Unique chemical elements: {}".format(unique_element_symbols))
 
         # we make the features
-        self.GP = self.custom.get("GP", None) 
+        self.GP = self.custom.get("GP", None)
 
         if self.GP is None:
             custom = self.custom.get("user_input", None)
