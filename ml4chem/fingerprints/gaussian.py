@@ -894,13 +894,14 @@ def calculate_G2(
     for count in range(num_neighbors):
         symbol = neighborsymbols[count]
         Rj = neighborpositions[count]
-        weighted_atom = image_molecule[n_indices[count]].number
 
         if symbol == center_symbol:
             Rij = np.linalg.norm(Rj - Ri)
 
             feature += np.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
+
             if weighted:
+                weighted_atom = image_molecule[n_indices[count]].number
                 feature *= weighted_atom
 
     return feature
@@ -988,7 +989,7 @@ def calculate_G3(
             term = (1.0 + gamma * cos_theta_ijk) ** zeta
             term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
             if weighted:
-                term *= weighted_h(image_molecule, n_indices, weighted=True)
+                term *= weighted_h(image_molecule, n_indices)
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
             term *= cutofffxn(Rjk)
@@ -1080,7 +1081,8 @@ def calculate_G4(
             term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0) / (Rc ** 2.0))
 
             if weighted:
-                term *= weighted_h(image_molecule, n_indices, weighted=True)
+                term *= weighted_h(image_molecule, n_indices)
+
             term *= cutofffxn(Rij)
             term *= cutofffxn(Rik)
             feature += term
@@ -1099,8 +1101,8 @@ def weighted_h(image_molecule, n_indices):
         List of indices of neighboring atoms from the image object.
     """
     atomic_numbers = 1.0
-    if weighted == True:
-        for i in n_indices:
-            atomic_numbers *= image_molecule[i].number
 
-        return atomic_numbers
+    for i in n_indices:
+        atomic_numbers *= image_molecule[i].number
+
+    return atomic_numbers
