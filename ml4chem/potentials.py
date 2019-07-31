@@ -279,10 +279,14 @@ class Potentials(Calculator, object):
             self.model.to(device_)
 
             # This is something specific of pytorch.
-            if self.model.name() == 'RetentionTimes':
-                from ml4chem.models.rt import train
-            else:
-                from ml4chem.models.neuralnetwork import train
+            module_names = {
+                "PytorchPotentials": "neuralnetwork",
+                "PytorchIonicPotentials": "ionic",
+                "RetentionTimes": "rt",
+            }
+
+            module = module_names[self.model.name()]
+            train = dynamic_import("train", "ml4chem.models", alt_name=module)
 
             train(
                 feature_space,
