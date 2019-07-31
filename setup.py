@@ -1,4 +1,5 @@
 import setuptools
+import ml4chem
 
 try:
     with open("README.md", "r") as fh:
@@ -11,9 +12,11 @@ except FileNotFoundError:
         long_description = fh.read()
 
 
+version = ml4chem.__version__
+
 setuptools.setup(
     name="ml4chem",
-    version="0.0.0",
+    version=version,
     author="Muammar El Khatib",
     author_email="muammarelkhatib@gmail.com",
     description="Machine learning for chemistry",
