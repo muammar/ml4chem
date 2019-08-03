@@ -67,7 +67,7 @@ class KernelRidge(object):
         In the case of training total energies, we need to apply either an
         atomic decomposition Ansatz (ADA) during training or an energy
         partition scheme to the training set. ADA can be achieved based on
-        Int. J.  Quantum Chem., vol. 115, no.  16, pp.  1051-1057, Aug. 2015".
+        Ref. 1.
         For an explanation of what they do, see the Master thesis by Sonja
         Mathias.
 
@@ -87,13 +87,13 @@ class KernelRidge(object):
 
         For forces is a different history because we do know the derivative of
         the energy with respect to atom positions (a per-atom quantity).  So we
-        rely on the method in the algorithm shown in Rupp, M. (2015).  Machine
-        learning for quantum mechanics in a nutshell. International Journal of
-        Quantum Chemistry, 115(16), 1058-1073.
-    
+        rely on the method in the algorithm shown by Rupp in Ref. 2.
+
     References
     ----------
-    1. Rupp, M. Machine learning for quantum mechanics in a nutshell. Int. J.
+    1. Bartók, A. P. & Csányi, G. Gaussian approximation potentials: A brief
+    tutorial introduction. Int. J. Quantum Chem. 115, 1051–1057 (2015).
+    2. Rupp, M. Machine learning for quantum mechanics in a nutshell. Int. J.
        Quantum Chem. 115, 1058–1073 (2015).
     """
 
@@ -120,6 +120,7 @@ class KernelRidge(object):
         sum_rule=True,
         batch_size=None,
         weights=None,
+        **kwargs
     ):
 
         np.set_printoptions(precision=30, threshold=999999999)
@@ -134,6 +135,7 @@ class KernelRidge(object):
         self.params = OrderedDict()
         self.params["name"] = self.name()
         self.params["type"] = "svm"
+        self.params["class_name"] = self.__class__.__name__
 
         # This is a very general way of not forgetting to save variables
         _params = vars()
@@ -148,6 +150,7 @@ class KernelRidge(object):
         # Everything that is added here is not going to be part of the json
         # params file
         self.fingerprint_map = []
+
         if weights is None:
             self.weights = {}
         else:
@@ -176,12 +179,15 @@ class KernelRidge(object):
         to apply the atomic decomposition Ansatz.
         """
         if purpose == "training":
+            logger.info(" ")
             logger.info("Model Training")
+            logger.info("==============")
             logger.info("Model name: {}.".format(self.name()))
             logger.info("Kernel parameters:")
             logger.info("    - Kernel function: {}.".format(self.kernel))
             logger.info("    - Sigma: {}.".format(self.sigma))
             logger.info("    - Lamda: {}.".format(self.lamda))
+            logger.info(" ")
 
         dim = len(reference_features)
 
@@ -243,7 +249,6 @@ class KernelRidge(object):
             computations.append(self.get_lt(index))
 
         self.LT = np.array((dask.compute(*computations, scheduler=self.scheduler)))
-
         lt_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(lt_time)
         logger.info(
@@ -251,15 +256,47 @@ class KernelRidge(object):
         )
 
     def get_kernel_matrix(self, feature_space, reference_features):
-        """Create computations to build kernel matrix"""
+        """Get kernel matrix delayed computations
+
+
+        Parameters
+        ----------
+        fingerprints : dict
+            Dictionary with hash and features. 
+        reference_space : array
+            Array with reference feature space.
+
+        Returns
+        -------
+        computations
+            List with delayed computations. 
+        """
 
         call = {"exponential": exponential, "laplacian": laplacian, "rbf": rbf}
         computations = []
 
-        for hash, _feature_space in feature_space.items():
-            f_map = []
-            for i_symbol, i_afp in _feature_space:
-                f_map.append(1)
+        if isinstance(feature_space, dict):
+            if isinstance(reference_features, dict):
+                # This is the case when the reference_features are a
+                # dictionary, too.
+                reference_features = list(reference_features.values())[0]
+
+            for hash, _feature_space in feature_space.items():
+                f_map = []
+                for i_symbol, i_afp in _feature_space:
+                    f_map.append(1)
+                    for j_symbol, j_afp in reference_features:
+                        kernel = call[self.kernel](
+                            i_afp,
+                            j_afp,
+                            i_symbol=i_symbol,
+                            j_symbol=j_symbol,
+                            sigma=self.sigma,
+                        )
+                        computations.append(kernel)
+                self.fingerprint_map.append(f_map)
+        else:
+            for i_symbol, i_afp in feature_space:
                 for j_symbol, j_afp in reference_features:
                     kernel = call[self.kernel](
                         i_afp,
@@ -269,7 +306,6 @@ class KernelRidge(object):
                         sigma=self.sigma,
                     )
                     computations.append(kernel)
-            self.fingerprint_map.append(f_map)
 
         return computations
 
@@ -309,7 +345,20 @@ class KernelRidge(object):
         self.weights["energy"] = _weights
 
     def get_potential_energy(self, fingerprints, reference_space):
-        """Get potential energy in KernelRidge"""
+        """Get potential energy with Kernel Ridge
+        
+        Parameters
+        ----------
+        fingerprints : dict
+            Dictionary with hash and features. 
+        reference_space : array
+            Array with reference feature space.
+        
+        Returns
+        -------
+        energy
+            Energy of a molecule.
+        """
         reference_space = reference_space[b"reference_space"]
         computations = self.get_kernel_matrix(fingerprints, reference_space)
         kernel = np.array(dask.compute(*computations, scheduler=self.scheduler))

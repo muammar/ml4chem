@@ -19,11 +19,12 @@ setuptools.setup(
     version=version,
     author="Muammar El Khatib",
     author_email="muammarelkhatib@gmail.com",
-    description="Machine learning for chemistry",
+    description="Machine learning for chemistry and materials.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/muammar/ml4chem",
     packages=setuptools.find_packages(),
+    scripts=['bin/ml4chem'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

@@ -63,15 +63,21 @@ def cjson_parser(cjsonfile, trajfile=None):
 
 
 class FakeCalculator(Calculator):
-    """A FakeCalculator lass
+    """A FakeCalculator class
 
     This class creates a fake calculator that is used to populate
     calc.results dictionaries in ASE objects. 
+
+    Parameters
+    ----------
+    implemented_properties : list
+        List with supported properties.
     """
 
-    def __init__(self):
+    def __init__(self, implemented_properties=None):
         super(FakeCalculator, self).__init__()
-        self.implemented_properties = ["energy"]
+        if implemented_properties is None:
+            self.implemented_properties = ["energy"]
 
     @staticmethod
     def get_potential_energy(atoms):

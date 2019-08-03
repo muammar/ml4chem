@@ -39,7 +39,15 @@ class Potentials(Calculator, object):
 
     # This is a good way to make attributes available to the class. This can be
     # accessed as Potentials.attribute
-    svm_models = ["KernelRidge"]
+    svm_models = ["KernelRidge", "GaussianProcess"]
+    module_names = {
+        "PytorchPotentials": "neuralnetwork",
+        "PytorchIonicPotentials": "ionic",
+        "RetentionTimes": "rt",
+        "KernelRidge": "kernelridge",
+        "GaussianProcess": "gaussian_process"
+    }
+
 
     def __init__(
         self,
@@ -67,7 +75,7 @@ class Potentials(Calculator, object):
 
     @classmethod
     def load(Cls, model=None, params=None, preprocessor=None, **kwargs):
-        """Load a model
+        """Load ML4Chem models
 
         Parameters
         ----------
@@ -85,30 +93,27 @@ class Potentials(Calculator, object):
             ml4chem_params = json.load(ml4chem_params)
             model_type = ml4chem_params["model"].get("type")
 
+            model_params = ml4chem_params["model"]
+            class_name = model_params["class_name"]
+            module_name = Potentials.module_names[model_params["name"]]
+
+            model_class = dynamic_import(class_name, "ml4chem.models", alt_name=module_name)
+
+            delete = ["name", "type", "class_name"]
+            for param in delete:
+                # delete unneeded (key, value) pairs.
+                del model_params[param]
+
             if model_type == "svm":
-                model_params = ml4chem_params["model"]
-                del model_params["name"]  # delete unneeded key, value
-                del model_params["type"]  # delete unneeded key, value
-                from ml4chem.models.kernelridge import KernelRidge
 
                 weights = load(model)
                 # TODO remove after de/serialization is fixed.
                 weights = {key.decode("utf-8"): value for key, value in weights.items()}
                 model_params.update({"weights": weights})
-                model = KernelRidge(**model_params)
+                model = model_class(**model_params)
             else:
                 # Instantiate the model class
-                model_params = ml4chem_params["model"]
-                del model_params["type"]  # delete unneeded key, value
-
-                if model_params["name"] == "RetentionTimes":
-                    del model_params["name"]  # delete unneeded key, value
-                    from ml4chem.models.rt import NeuralNetwork
-                else:
-                    del model_params["name"]  # delete unneeded key, value
-                    from ml4chem.models.neuralnetwork import NeuralNetwork
-
-                model = NeuralNetwork(**model_params)
+                model = model_class(**model_params)
 
         # Instantiation of fingerprint class
         fingerprint_params = ml4chem_params.get("fingerprints", None)
@@ -155,10 +160,11 @@ class Potentials(Calculator, object):
             # Save model weights to file
             dump(model.weights, path + ".ml4c")
         else:
-
+            # FIXME a global class to save params?
             params = {
                 "model": {
                     "name": model_name,
+                    "class_name": model.__class__.__name__,
                     "hiddenlayers": model.hiddenlayers,
                     "activation": model.activation,
                     "type": "nn",
@@ -279,13 +285,7 @@ class Potentials(Calculator, object):
             self.model.to(device_)
 
             # This is something specific of pytorch.
-            module_names = {
-                "PytorchPotentials": "neuralnetwork",
-                "PytorchIonicPotentials": "ionic",
-                "RetentionTimes": "rt",
-            }
-
-            module = module_names[self.model.name()]
+            module = Potentials.module_names[self.model.name()]
             train = dynamic_import("train", "ml4chem.models", alt_name=module)
 
             train(

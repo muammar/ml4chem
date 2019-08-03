@@ -1,6 +1,7 @@
 {
     "model": {
         "name": "PytorchPotentials",
+        "class_name": "NeuralNetwork",
         "hiddenlayers": [
             10,
             10
@@ -17,8 +18,76 @@
             "MinMaxScaler",
             null
         ],
-        "defaults": true,
         "save_preprocessor": "model.scaler",
-        "filename": "fingerprints.db"
+        "filename": "fingerprints.db",
+        "angular_type": "G3",
+        "weighted": false,
+        "custom": {
+            "user_input": null,
+            "GP": {
+                "Cu": [
+                    {
+                        "type": "G2",
+                        "symbol": "Cu",
+                        "eta": 0.049999999999999996
+                    },
+                    {
+                        "type": "G2",
+                        "symbol": "Cu",
+                        "eta": 0.2320794416806389
+                    },
+                    {
+                        "type": "G2",
+                        "symbol": "Cu",
+                        "eta": 1.0772173450159415
+                    },
+                    {
+                        "type": "G2",
+                        "symbol": "Cu",
+                        "eta": 5.000000000000001
+                    },
+                    {
+                        "type": "G3",
+                        "symbols": [
+                            "Cu",
+                            "Cu"
+                        ],
+                        "eta": 0.005,
+                        "gamma": 1.0,
+                        "zeta": 1.0
+                    },
+                    {
+                        "type": "G3",
+                        "symbols": [
+                            "Cu",
+                            "Cu"
+                        ],
+                        "eta": 0.005,
+                        "gamma": -1.0,
+                        "zeta": 1.0
+                    },
+                    {
+                        "type": "G3",
+                        "symbols": [
+                            "Cu",
+                            "Cu"
+                        ],
+                        "eta": 0.005,
+                        "gamma": 1.0,
+                        "zeta": 4.0
+                    },
+                    {
+                        "type": "G3",
+                        "symbols": [
+                            "Cu",
+                            "Cu"
+                        ],
+                        "eta": 0.005,
+                        "gamma": -1.0,
+                        "zeta": 4.0
+                    }
+                ]
+            }
+        }
     }
 }
