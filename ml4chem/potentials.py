@@ -45,9 +45,8 @@ class Potentials(Calculator, object):
         "PytorchIonicPotentials": "ionic",
         "RetentionTimes": "rt",
         "KernelRidge": "kernelridge",
-        "GaussianProcess": "gaussian_process"
+        "GaussianProcess": "gaussian_process",
     }
-
 
     def __init__(
         self,
@@ -97,7 +96,9 @@ class Potentials(Calculator, object):
             class_name = model_params["class_name"]
             module_name = Potentials.module_names[model_params["name"]]
 
-            model_class = dynamic_import(class_name, "ml4chem.models", alt_name=module_name)
+            model_class = dynamic_import(
+                class_name, "ml4chem.models", alt_name=module_name
+            )
 
             delete = ["name", "type", "class_name"]
             for param in delete:
@@ -353,7 +354,9 @@ class Potentials(Calculator, object):
                 try:
                     model.load_state_dict(torch.load(self.ml4chem_path), strict=True)
                 except RuntimeError:
-                    logger.warning('Your image does not have some atoms present in the loaded model.\n')
+                    logger.warning(
+                        "Your image does not have some atoms present in the loaded model.\n"
+                    )
                     model.load_state_dict(torch.load(self.ml4chem_path), strict=False)
                 model.eval()
                 energy = model(fingerprints).item()

@@ -91,7 +91,7 @@ class ModelMerger(torch.nn.Module):
         batch_size=None,
         lr_scheduler=None,
         independent_loss=True,
-        loss_weights=None
+        loss_weights=None,
     ):
 
         self.epochs = epochs
@@ -107,12 +107,16 @@ class ModelMerger(torch.nn.Module):
         logging.info("Loss functions:")
 
         if loss_weights is None:
-            self.loss_weights = [1. / len(lossfxn) for l in lossfxn]
+            self.loss_weights = [1.0 / len(lossfxn) for l in lossfxn]
         else:
             self.loss_weights = loss_weights
 
         for index, l in enumerate(lossfxn):
-            logging.info("    - Name: {}; Weight: {}.".format(l.__name__, self.loss_weights[index]))
+            logging.info(
+                "    - Name: {}; Weight: {}.".format(
+                    l.__name__, self.loss_weights[index]
+                )
+            )
 
         # If no batch_size provided then the whole training set length is the batch.
         if batch_size is None:
@@ -192,7 +196,7 @@ class ModelMerger(torch.nn.Module):
         logging.info("-----------------")
         logging.info("Number of batches:")
         for index, c in enumerate(self.chunks):
-            logging.info('    - Model {}, {}.'.format(index, len(c)))
+            logging.info("    - Model {}, {}.".format(index, len(c)))
         logging.info("Batch size: {} elements per batch.\n".format(batch_size))
 
         # Define optimizer
@@ -207,7 +211,9 @@ class ModelMerger(torch.nn.Module):
         logger.info(" ")
 
         logger.info(
-            "{:6s} {:19s} {:12s} {:8s}".format("Epoch", "Time Stamp", "Loss", "RMSE (ave)")
+            "{:6s} {:19s} {:12s} {:8s}".format(
+                "Epoch", "Time Stamp", "Loss", "RMSE (ave)"
+            )
         )
         logger.info(
             "{:6s} {:19s} {:12s} {:8s}".format(
@@ -261,13 +267,13 @@ class ModelMerger(torch.nn.Module):
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
-            logger.info(
-                "{:6d} {} {:8e} {:8f}".format(epoch, ts, loss, _rmse)
-            )
+            logger.info("{:6d} {} {:8e} {:8f}".format(epoch, ts, loss, _rmse))
 
             if convergence is None and epoch == self.epochs:
                 converged = True
-            elif convergence is not None and all(i <= convergence["rmse"] for i in rmse):
+            elif convergence is not None and all(
+                i <= convergence["rmse"] for i in rmse
+            ):
                 converged = True
                 new_state_dict = {}
 
@@ -276,12 +282,11 @@ class ModelMerger(torch.nn.Module):
 
                 for key in old_state_dict:
                     if not (old_state_dict[key] == new_state_dict[key]).all():
-                        print('Diff in {}'.format(key))
+                        print("Diff in {}".format(key))
                     else:
-                        print('No diff in {}'.format(key))
+                        print("No diff in {}".format(key))
 
             # print(rmse)
-
 
     def closure(self, index, model, independent_loss, name=None):
         """Closure

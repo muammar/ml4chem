@@ -68,6 +68,7 @@ class GaussianProcess(KernelRidge):
         This regressor applies the atomic decomposition Ansatz (ADA). For
         more information check the Notes on the KernelRidge class.
     """
+
     NAME = "GaussianProcess"
 
     def __init__(
@@ -123,7 +124,6 @@ class GaussianProcess(KernelRidge):
             self.weights = {}
         else:
             self.weights = weights
-
 
     def get_potential_energy(self, fingerprints, reference_space):
         """Get potential energy with Kernel Ridge

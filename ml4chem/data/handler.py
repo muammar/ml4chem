@@ -90,7 +90,9 @@ class DataSet(object):
         logger.info("Images hashed and processed...\n")
 
         if purpose == "training":
-            logger.info("There are {} atoms in your data set.".format(sum(self.atoms_per_image)))
+            logger.info(
+                "There are {} atoms in your data set.".format(sum(self.atoms_per_image))
+            )
 
     def is_valid_structure(self, images):
         """Check if the data has a valid structure

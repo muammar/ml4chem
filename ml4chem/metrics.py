@@ -37,6 +37,7 @@ def compute_rmse(outputs, targets, atoms_per_image=None):
     rmse = torch.sqrt(torch.mean((outputs - targets).pow(2))).item()
     return rmse
 
+
 def compute_mse(outputs, targets, atoms_per_image=None):
     """Compute MSE
 

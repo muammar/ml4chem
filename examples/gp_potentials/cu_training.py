@@ -21,7 +21,7 @@ def train():
         fingerprints=Gaussian(
             cutoff=6.5, normalized=normalized, save_preprocessor="cu_training.scaler"
         ),
-        #model=GaussianProcess(batch_size=batch_size),
+        # model=GaussianProcess(batch_size=batch_size),
         model=GaussianProcess(),
         label="cu_training",
     )

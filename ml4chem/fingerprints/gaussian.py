@@ -110,7 +110,9 @@ class Gaussian(object):
 
         if custom is None:
             custom = {key: custom for key in keys}
-        elif custom is not None and len(list(set(keys).intersection(custom.keys()))) == 0:
+        elif (
+            custom is not None and len(list(set(keys).intersection(custom.keys()))) == 0
+        ):
             for value in custom.values():
                 for k, v in value.items():
                     if isinstance(v, list) is False:
@@ -125,7 +127,7 @@ class Gaussian(object):
         # Delete useless variables
         delete = ["self", "scheduler", "overwrite", "k", "v", "value", "keys"]
 
-        for param  in delete:
+        for param in delete:
             try:
                 del _params[param]
             except KeyError:
@@ -218,7 +220,7 @@ class Gaussian(object):
             )
             self.custom.update({"GP": self.GP})
         else:
-            logger.info('Using parameters from file to create symmetry functions...\n')
+            logger.info("Using parameters from file to create symmetry functions...\n")
 
         self.print_fingerprint_params(self.GP)
 

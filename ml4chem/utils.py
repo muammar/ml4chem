@@ -156,7 +156,9 @@ def logger(filename=None, level=None, format=None, filemode="a"):
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
 
-    logger = logging.basicConfig(filename=filename, level=level, format=format, filemode=filemode)
+    logger = logging.basicConfig(
+        filename=filename, level=level, format=format, filemode=filemode
+    )
 
     return logger
 
@@ -232,9 +234,9 @@ def get_header_message():
           ╚═╝     ╚═╝╚══════╝╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝\n
 
 
-ML4Chem is Machine Learning for Chemistry. This package is written in Python
-3, and intends to offer modern and rich features to perform machine learning
-workflows for chemical physics.
+ML4Chem is Machine Learning for Chemistry and Materials. This package is
+written in Python 3, and intends to offer modern and rich features to perform
+machine learning workflows for chemical physics.
 
 This project is directed by Muammar El Khatib.
 
