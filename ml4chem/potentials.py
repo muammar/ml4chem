@@ -133,7 +133,7 @@ class Potentials(Calculator, object):
         return calc
 
     @staticmethod
-    def save(model, features=None, path=None, label="ml4chem"):
+    def save(model=None, features=None, path=None, label="ml4chem"):
         """Save a model
 
         Parameters
@@ -148,36 +148,38 @@ class Potentials(Calculator, object):
             Name of files. Default ml4chem.
         """
 
-        model_name = model.name()
-
         if path is None:
             path = ""
 
         path += label
 
-        if model_name in Potentials.svm_models:
-            params = {"model": model.params}
+        if model is not None:
+            model_name = model.name()
+            if model_name in Potentials.svm_models:
+                params = {"model": model.params}
 
-            # Save model weights to file
-            dump(model.weights, path + ".ml4c")
-        else:
-            # FIXME a global class to save params?
-            params = {
-                "model": {
-                    "name": model_name,
-                    "class_name": model.__class__.__name__,
-                    "hiddenlayers": model.hiddenlayers,
-                    "activation": model.activation,
-                    "type": "nn",
-                    "input_dimension": model.input_dimension,
+                # Save model weights to file
+                dump(model.weights, path + ".ml4c")
+            else:
+                # FIXME a global class to save params?
+                params = {
+                    "model": {
+                        "name": model_name,
+                        "class_name": model.__class__.__name__,
+                        "hiddenlayers": model.hiddenlayers,
+                        "activation": model.activation,
+                        "type": "nn",
+                        "input_dimension": model.input_dimension,
+                    }
                 }
-            }
 
-            torch.save(model.state_dict(), path + ".ml4c")
+                torch.save(model.state_dict(), path + ".ml4c")
 
-        if model_name == "AutoEncoder":
-            output_dimension = {"output_dimension": model.output_dimension}
-            params["model"].update(output_dimension)
+                if model_name == "AutoEncoder":
+                    output_dimension = {"output_dimension": model.output_dimension}
+                    params["model"].update(output_dimension)
+        else:
+            params = {}
 
         if features is not None:
             # Adding fingerprints to .params json file.

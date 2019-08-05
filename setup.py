@@ -25,6 +25,8 @@ setuptools.setup(
     url="https://github.com/muammar/ml4chem",
     packages=setuptools.find_packages(),
     scripts=["bin/ml4chem"],
+    data_files = [("", ["LICENSE"])]
+
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

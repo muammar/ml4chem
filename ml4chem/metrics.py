@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 
 def compute_rmse(outputs, targets, atoms_per_image=None):
@@ -23,10 +24,18 @@ def compute_rmse(outputs, targets, atoms_per_image=None):
 
     # Concatenate outputs and targets if they come as list of tensors
     if isinstance(outputs, list):
-        outputs = torch.cat(outputs)
+        try:
+            outputs = torch.cat(outputs)
+        except TypeError:
+            outputs = np.array(outputs)
+            numpy = True
 
     if isinstance(targets, list):
-        targets = torch.cat(targets)
+        try:
+            targets = torch.cat(targets)
+        except TypeError:
+            targets = np.array(targets)
+            numpy = True
 
     # When doing atomistic models then atoms_per_image exists.
     if atoms_per_image is not None:
@@ -34,7 +43,10 @@ def compute_rmse(outputs, targets, atoms_per_image=None):
         outputs = outputs / atoms_per_image
         targets = targets / atoms_per_image
 
-    rmse = torch.sqrt(torch.mean((outputs - targets).pow(2))).item()
+    if numpy:
+        rmse = np.sqrt((np.square(outputs - targets)).mean())
+    else:
+        rmse = torch.sqrt(torch.mean((outputs - targets).pow(2))).item()
     return rmse
 
 
@@ -60,10 +72,18 @@ def compute_mse(outputs, targets, atoms_per_image=None):
 
     # Concatenate outputs and targets if they come as list of tensors
     if isinstance(outputs, list):
-        outputs = torch.cat(outputs)
+        try:
+            outputs = torch.cat(outputs)
+        except TypeError:
+            outputs = np.array(outputs)
+            numpy = True
 
     if isinstance(targets, list):
-        targets = torch.cat(targets)
+        try:
+            targets = torch.cat(targets)
+        except TypeError:
+            targets = np.array(targets)
+            numpy = True
 
     # When doing atomistic models then atoms_per_image exists.
     if atoms_per_image is not None:
@@ -71,5 +91,8 @@ def compute_mse(outputs, targets, atoms_per_image=None):
         outputs = outputs / atoms_per_image
         targets = targets / atoms_per_image
 
-    mse = torch.mean((outputs - targets).pow(2)).item()
+    if numpy:
+        mse = (np.square(outputs - targets)).mean()
+    else:
+        mse = torch.mean((outputs - targets).pow(2)).item()
     return mse

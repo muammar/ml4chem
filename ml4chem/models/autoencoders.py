@@ -62,7 +62,7 @@ class AutoEncoder(torch.nn.Module):
         """Returns name of class"""
         return cls.NAME
 
-    def __init__(self, hiddenlayers=None, activation="relu"):
+    def __init__(self, hiddenlayers=None, activation="relu", **kwargs):
         super(AutoEncoder, self).__init__()
         self.hiddenlayers = hiddenlayers
         self.activation = activation
