@@ -26,6 +26,7 @@ def compute_rmse(outputs, targets, atoms_per_image=None):
     if isinstance(outputs, list):
         try:
             outputs = torch.cat(outputs)
+            numpy = False
         except TypeError:
             outputs = np.array(outputs)
             numpy = True
@@ -33,6 +34,7 @@ def compute_rmse(outputs, targets, atoms_per_image=None):
     if isinstance(targets, list):
         try:
             targets = torch.cat(targets)
+            numpy = False
         except TypeError:
             targets = np.array(targets)
             numpy = True
@@ -74,6 +76,7 @@ def compute_mse(outputs, targets, atoms_per_image=None):
     if isinstance(outputs, list):
         try:
             outputs = torch.cat(outputs)
+            numpy = False
         except TypeError:
             outputs = np.array(outputs)
             numpy = True
@@ -81,6 +84,7 @@ def compute_mse(outputs, targets, atoms_per_image=None):
     if isinstance(targets, list):
         try:
             targets = torch.cat(targets)
+            numpy = False
         except TypeError:
             targets = np.array(targets)
             numpy = True
