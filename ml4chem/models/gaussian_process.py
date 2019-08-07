@@ -188,8 +188,6 @@ class GaussianProcess(KernelRidge):
         kxx = np.array(dask.compute(*kxx, scheduler=self.scheduler))
         dim = int(np.sqrt(len(kxx)))
         kxx = kxx.reshape(dim, dim)
-        variance = kxx - variance
-        ones = np.ones(variance.shape[0])
-        variance = np.sum(variance.dot(ones))
+        variance = np.sum(kxx - variance)
 
         return variance

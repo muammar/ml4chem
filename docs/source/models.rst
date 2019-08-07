@@ -1,5 +1,5 @@
 ===================
-Atomistic Module
+Atom-centered models
 ===================
 
 .. contents:: :local:

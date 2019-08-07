@@ -15,7 +15,7 @@
 
 .. toctree::
    :maxdepth: 1
-   :caption: Machine Learning Potentials:
+   :caption: Atomistic Module
 
    models
 
