@@ -202,7 +202,9 @@ class KernelRidge(object):
         # operate with dask's scheduler
         logger.warning("    Adding calculations to scheduler...")
 
-        computations = self.get_kernel_matrix(feature_space, reference_features)
+        computations = self.get_kernel_matrix(
+            feature_space, reference_features, purpose=purpose
+        )
 
         scheduler_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(scheduler_time)
@@ -214,9 +216,7 @@ class KernelRidge(object):
         if self.batch_size is not None:
             computations = list(get_chunks(computations, self.batch_size))
             logger.info(
-                "    The calculations were batched in groups of {}.".format(
-                    self.batch_size
-                )
+                "    The calculations are in batches of {}.".format(self.batch_size)
             )
 
         # We compute the calculations with dask and the result is converted
@@ -228,9 +228,17 @@ class KernelRidge(object):
         else:
             kernel_matrix = []
             for i, chunk in enumerate(computations):
-                kernel_matrix.append(dask.compute(*chunk, scheduler=self.scheduler))
+                kernel_matrix += dask.compute(*chunk, scheduler=self.scheduler)
 
-        self.K = np.array(kernel_matrix).reshape(dim, dim)
+        # FIXME probably not very efficient yet.
+        # Found at https://stackoverflow.com/a/36250972/1995261
+
+        _K = np.zeros([dim, dim])
+        indices_upper = np.triu_indices(dim)
+        _K[indices_upper] = kernel_matrix
+        self.K = _K.T + _K
+        np.fill_diagonal(self.K, np.diag(_K))
+        del _K
 
         build_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(build_time)
@@ -255,7 +263,7 @@ class KernelRidge(object):
             "LT matrix built in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
         )
 
-    def get_kernel_matrix(self, feature_space, reference_features):
+    def get_kernel_matrix(self, feature_space, reference_features, purpose):
         """Get kernel matrix delayed computations
 
 
@@ -265,6 +273,9 @@ class KernelRidge(object):
             Dictionary with hash and features. 
         reference_space : array
             Array with reference feature space.
+        purpose : str
+            Purpose of this kernel matrix. Accepted arguments are 'training',
+            and 'inference'.
 
         Returns
         -------
@@ -281,19 +292,34 @@ class KernelRidge(object):
                 # dictionary, too.
                 reference_features = list(reference_features.values())[0]
 
+            counter = 0
+            reference_lenght = len(reference_features)
             for hash, _feature_space in feature_space.items():
                 f_map = []
                 for i_symbol, i_afp in _feature_space:
                     f_map.append(1)
-                    for j_symbol, j_afp in reference_features:
-                        kernel = call[self.kernel](
-                            i_afp,
-                            j_afp,
-                            i_symbol=i_symbol,
-                            j_symbol=j_symbol,
-                            sigma=self.sigma,
-                        )
-                        computations.append(kernel)
+                    if purpose == "training":
+                        for j in range(counter, reference_lenght):
+                            j_symbol, j_afp = reference_features[j]
+                            kernel = call[self.kernel](
+                                i_afp,
+                                j_afp,
+                                i_symbol=i_symbol,
+                                j_symbol=j_symbol,
+                                sigma=self.sigma,
+                            )
+                            computations.append(kernel)
+                        counter += 1
+                    else:
+                        for j_symbol, j_afp in reference_features:
+                            kernel = call[self.kernel](
+                                i_afp,
+                                j_afp,
+                                i_symbol=i_symbol,
+                                j_symbol=j_symbol,
+                                sigma=self.sigma,
+                            )
+                            computations.append(kernel)
                 self.fingerprint_map.append(f_map)
         else:
             for i_symbol, i_afp in feature_space:
@@ -360,7 +386,9 @@ class KernelRidge(object):
             Energy of a molecule.
         """
         reference_space = reference_space[b"reference_space"]
-        computations = self.get_kernel_matrix(fingerprints, reference_space)
+        computations = self.get_kernel_matrix(
+            fingerprints, reference_space, purpose="inference"
+        )
         kernel = np.array(dask.compute(*computations, scheduler=self.scheduler))
         weights = np.array(self.weights["energy"])
         dim = int(kernel.shape[0] / weights.shape[0])
