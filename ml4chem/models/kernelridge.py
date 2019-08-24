@@ -370,7 +370,7 @@ class KernelRidge(object):
         ]
         self.weights["energy"] = _weights
 
-    def get_potential_energy(self, fingerprints, reference_space):
+    def get_potential_energy(self, fingerprints, reference_space, purpose):
         """Get potential energy with Kernel Ridge
         
         Parameters
@@ -379,6 +379,8 @@ class KernelRidge(object):
             Dictionary with hash and features. 
         reference_space : array
             Array with reference feature space.
+        purpose : str
+            Purpose of this function: 'training', 'inference'.
         
         Returns
         -------
@@ -387,7 +389,7 @@ class KernelRidge(object):
         """
         reference_space = reference_space[b"reference_space"]
         computations = self.get_kernel_matrix(
-            fingerprints, reference_space, purpose="inference"
+            fingerprints, reference_space, purpose=purpose
         )
         kernel = np.array(dask.compute(*computations, scheduler=self.scheduler))
         weights = np.array(self.weights["energy"])

@@ -125,7 +125,7 @@ class GaussianProcess(KernelRidge):
         else:
             self.weights = weights
 
-    def get_potential_energy(self, fingerprints, reference_space):
+    def get_potential_energy(self, fingerprints, reference_space, purpose):
         """Get potential energy with Kernel Ridge
 
         Parameters
@@ -134,6 +134,8 @@ class GaussianProcess(KernelRidge):
             Dictionary with hash and features.
         reference_space : array
             Array with reference feature space.
+        purpose : str
+            Purpose of this function: 'training', 'inference'.
 
         Returns
         -------
@@ -141,34 +143,36 @@ class GaussianProcess(KernelRidge):
             Energy of a molecule and its respective variance.
         """
         reference_space = reference_space[b"reference_space"]
-        computations = self.get_kernel_matrix(fingerprints, reference_space)
+        computations = self.get_kernel_matrix(fingerprints, reference_space, purpose)
         kernel = np.array(dask.compute(*computations, scheduler=self.scheduler))
         weights = np.array(self.weights["energy"])
         dim = int(kernel.shape[0] / weights.shape[0])
         kernel = kernel.reshape(dim, len(weights))
         energy_per_atom = np.dot(kernel, weights)
         energy = np.sum(energy_per_atom)
-        variance = self.get_variance(fingerprints, kernel, reference_space)
+        variance = self.get_variance(fingerprints, kernel, reference_space, purpose)
         return energy, variance
 
-    def get_variance(self, fingerprints, ks, reference_space):
+    def get_variance(self, fingerprints, ks, reference_space, purpose):
         """Compute predictive variance
-        
+
         Parameters
         ----------
         fingerprints : dict
-            Dictionary with data point to be predicted. 
+            Dictionary with data point to be predicted.
         ks : array
             Variance between data point and reference space.
         reference_space : list
             Reference space used to compute kernel.
-        
+        purpose : str
+            Purpose of this function: 'training', 'inference'.
+
         Returns
         -------
         variance
             Predictive variance.
         """
-        K = self.get_kernel_matrix(reference_space, reference_space)
+        K = self.get_kernel_matrix(reference_space, reference_space, purpose)
         K = np.array(dask.compute(*K, scheduler=self.scheduler))
         dim = int(np.sqrt(len(K)))
         K = K.reshape(dim, dim)
@@ -184,7 +188,7 @@ class GaussianProcess(KernelRidge):
         betas = np.linalg.solve(cholesky_U.T, ks.T)
 
         variance = ks.dot(np.linalg.solve(cholesky_U, betas))
-        kxx = self.get_kernel_matrix(fingerprints, fingerprints)
+        kxx = self.get_kernel_matrix(fingerprints, fingerprints, purpose)
         kxx = np.array(dask.compute(*kxx, scheduler=self.scheduler))
         dim = int(np.sqrt(len(kxx)))
         kxx = kxx.reshape(dim, dim)
