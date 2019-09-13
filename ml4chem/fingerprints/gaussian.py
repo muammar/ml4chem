@@ -94,7 +94,7 @@ class Gaussian(object):
         self.preprocessor = preprocessor
         self.save_preprocessor = save_preprocessor
         self.overwrite = overwrite
-        self.angular_type = angular_type
+        self.angular_type = angular_type.upper()
         self.weighted = weighted
 
         # Let's add parameters that are going to be stored in the .params json
@@ -600,7 +600,9 @@ class Gaussian(object):
         Ri = atom.position
         fingerprint = [None] * num_symmetries
 
-        n_numbers = [atomic_numbers[symbol] for symbol in n_symbols]
+        # See https://listserv.brown.edu/cgi-bin/wa?A2=ind1904&L=AMP-USERS&P=19048
+        # n_numbers = [atomic_numbers[symbol] for symbol in n_symbols]
+        n_numbers = [atomic_numbers[item] for item in n_symbols]
 
         for count in range(num_symmetries):
             GP = self.GP[symbol][count]
