@@ -15,6 +15,12 @@
 
 .. toctree::
    :maxdepth: 1
+   :caption: Data 
+
+   data
+
+.. toctree::
+   :maxdepth: 1
    :caption: Atomistic Module
 
    models

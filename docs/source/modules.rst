@@ -6,3 +6,4 @@ ml4chem
 
    ml4chem
    setup
+   test

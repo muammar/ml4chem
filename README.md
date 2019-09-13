@@ -29,6 +29,16 @@ A list of features and methods are shown below.
 - [Messagepack serialization](https://msgpack.org/index.html).
 
 
+## Documentation
+
+You can read the documentation at [https://ml4chem.dev](https://ml4chem.dev)
+where you can get started. It is arranged in a way that you can go through
+the theory as well as some code snippets to understand how to use this
+software. Additionally, you can dive through the [module
+index](https://ml4chem.dev/genindex.html) to get more information about
+different classes and functions of ML4Chem.
+
+
 ## Dask dashboard
 ![](https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/dask_dashboard.png)
 
