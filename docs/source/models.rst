@@ -113,6 +113,24 @@ with radial SFs and another subvector of angular SFs. This represents an
 advantage when it comes to evaluate which type of SFs is more important when
 predicting energy and atomic forces.
 
+::
+
+    from ml4chem.fingerprints.gaussian import Gaussian
+
+    features = Gaussian(cutoff=6.5, normalized=True, save_preprocessor="features.scaler")
+
+In the code snippet above we are building Gaussian type using the
+:class:`ml4chem.fingerprints.gaussian.Gaussian` class. We use a ``cutoff``
+radius of :math:`6.5` angstrom, normalized, and the preprocessing is saved to
+the file ``features.scaler`` (by default the scaler is ``MinMaxScaler`` in a
+range :math:`(-1, 1)` as implemented in ``scikit-learn``). The ``angular``
+symmetry function used by default is :math:`G_i^3`, if you are interested in
+using :math:`G_i^4`, then you need to pass ``angular_type`` keyword
+argument::
+
+    features = Gaussian(cutoff=6.5, normalized=True,
+                        save_preprocessor="features.scaler", angular_type="G4")
+
 Atomic latent features 
 ---------------------------
 These features are decided by the neural network and can be obtained with the
@@ -122,36 +140,54 @@ These features are decided by the neural network and can be obtained with the
 Models
 ==========================
 
-Deep Learning
-===============
-
 Neural Networks
 ----------------
+Neural Network (NN) are models inspired on how the human brain works. They
+consist of a set of hidden-layers with some nodes. The most simple NN
+architecture is the *fully-connected* case in which each neuron is connected
+to every neuron in the previous/next layer, and each connection has its own
+weight. When an activation function is applied to the output of a
+hidden-layer, the NN is able to learn from non-linear data. 
 
-Something here
+:: 
 
+    from ml4chem.models.neuralnetwork import NeuralNetwork
+
+    n = 10
+    activation = "relu"
+    model = NeuralNetwork(hiddenlayers=(n, n), activation=activation)
+
+In the example above, we are building a NN using the
+:class:`ml4chem.models.neuralnetwork.NeuralNetwork` class with two
+hidden-layers of 10 neurons each, and a ReLu activation function.
 
 Autoencoders
 -------------
 Something here
 
-
-Support Vector Machines
-==========================
-
 Kernel Ridge Regression
 ------------------------
-Something here. 
+Kernel Ridge Regression (KRR) is a type of support vector machine model that
+combines Ridge Regression with a kernel trick. In ML4Chem, this method is
+implemeted by Rupp in Ref. [Rupp2015]_. Below there is a description of this
+implementation:
+
+#. Molecules are featurized.  
+#. A kernel function :math:`k(x, y)` is applied to all possible pairs of
+   atoms in the training data to build a covariance matrix, :math:`\mathbf{K}`.
+#. :math:`\mathbf{K}` is decomposed in upper- and lower- triangular matrices
+   using Cholesky decomposition.
+#. Finally, forward- and backward substitution is carried out with desired targets.
+
 
 Gaussian Process Regression
 ------------------------
-Something here.
+Gaussian Process Regression (GP) is similar to KRR with the addition of the
+uncertainty of each prediction.
 
-===================
-Semi-supervised Learning
-===================
 
 **References:**
 
 .. [Behler2007] Behler, J. & Parrinello, M. Generalized Neural-Network Representation of High-Dimensional Potential-Energy Surfaces. Phys. Rev. Lett. 98, 146401 (2007).
 .. [Behler2015] Behler, J. Constructing high-dimensional neural network potentials: A tutorial review. Int. J. Quantum Chem. 115, 1032–1050 (2015).
+.. [Rupp2015] Rupp, M. Machine learning for quantum mechanics in a nutshell. Int. J. Quantum Chem. 115, 1058–1073 (2015).
