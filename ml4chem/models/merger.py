@@ -83,8 +83,8 @@ class ModelMerger(torch.nn.Module):
         targets,
         data=None,
         optimizer=(None, None),
-        regularization=None,
         epochs=100,
+        regularization=None,
         convergence=None,
         lossfxn=None,
         device="cpu",
@@ -93,8 +93,55 @@ class ModelMerger(torch.nn.Module):
         independent_loss=True,
         loss_weights=None,
     ):
+        """Train the models
+
+        Parameters
+        ----------
+        inputs : dict
+            Dictionary with hashed feature space.
+        targets : list
+            The expected values that the model has to learn aka y.
+        model : object
+            The NeuralNetwork class.
+        data : object
+            DataSet object created from the handler.
+        optimizer : tuple
+            The optimizer is a tuple with the structure:
+                >>> ('adam', {'lr': float, 'weight_decay'=float})
+
+        epochs : int
+            Number of full training cycles.
+        regularization : float
+            This is the L2 regularization. It is not the same as weight decay.
+        convergence : dict
+            Instead of using epochs, users can set a convergence criterion.
+                >>> convergence = {"rmse": [0.04, 0.02]}
+        lossfxn : obj
+            A loss function object.
+        device : str
+            Calculation can be run in the cpu or cuda (gpu).
+        batch_size : int
+            Number of data points per batch to use for training. Default is None.
+        lr_scheduler : tuple
+            Tuple with structure: scheduler's name and a dictionary with keyword
+            arguments.
+
+            >>> lr_scheduler = ('ReduceLROnPlateau',
+                                {'mode': 'min', 'patience': 10})
+        independent_loss : bool
+            Whether or not models' weight are optimized independently.
+        loss_weights : list
+            How much the loss of model(i) contributes to the total loss.
+        """
 
         self.epochs = epochs
+
+        if isinstance(convergence["rmse"], float) or isinstance(convergence["rmse"], int):
+            convergence["rmse"] = np.array([convergence["rmse"] for model in range(len(self.models))])
+        elif isinstance(convergence["rmse"], list):
+            if len(convergence["rmse"]) != len(self.models):
+                raise("Your convergence list is not the same length of the number of models")
+            convergence["rmse"] = np.array(convergence["rmse"])
 
         logger.info(" ")
         logging.info("Model Merger")
@@ -253,10 +300,8 @@ class ModelMerger(torch.nn.Module):
             rmse = []
             for i, model in enumerate(self.models):
                 rmse.append(compute_rmse(outputs[i], self.targets[i]))
-            # print(outputs[1])
-            # print(targets[1])
+            rmse = np.array(rmse)
 
-            # print(rmse)
             _rmse = np.average(rmse)
 
             if self.optimizer_name != "LBFGS":
@@ -271,9 +316,7 @@ class ModelMerger(torch.nn.Module):
 
             if convergence is None and epoch == self.epochs:
                 converged = True
-            elif convergence is not None and all(
-                i <= convergence["rmse"] for i in rmse
-            ):
+            elif convergence is not None and (rmse <= convergence["rmse"]).all():
                 converged = True
                 new_state_dict = {}
 
@@ -285,8 +328,12 @@ class ModelMerger(torch.nn.Module):
                         print("Diff in {}".format(key))
                     else:
                         print("No diff in {}".format(key))
+            print(convergence)
+            print(rmse)
 
-            # print(rmse)
+        print("Final")
+        print(convergence)
+        print(rmse)
 
     def closure(self, index, model, independent_loss, name=None):
         """Closure

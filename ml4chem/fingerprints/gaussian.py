@@ -210,6 +210,11 @@ class Gaussian(object):
 
             logger.info("Unique chemical elements: {}".format(unique_element_symbols))
 
+        elif isinstance(data.unique_element_symbols, dict):
+            unique_element_symbols = data.unique_element_symbols[purpose]
+
+            logger.info("Unique chemical elements: {}".format(unique_element_symbols))
+
         # we make the features
         self.GP = self.custom.get("GP", None)
 
