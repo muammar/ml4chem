@@ -136,11 +136,18 @@ class ModelMerger(torch.nn.Module):
 
         self.epochs = epochs
 
-        if isinstance(convergence["rmse"], float) or isinstance(convergence["rmse"], int):
-            convergence["rmse"] = np.array([convergence["rmse"] for model in range(len(self.models))])
+        # Convergence criterion
+        if isinstance(convergence["rmse"], float) or isinstance(
+            convergence["rmse"], int
+        ):
+            convergence["rmse"] = np.array(
+                [convergence["rmse"] for model in range(len(self.models))]
+            )
         elif isinstance(convergence["rmse"], list):
             if len(convergence["rmse"]) != len(self.models):
-                raise("Your convergence list is not the same length of the number of models")
+                raise (
+                    "Your convergence list is not the same length of the number of models"
+                )
             convergence["rmse"] = np.array(convergence["rmse"])
 
         logger.info(" ")
@@ -164,6 +171,7 @@ class ModelMerger(torch.nn.Module):
                     l.__name__, self.loss_weights[index]
                 )
             )
+        logging.info("Convergence criterion: {}.".format(convergence))
 
         # If no batch_size provided then the whole training set length is the batch.
         if batch_size is None:

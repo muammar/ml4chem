@@ -234,7 +234,7 @@ class Gaussian(object):
 
         # We start populating computations to get atomic fingerprints.
         logger.info("")
-        logger.info("Adding atomic feature calculations to scheduler...")
+        logger.info("Adding atomic feature calculations to computational graph...")
 
         ini = end = 0
 
@@ -280,17 +280,30 @@ class Gaussian(object):
             "... finished in {} hours {} minutes {:.2f}" " seconds.".format(h, m, s)
         )
 
-        # In this block we compute the fingerprints.
         logger.info("")
-        logger.info("Computing fingerprints...")
+        # In this block we compute the fingerprints.
 
-        stacked_features = dask.compute(*computations, scheduler=self.scheduler)
+        stacked_features = dask.persist(*computations, scheduler=self.scheduler)
+
+        # dask.distributed.wait(stacked_features)
 
         if self.preprocessor is not None:
-            stacked_features = np.array(stacked_features)
+            logger.info("Adding Dask array construction to computational graph...")
+            symbol = data.unique_element_symbols[purpose][0]
+            sample = np.zeros(len(self.GP[symbol]))
+            dim = (len(stacked_features), len(sample))
+
+            stacked_features = [
+                dask.array.from_delayed(lazy, dtype=float, shape=sample.shape)
+                for lazy in stacked_features
+            ]
+
+            stacked_features = (
+                dask.array.stack(stacked_features, axis=0).reshape(dim).rechunk(dim)
+            )
 
         # Clean
-        del computations
+        # del computations
 
         if purpose == "training":
             # To take advantage of dask_ml we need to convert our numpy array
@@ -299,8 +312,7 @@ class Gaussian(object):
 
             if self.preprocessor is not None:
                 scaled_feature_space = []
-                dim = stacked_features.shape
-                stacked_features = dask.array.from_array(stacked_features, chunks=dim)
+
                 stacked_features = preprocessor.fit(
                     stacked_features, scheduler=self.scheduler
                 )
@@ -324,6 +336,8 @@ class Gaussian(object):
                     )
                     feature_space.append(features)
 
+            # Clean
+            del computations
             del stacked_features
             computations = []
 
@@ -376,6 +390,7 @@ class Gaussian(object):
             fp_time = time.time() - initial_time
 
             h, m, s = convert_elapsed_time(fp_time)
+
             logger.info(
                 "Fingerprinting finished in {} hours {} minutes {:.2f}"
                 " seconds.".format(h, m, s)
@@ -671,7 +686,7 @@ class Gaussian(object):
             )
             return symbol, fingerprint
         else:
-            return fingerprint
+            return np.array(fingerprint)
 
     def make_symmetry_functions(self, symbols, custom=None, angular_type="G3"):
         """Function to make symmetry functions

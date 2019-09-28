@@ -348,7 +348,9 @@ class Potentials(Calculator, object):
                 except:
                     raise ("This is not a database...")
 
-                energy = self.model.get_potential_energy(fingerprints, reference_space, purpose=purpose)
+                energy = self.model.get_potential_energy(
+                    fingerprints, reference_space, purpose=purpose
+                )
             else:
                 input_dimension = len(list(fingerprints.values())[0][0][-1])
                 model = copy.deepcopy(self.model)
