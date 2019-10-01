@@ -431,7 +431,7 @@ class Gaussian(object):
                             symbol = symbol.encode("utf-8")
                     else:
                         scaled = torch.tensor(
-                            scaled_feature_space[index],
+                            scaled_feature_space[index].compute(),
                             requires_grad=False,
                             dtype=torch.float,
                         )
