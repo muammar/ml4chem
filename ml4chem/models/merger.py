@@ -210,6 +210,9 @@ class ModelMerger(torch.nn.Module):
                     "train", "ml4chem.models", alt_name="autoencoders"
                 )
                 self.inputs_chunk_vals = train.get_inputs_chunks(chunks[index])
+            else:
+                self.inputs_chunk_vals = None
+
 
         parameters = []
         for index, model in enumerate(self.models):
@@ -295,12 +298,13 @@ class ModelMerger(torch.nn.Module):
 
             if independent_loss:
                 losses = []
+                outputs = []
                 for model_index, model in enumerate(self.models):
-                    name = model.name()
-                    loss, outputs = self.closure(
-                        model_index, model, independent_loss, name=name
+                    loss, output = self.closure(
+                        model_index, model, independent_loss, name=model.name()
                     )
                     losses.append(loss)
+                    outputs.append(output)
 
             else:
                 loss, outputs = self.closure(index, self.models, independent_loss)
@@ -373,8 +377,10 @@ class ModelMerger(torch.nn.Module):
             train = dynamic_import("train", "ml4chem.models", alt_name="neuralnetwork")
 
             inputs = []
-            for chunk in self.chunks[index - 1]:
-                inputs_ = self.chunks[index](OrderedDict(chunk))
+            # FIXME this is not scaling to n number of models.
+            for chunk_index, chunk in enumerate(self.chunks[index - 1]):
+
+                inputs_ = self.chunks[index][chunk_index](OrderedDict(chunk.result()))
                 inputs.append(client.scatter(inputs_))
 
             loss, outputs_ = train.closure(
@@ -389,8 +395,6 @@ class ModelMerger(torch.nn.Module):
 
         elif name == "AutoEncoder" and independent_loss:
             train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
-            # The indexing [0] is needed because of the way the array is built
-            # above.
             targets = self.targets[index]
 
             loss, outputs_ = train.closure(
@@ -429,6 +433,7 @@ class ModelMerger(torch.nn.Module):
             grads = {}
             outputs_ = {}
             losses = {}
+
             for model_index, (outputs, loss, grad) in enumerate(accumulation):
                 for model_index in range(len(self.models)):
                     if model_index not in grads.keys():
@@ -461,18 +466,17 @@ class ModelMerger(torch.nn.Module):
         losses = []
         for model_index, model in enumerate(models):
             # _losses = []
-            name = model.name()
             # for j, output in enumerate(outputs[i]):
 
             output = outputs[model_index]
-            if name == "PytorchPotentials":
+            if model.name() == "PytorchPotentials":
                 loss = lossfxn[model_index](
                     output,
                     targets[model_index][chunk_index],
                     atoms_per_image[chunk_index],
                 )
 
-            elif name == "AutoEncoder":
+            elif model.name() == "AutoEncoder":
                 loss = lossfxn[model_index](output, targets[model_index][chunk_index])
 
             batch_loss += loss * self.loss_weights[model_index]
