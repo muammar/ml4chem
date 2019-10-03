@@ -29,6 +29,13 @@ A list of features and methods are shown below.
 - [Messagepack serialization](https://msgpack.org/index.html).
 
 
+## Citing
+
+If you find this software useful, please use this DOI to cite it:
+
+[![DOI](https://zenodo.org/badge/161847010.svg)](https://zenodo.org/badge/latestdoi/161847010)
+
+
 ## Documentation
 
 You can read the documentation at [https://ml4chem.dev](https://ml4chem.dev)
