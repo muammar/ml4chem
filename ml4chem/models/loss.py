@@ -253,3 +253,16 @@ def get_pairwise_distances(positions, squared=False):
         distances = torch.sqrt(distances)
 
     return distances
+
+def VAELoss(outputs, targets, mus, logvars):
+    # BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
+
+    # see Appendix B from VAE paper:
+    # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+    # https://arxiv.org/abs/1312.6114
+    # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+
+    criterion = torch.nn.MSELoss()
+    mse = criterion(outputs, targets) * 0.5
+    kld = -0.5 * torch.sum(1 + logvars - mus.pow(2) - logvars.exp())
+    return mse + kld

@@ -120,7 +120,7 @@ class AutoEncoder(torch.nn.Module):
             """
             Encoder
             """
-            # The first encoder layer for symbol
+            # The first encoder's layer for symbol
             out_dimension = encoder_layers[0]
             _encoder = torch.nn.Linear(input_dimension, out_dimension)
             encoder.append(_encoder)
@@ -132,7 +132,26 @@ class AutoEncoder(torch.nn.Module):
                 encoder.append(activation[self.activation]())
 
             # Stacking up the layers.
-            encoder = torch.nn.Sequential(*encoder)
+            if self.name() == "VAE":
+                keys = ["pre", "mu", "logvar"]
+                mu = []
+                logvar = []
+
+                index = -3
+                for i in range(2):
+                    index += 1
+                    mu.append(encoder.pop(index))
+
+                pre = torch.nn.Sequential(*encoder)
+                logvar = torch.nn.Linear(inp_dim, out_dim)
+                logvar = torch.nn.Sequential(*[logvar, activation[self.activation]()])
+                mu = torch.nn.Sequential(*mu)
+
+                values = [pre, mu, logvar]
+                encoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+            else:
+                encoder = torch.nn.Sequential(*encoder)
+
             symbol_encoder_pair.append([symbol, encoder])
 
             """
@@ -171,6 +190,42 @@ class AutoEncoder(torch.nn.Module):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
                     torch.nn.init.xavier_uniform_(m.weight)
 
+    def encode(self, symbol, x):
+        """Encode input
+        
+        Parameters
+        ----------
+        symbol : str
+            Chemical symbol.
+        x : array
+            Input array.
+        
+        Returns
+        -------
+        z
+            Latent vector.
+        """
+        z = self.encoders[symbol](x)
+        return z
+
+    def decode(self, symbol, z):
+        """Decode latent vector, z
+        
+        Parameters
+        ----------
+        symbol : str
+            Chemical symbol.
+        z : array
+            Latent vector.
+        
+        Returns
+        -------
+        reconstruction
+            Tensor with reconstruction. 
+        """
+        reconstruction = self.decoders[symbol](z)
+        return reconstruction
+
     def forward(self, X):
         """Forward propagation
 
@@ -190,17 +245,17 @@ class AutoEncoder(torch.nn.Module):
         outputs = []
         for hash, image in X.items():
             for symbol, x in image:
-                latent_vector = self.encoders[symbol](x)
-                decoder = self.decoders[symbol](latent_vector)
-                outputs.append(decoder)
+                z = self.encode(symbol, x)
+                output = self.decode(symbol, z)
+                outputs.append(output)
         outputs = torch.stack(outputs)
         return outputs
 
     def get_latent_space(self, X, svm=False, purpose=None):
-        """Get latent space for training ML4Chem
+        """Get latent space for training ML4Chem models
 
         This method takes an input and use the encoder to return latent space
-        in the structure needed for training ML4Chem.
+        in the structure needed for training ML4Chem models or visualization.
 
         Parameters
         ----------
@@ -238,7 +293,7 @@ class AutoEncoder(torch.nn.Module):
                 hashes.append(hash)
                 _symbols = []
                 for symbol, x in image:
-                    latent_vector = self.encoders[symbol](x)
+                    latent_vector = self.encode(symbol, x)
                     _symbols.append(symbol)
 
                     if svm:
@@ -263,7 +318,7 @@ class AutoEncoder(torch.nn.Module):
             for hash, image in X.items():
                 latent_space[hash] = []
                 for symbol, x in image:
-                    latent_vector = self.encoders[symbol](x)
+                    latent_vector = self.encode(symbol, x)
 
                     if svm:
                         _latent_vector = latent_vector.detach().numpy()
@@ -273,6 +328,72 @@ class AutoEncoder(torch.nn.Module):
                     latent_space[hash].append((symbol, _latent_vector))
 
             return latent_space
+
+
+class VAE(AutoEncoder):
+    NAME = "VAE"
+
+    @classmethod
+    def name(cls):
+        """Returns name of class"""
+        return cls.NAME
+
+    def encode(self, symbol, x):
+        """Encode input
+        
+        Parameters
+        ----------
+        symbol : str
+            Chemical symbol.
+        x : array
+            Input array.
+        
+        Returns
+        -------
+        z
+            Latent vector.
+        """
+        pre = self.encoders[symbol]["pre"](x)
+        mu = self.encoders[symbol]["mu"](pre)
+        logvar = self.encoders[symbol]["logvar"](pre)
+        return mu, logvar
+
+    def reparameterize(self, mu, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+
+    def forward(self, X):
+        """Forward propagation
+
+        This method takes an input and applies encoder and decoder layers.
+
+        Parameters
+        ----------
+        X : list
+            List of inputs either raw or in the feature space.
+
+        Returns
+        -------
+        outputs : tensor
+            Decoded latent vector.
+        """
+
+        outputs = []
+        mus = []
+        logvars = []
+        for hash, image in X.items():
+            for symbol, x in image:
+                mu, logvar = self.encode(symbol, x)
+                z = self.reparameterize(mu, logvar)
+                output = self.decode(symbol, z)
+                outputs.append(output)
+                mus.append(mu)
+                logvars.append(logvar)
+        outputs = torch.stack(outputs)
+        mus = torch.stack(mus)
+        logvars = torch.stack(logvars)
+        return outputs, mus, logvars
 
 
 class train(object):
@@ -575,7 +696,11 @@ class train(object):
             The loss function of the batch.
         """
         inputs = OrderedDict(chunk)
-        outputs = model(inputs)
+        if model.name() == "VAE":
+            outputs, mus, logvars = model(inputs)
+        else:
+            outputs = model(inputs)
+
         args = {"outputs": outputs, "targets": targets[index]}
 
         _args, _varargs, _keywords, _defaults = inspect.getargspec(lossfxn)
@@ -587,6 +712,12 @@ class train(object):
 
             # In the case of using EncoderMapLoss the inputs are needed, too.
             args.update({"inputs": inputs_chunk_vals[index]})
+
+        elif "mus" in _args and "logvars" in _args:
+            mus = {"mus": mus}
+            logvars = {"logvars": logvars}
+            args.update(mus)
+            args.update(logvars)
 
         loss = lossfxn(**args)
         loss.backward()

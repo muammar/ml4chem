@@ -1,4 +1,3 @@
-import logging
 import sys
 
 sys.path.append("../../")
@@ -6,10 +5,8 @@ from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
 from ml4chem.data.handler import DataSet
 from ml4chem.fingerprints import LatentFeatures
-from ml4chem.models.autoencoders import AutoEncoder, train
 from ml4chem.data.serialization import load
-import json
-import torch
+from ml4chem.utils import logger
 
 
 def autoencode():
@@ -25,7 +22,7 @@ def autoencode():
     normalized = True
 
     data_handler = DataSet(images, purpose=purpose)
-    images, energies = data_handler.get_images(purpose=purpose)
+    images, energies = data_handler.get_data(purpose=purpose)
 
     fingerprints = (
         "Gaussian",
@@ -35,7 +32,7 @@ def autoencode():
             "save_preprocessor": "inference.scaler",
         },
     )
-    encoder = {"model": "model.ml4c", "params": "model.params"}
+    encoder = {"model": "ml4chem.ml4c", "params": "ml4chem.params"}
     preprocessor = ("MinMaxScaler", {"feature_range": (-1, 1)})
 
     fingerprints = LatentFeatures(
@@ -53,10 +50,7 @@ def autoencode():
 
 
 if __name__ == "__main__":
-    # logging.basicConfig(filename='cu_inference.log', level=logging.INFO,
-    logging.basicConfig(
-        level=logging.INFO, format="%(filename)s:%(lineno)s %(levelname)s:%(message)s"
-    )
+    logger("cu_inference.log")
     cluster = LocalCluster()
     client = Client(cluster, asyncronous=True)
     autoencode()
