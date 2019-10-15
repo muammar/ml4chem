@@ -1,4 +1,5 @@
 ![alt text](https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/ml4chem.png "Logo")
+--------------------------------------------------------------------------------
 
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/Django.svg)](https://github.com/muammar/mkchromecast/)
 [![Build Status](https://travis-ci.com/muammar/ml4chem.svg?branch=master)](https://travis-ci.com/muammar/ml4chem)
