@@ -6,6 +6,8 @@ ML4Chem
 [![Downloads](https://img.shields.io/github/downloads/muammar/ml4chem/total.svg?maxAge=2592000?style=flat-square)](https://github.com/muammar/ml4chem/releases)
 [![GitHub release](https://img.shields.io/github/release/muammar/ml4chem.svg)](https://github.com/muammar/ml4chem/releases/latest)
 
+![alt text](https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/ml4chem.png "Logo")
+
 **ML4Chem** is machine learning for chemistry and Materials.
 
 This package is written in Python 3, and intends to offer modern and rich
