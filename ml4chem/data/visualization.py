@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from ml4chem.data.serialization import load
+import time
 
 
 def parity(predictions, true, scores=False, filename=None, **kwargs):

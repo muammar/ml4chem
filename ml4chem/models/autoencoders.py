@@ -97,8 +97,8 @@ class AutoEncoder(torch.nn.Module):
             logger.info("==============")
             logger.info("Model name: {}.".format(self.name()))
             logger.info(
-                "Structure of Autoencoder: {}".format(
-                    "(input, " + str(self.hiddenlayers)[1:-1] + ", output)"
+                "Structure of {}: {}".format(
+                    self.name(), "(input, " + str(self.hiddenlayers)[1:-1] + ", output)"
                 )
             )
 
@@ -133,21 +133,24 @@ class AutoEncoder(torch.nn.Module):
 
             # Stacking up the layers.
             if self.name() == "VAE":
-                keys = ["pre", "mu", "logvar"]
+                keys = ["h", "mu", "logvar"]
                 mu = []
                 logvar = []
 
                 index = -3
-                for i in range(2):
+                for _ in range(2):
                     index += 1
-                    mu.append(encoder.pop(index))
+                    if index == -2:
+                        mu.append(encoder.pop(index))
+                    else:
+                        encoder.pop(index)
 
-                pre = torch.nn.Sequential(*encoder)
+                h = torch.nn.Sequential(*encoder)
                 logvar = torch.nn.Linear(inp_dim, out_dim)
-                logvar = torch.nn.Sequential(*[logvar, activation[self.activation]()])
+                logvar = torch.nn.Sequential(*[logvar])
                 mu = torch.nn.Sequential(*mu)
 
-                values = [pre, mu, logvar]
+                values = [h, mu, logvar]
                 encoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
             else:
                 encoder = torch.nn.Sequential(*encoder)
@@ -158,20 +161,31 @@ class AutoEncoder(torch.nn.Module):
             Decoder
             """
             for inp_dim, out_dim in zip(decoder_layers, decoder_layers[1:]):
-                _decoder = torch.nn.Linear(inp_dim, out_dim)
-                decoder.append(_decoder)
+                decoder.append(torch.nn.Linear(inp_dim, out_dim))
                 decoder.append(activation[self.activation]())
 
-            # The last decoder layer for symbol
             inp_dim = out_dim
-            _decoder = torch.nn.Linear(inp_dim, output_dimension)
-            decoder.append(_decoder)
+
+            """
+            if self.name() == "VAE":
+                h = torch.nn.Sequential(*decoder)
+                mu = torch.nn.Linear(inp_dim, output_dimension)
+                mu = torch.nn.Sequential(*[mu])
+                logvar = torch.nn.Linear(inp_dim, output_dimension)
+                logvar = torch.nn.Sequential(*[logvar])
+                values = [h, mu, logvar]
+                decoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+            else:
+            """
+            # The last decoder layer for symbol
+            decoder.append(torch.nn.Linear(inp_dim, output_dimension))
             # According to this video https://youtu.be/xTU79Zs4XKY?t=416
             # real numbered inputs need no activation function in the output
             # layer decoder.append(activation[self.activation]())
 
             # Stacking up the layers.
             decoder = torch.nn.Sequential(*decoder)
+
             symbol_decoder_pair.append([symbol, decoder])
 
         self.encoders = torch.nn.ModuleDict(symbol_encoder_pair)
@@ -180,7 +194,7 @@ class AutoEncoder(torch.nn.Module):
         logger.info(self.decoders)
 
         if purpose == "training":
-            # Iterate over all modules and just intialize those that are
+            # Iterate over all modules and just initialize those that are
             # a linear layer.
             logger.warning(
                 "Initialization of weights with Xavier Uniform by " "default."
@@ -331,6 +345,34 @@ class AutoEncoder(torch.nn.Module):
 
 
 class VAE(AutoEncoder):
+    """Variational Autoencoder (VAE)
+
+
+    This module uses variational autoencoders for pipelines in chemistry.
+
+    Parameters
+    ----------
+    hiddenlayers : dict
+        Dictionary with encoder, and decoder layers in the Auto Encoder.
+    activation : str
+        The activation function.
+
+
+    Notes
+    -----
+    When defining the hiddenlayers keyword argument, input and output
+    dimensions are automatically determined. For example, suppose you have an
+    input data point with 10 dimensions and you want to autoencode with
+    targets having 14 dimensions, a latent space with 4 dimensions and just one
+    hidden layer with 5 nodes between input-layer / latent-layer and
+    latent-layer / output-layer. Your `hiddenlayers` dictionary would look like
+    this:
+
+        >>> hiddenlayers = {'encoder': (5, 4), 'decoder': (4, 5)}
+
+    That would generate an autoencoder with topology (10, 5, 4 | 4, 5, 14).
+    """
+
     NAME = "VAE"
 
     @classmethod
@@ -350,15 +392,59 @@ class VAE(AutoEncoder):
         
         Returns
         -------
-        z
-            Latent vector.
+        mu, logvar
+            Mean and variance.
         """
-        pre = self.encoders[symbol]["pre"](x)
-        mu = self.encoders[symbol]["mu"](pre)
-        logvar = self.encoders[symbol]["logvar"](pre)
+        h = self.encoders[symbol]["h"](x)
+        mu = self.encoders[symbol]["mu"](h)
+        logvar = self.encoders[symbol]["logvar"](h)
         return mu, logvar
 
+    # def decode(self, symbol, z):
+    #     """Decode latent vector, z
+    #     
+    #     Parameters
+    #     ----------
+    #     symbol : str
+    #         Chemical symbol.
+    #     z : array
+    #         Latent vector.
+    #     
+    #     Returns
+    #     -------
+    #     mu, logvar
+    #         Mean and variance.
+    #     
+    #     Notes
+    #     -----
+    #     See page 11 "Kingma, D. P. & Welling, M. Auto-Encoding Variational
+    #     Bayes. (2013)".
+    #     """
+
+    #     h = self.decoders[symbol]["h"](z)
+    #     mu = self.decoders[symbol]["mu"](h)
+    #     logvar = self.decoders[symbol]["logvar"](h)
+    #     return mu, logvar
+
     def reparameterize(self, mu, logvar):
+        """Reparameterization trick
+
+        This trick samples the posterior (a latent vector) from a
+        multivariate Gaussian probability distribution. At the same time it
+        allows the model to be backward-propagated.
+
+        Parameters
+        ----------
+        mu : [type]
+            [description]
+        logvar : [type]
+            [description]
+
+        Returns
+        -------
+        [type]
+            [description]
+        """
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
@@ -375,25 +461,35 @@ class VAE(AutoEncoder):
 
         Returns
         -------
-        outputs : tensor
+        mu and lovar for two multivariate gaussian 
             Decoded latent vector.
         """
 
+        mus_latent = []
+        logvars_latent = []
+        # mus_output = []
+        # logvars_output = []
         outputs = []
-        mus = []
-        logvars = []
         for hash, image in X.items():
             for symbol, x in image:
-                mu, logvar = self.encode(symbol, x)
-                z = self.reparameterize(mu, logvar)
-                output = self.decode(symbol, z)
-                outputs.append(output)
-                mus.append(mu)
-                logvars.append(logvar)
+                mu_latent, logvar_latent = self.encode(symbol, x)
+                z = self.reparameterize(mu_latent, logvar_latent)
+                mus_latent.append(mu_latent)
+                logvars_latent.append(logvar_latent)
+                reconstruction = self.decode(symbol, z)
+                # mu_output, logvar_output = self.decode(symbol, z)
+                # mus_output.append(mu_output)
+                # logvars_output.append(logvar_output)
+                outputs.append(reconstruction)
+
+        mus_latent = torch.stack(mus_latent)
+        logvars_latent = torch.stack(logvars_latent)
+        # mus_output = torch.stack(mus_output)
+        # logvars_output = torch.stack(logvars_output)
         outputs = torch.stack(outputs)
-        mus = torch.stack(mus)
-        logvars = torch.stack(logvars)
-        return outputs, mus, logvars
+
+        # return outputs, mus_latent, logvars_latent, mus_output, logvars_output
+        return outputs, mus_latent, logvars_latent
 
 
 class train(object):
@@ -697,11 +793,11 @@ class train(object):
         """
         inputs = OrderedDict(chunk)
         if model.name() == "VAE":
-            outputs, mus, logvars = model(inputs)
+            # outputs, mus_latent, logvars_latent, mus_output, logvars_output = model(inputs)
+            outputs, mus_latent, logvars_latent, = model(inputs)
         else:
             outputs = model(inputs)
-
-        args = {"outputs": outputs, "targets": targets[index]}
+            args = {"outputs": outputs, "targets": targets[index]}
 
         _args, _varargs, _keywords, _defaults = inspect.getargspec(lossfxn)
 
@@ -713,11 +809,21 @@ class train(object):
             # In the case of using EncoderMapLoss the inputs are needed, too.
             args.update({"inputs": inputs_chunk_vals[index]})
 
-        elif "mus" in _args and "logvars" in _args:
-            mus = {"mus": mus}
-            logvars = {"logvars": logvars}
-            args.update(mus)
-            args.update(logvars)
+        elif "mus_latent" in _args and "logvars_latent" in _args:
+            args = {
+                "outputs": outputs,
+                "targets": targets[index],
+                "mus_latent": mus_latent,
+                "logvars_latent": logvars_latent,
+            }
+        # elif "mus_latent" in _args and "logvars_latent" in _args:
+        #     args = {
+        #         "targets": targets[index],
+        #         "mus_latent": mus_latent,
+        #         "logvars_latent": logvars_latent,
+        #         "mus_output": mus_output,
+        #         "logvars_output": logvars_output,
+        #     }
 
         loss = lossfxn(**args)
         loss.backward()
