@@ -6,7 +6,8 @@
 [![License](https://img.shields.io/badge/license-BSD-green)](https://github.com/muammar/ml4chem/blob/master/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/muammar/ml4chem/total.svg?maxAge=2592000?style=flat-square)](https://github.com/muammar/ml4chem/releases)
 [![GitHub release](https://img.shields.io/github/release/muammar/ml4chem.svg)](https://github.com/muammar/ml4chem/releases/latest)
---------------------------------------------------------------------------------
+
+## About
 
 This package is written in Python 3, and intends to offer modern and rich
 features to perform machine learning workflows for chemical physics.
@@ -29,14 +30,14 @@ A list of features and methods are shown below.
 - [Messagepack serialization](https://msgpack.org/index.html).
 
 
-### Citing
+## Citing
 
 If you find this software useful, please use this DOI to cite it:
 
 [![DOI](https://zenodo.org/badge/161847010.svg)](https://zenodo.org/badge/latestdoi/161847010)
 
 
-### Documentation
+## Documentation
 
 You can read the documentation at [https://ml4chem.dev](https://ml4chem.dev)
 where you can get started. It is arranged in a way that you can go through
@@ -46,12 +47,12 @@ index](https://ml4chem.dev/genindex.html) to get more information about
 different classes and functions of ML4Chem.
 
 
-### Dask dashboard
+## Dask dashboard
 ![](https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/dask_dashboard.png)
 
 Note: This package is under development.
 
-### Copyright
+## Copyright
 ML4Chem: Machine Learning for Chemistry and Materials (ML4Chem) Copyright (c) 2019, The
 Regents of the University of California, through Lawrence Berkeley National
 Laboratory (subject to receipt of any required approvals from the U.S.
