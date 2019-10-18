@@ -213,7 +213,6 @@ class ModelMerger(torch.nn.Module):
             else:
                 self.inputs_chunk_vals = None
 
-
         parameters = []
         for index, model in enumerate(self.models):
             parameters += model.parameters()

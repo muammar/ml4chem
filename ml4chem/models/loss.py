@@ -252,19 +252,24 @@ def get_pairwise_distances(positions, squared=False):
 
 
 ## def VAELoss(targets, mus_latent, logvars_latent, mus_output, logvars_output):
-def VAELoss(outputs, targets, mus_latent, logvars_latent):
+def VAELoss(outputs, targets, mus_latent, logvars_latent, annealing):
 
     # LOG_2_PI = np.log(2 * np.pi)
     # loss_rec = LOG_2_PI + torch.sum(logvars_output + (targets - mus_output) ** 2 / (2 * torch.exp(logvars_output)))
 
     loss_rec = MSELoss(outputs, targets)
+    # loss_rec = torch.nn.functional.binary_cross_entropy(outputs, targets, reduction='sum')
+    # loss_rec = torch.nn.functional.mse_loss(outputs, targets)#, reduction='none')
 
     # see Appendix B from VAE paper:
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
     # https://arxiv.org/abs/1312.6114
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
 
-    kld = -0.5 * torch.sum(
-        1 + logvars_latent - mus_latent.pow(2) - logvars_latent.exp()
+    kld = (
+        -0.5
+        * torch.sum(1 + logvars_latent - mus_latent.pow(2) - logvars_latent.exp())
+        * annealing
     )
+    # print(loss_rec.item(), kld.item(), annealing)
     return loss_rec + kld

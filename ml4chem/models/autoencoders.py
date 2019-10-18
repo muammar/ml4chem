@@ -152,6 +152,7 @@ class AutoEncoder(torch.nn.Module):
 
                 values = [h, mu, logvar]
                 encoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+
             else:
                 encoder = torch.nn.Sequential(*encoder)
 
@@ -402,19 +403,19 @@ class VAE(AutoEncoder):
 
     # def decode(self, symbol, z):
     #     """Decode latent vector, z
-    #     
+    #
     #     Parameters
     #     ----------
     #     symbol : str
     #         Chemical symbol.
     #     z : array
     #         Latent vector.
-    #     
+    #
     #     Returns
     #     -------
     #     mu, logvar
     #         Mean and variance.
-    #     
+    #
     #     Notes
     #     -----
     #     See page 11 "Kingma, D. P. & Welling, M. Auto-Encoding Variational
@@ -527,6 +528,8 @@ class train(object):
 
         >>> lr_scheduler = ('ReduceLROnPlateau',
                             {'mode': 'min', 'patience': 10})
+    anneal : bool
+        Cyclical annealing based on https://arxiv.org/abs/1903.10145.
     """
 
     def __init__(
@@ -543,9 +546,11 @@ class train(object):
         device="cpu",
         batch_size=None,
         lr_scheduler=None,
+        anneal=False,
     ):
 
         self.initial_time = time.time()
+        self.anneal = anneal
 
         if device == "cuda":
             pass
@@ -663,8 +668,30 @@ class train(object):
         _rmse = []
         epoch = 0
 
+        warm_up = 100
+        warming = 0
+        step = 1 / 20
+        cycles = 0
+        stop = 10
+
         while not converged:
             epoch += 1
+
+            if cycles < stop and self.anneal:
+                if warming < warm_up:
+                    annealing = 0
+                    warming += 1
+                elif warming == warm_up:
+                    annealing += step
+                    warming += 1
+                else:
+                    annealing += step
+
+                if np.isclose(annealing, 1.0):
+                    warming = 0
+                    cycles += 1
+            else:
+                annealing = 1.0
 
             self.optimizer.zero_grad()  # clear previous gradients
 
@@ -675,6 +702,7 @@ class train(object):
                 "lossfxn": self.lossfxn,
                 "device": self.device,
                 "inputs_chunk_vals": self.inputs_chunk_vals,
+                "annealing": annealing,
             }
 
             loss, outputs_ = train.closure(**args)
@@ -717,7 +745,16 @@ class train(object):
         )
 
     @classmethod
-    def closure(Cls, chunks, targets, model, lossfxn, device, inputs_chunk_vals=None):
+    def closure(
+        Cls,
+        chunks,
+        targets,
+        model,
+        lossfxn,
+        device,
+        inputs_chunk_vals=None,
+        annealing=None,
+    ):
         """Closure
 
         This method clears previous gradients, iterates over chunks, accumulate
@@ -736,7 +773,16 @@ class train(object):
             accumulation.append(
                 client.submit(
                     train.train_batches,
-                    *(index, chunk, targets, model, lossfxn, device, inputs_chunk_vals)
+                    *(
+                        index,
+                        chunk,
+                        targets,
+                        model,
+                        lossfxn,
+                        device,
+                        inputs_chunk_vals,
+                        annealing,
+                    )
                 )
             )
         dask.distributed.wait(accumulation)
@@ -764,7 +810,7 @@ class train(object):
 
     @classmethod
     def train_batches(
-        Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals
+        Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals, annealing
     ):
         """A function that allows training per batches
 
@@ -795,6 +841,14 @@ class train(object):
         if model.name() == "VAE":
             # outputs, mus_latent, logvars_latent, mus_output, logvars_output = model(inputs)
             outputs, mus_latent, logvars_latent, = model(inputs)
+
+            args = {
+                "outputs": outputs,
+                "targets": targets[index],
+                "mus_latent": mus_latent,
+                "logvars_latent": logvars_latent,
+                "annealing": annealing,
+            }
         else:
             outputs = model(inputs)
             args = {"outputs": outputs, "targets": targets[index]}
@@ -809,13 +863,14 @@ class train(object):
             # In the case of using EncoderMapLoss the inputs are needed, too.
             args.update({"inputs": inputs_chunk_vals[index]})
 
-        elif "mus_latent" in _args and "logvars_latent" in _args:
-            args = {
-                "outputs": outputs,
-                "targets": targets[index],
-                "mus_latent": mus_latent,
-                "logvars_latent": logvars_latent,
-            }
+        # elif "mus_latent" in _args and "logvars_latent" in _args:
+        #    args = {
+        #        "outputs": outputs,
+        #        "targets": targets[index],
+        #        "mus_latent": mus_latent,
+        #        "logvars_latent": logvars_latent,
+        #        "annealing": annealing
+        #    }
         # elif "mus_latent" in _args and "logvars_latent" in _args:
         #     args = {
         #         "targets": targets[index],
