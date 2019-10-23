@@ -15,14 +15,6 @@ Subpackages
 Submodules
 ----------
 
-ml4chem.active module
----------------------
-
-.. automodule:: ml4chem.active
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 ml4chem.metrics module
 ----------------------
 

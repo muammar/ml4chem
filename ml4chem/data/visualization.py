@@ -1,7 +1,8 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.express as px
 import seaborn as sns
+import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from ml4chem.data.serialization import load
 import time
@@ -12,19 +13,19 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
 
     Parameters
     ----------
-    predictions : list or numpy.array
+    predictions : list or ndarray 
         Model predictions in a list.
-    true : list or numpy.array
+    true : list or ndarray
         Targets or true values.
     scores : bool
         Print scores in parity plot.
     filename : str
-        A name to save the plot to a file. If filename is non exisntent, we
+        A name to save the plot to a file. If filename is non existent, we
         call plt.show().
 
     Notes
     -----
-    kargs accepts all valid keyword arguments for matplotlib.pyplot.savefig.
+    kwargs accepts all valid keyword arguments for matplotlib.pyplot.savefig.
     """
 
     min_val = min(true)
@@ -173,7 +174,7 @@ def read_log(logfile, metric="loss", refresh=None):
         plt.show(block=True)
 
 
-def plot_atomic_features(latent_space, method="PCA", dimensions=2):
+def plot_atomic_features(latent_space, method="PCA", dimensions=3, backend="seaborn"):
     """Plot high dimensional atomic feature vectors
 
     This function can take a feature space dictionary, or a database file
@@ -191,9 +192,24 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2):
     dimensions : int, optional
         Number of dimensions to reduce the high dimensional atomic feature
         vectors, by default 2.
+    backend : str, optional
+        Select the backend to plot features. Supported are "plotly" and
+        "seaborn", by default "plotly".
     """
-
     method = method.lower()
+    backend = backend.lower()
+
+    if backend == "seaborn":
+        # This hack is needed because it seems plotly import overwrite everything.
+        import matplotlib.pyplot as plt
+
+    axis = ["x", "y", "z"]
+
+    if dimensions > 3:
+        raise NotImplementedError
+    elif dimensions == 2:
+        axis.pop(-1)
+
     if isinstance(latent_space, str):
         latent_space = load(latent_space)
 
@@ -220,24 +236,44 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2):
     if method == "pca":
         from sklearn.decomposition import PCA
 
-        labels = {"x": "PCA-1", "y": "PCA-2"}
+        labels = {str(axis[i]): "PCA-{}".format(i + 1) for i in range(len(axis))}
         pca = PCA(n_components=dimensions)
         pca_result = pca.fit_transform(full_ls)
 
         to_pandas = []
 
+        entry = []
         for i, element in enumerate(pca_result):
-            to_pandas.append([full_symbols[i], element[0], element[1]])
+            entry = [full_symbols[i]]
+            for d in range(dimensions):
+                entry.append(element[d])
+            to_pandas.append(entry)
 
-        columns = ["Symbol", "PCA-1", "PCA-2"]
+        columns = ["Symbol"]
+        args = {}
+
+        for key in axis:
+            columns.append(labels[key])
+            args[key] = labels[key]
 
         df = pd.DataFrame(to_pandas, columns=columns)
-        sns.scatterplot(**labels, data=df, hue="Symbol")
+
+        if dimensions == 3 and backend == "plotly":
+            args["color"] = "Symbol"
+            plt = px.scatter_3d(df, **args)
+            plt.update_traces(marker=dict(size=4))
+        elif dimensions == 2 and backend == "plotly":
+            args["color"] = "Symbol"
+            plt = px.scatter(df, **args)
+        elif dimensions == 3 and backend == "seaborn":
+            raise ("This backend is for 2D visualization")
+        elif dimensions == 2 and backend == "seaborn":
+            sns.scatterplot(**labels, data=df, hue="Symbol")
 
     elif method == "tsne":
         from sklearn import manifold
 
-        labels = {"x": "t-SNE-1", "y": "t-SNE-2"}
+        labels = {str(axis[i]): "t-SNE-{}".format(i + 1) for i in range(len(axis))}
 
         tsne = manifold.TSNE(n_components=dimensions)
 
@@ -245,12 +281,35 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2):
 
         to_pandas = []
 
+        entry = []
         for i, element in enumerate(tsne_result):
-            to_pandas.append([full_symbols[i], element[0], element[1]])
+            entry = [full_symbols[i]]
+            for d in range(dimensions):
+                entry.append(element[d])
+            to_pandas.append(entry)
 
-        columns = ["Symbol", "t-SNE-1", "t-SNE-2"]
+        columns = ["Symbol"]
+        args = {}
+
+        for key in axis:
+            columns.append(labels[key])
+            args[key] = labels[key]
 
         df = pd.DataFrame(to_pandas, columns=columns)
-        sns.scatterplot(**labels, data=df, hue="Symbol")
 
-    plt.show()
+        if dimensions == 3 and backend == "plotly":
+            args["color"] = "Symbol"
+            plt = px.scatter_3d(df, **args)
+            plt.update_traces(marker=dict(size=4))
+        elif dimensions == 2 and backend == "plotly":
+            args["color"] = "Symbol"
+            plt = px.scatter(df, **args)
+        elif dimensions == 3 and backend == "seaborn":
+            raise ("This backend is for 2D visualization")
+        elif dimensions == 2 and backend == "seaborn":
+            sns.scatterplot(**labels, data=df, hue="Symbol")
+
+    try:
+        plt.show()
+    except:
+        pass

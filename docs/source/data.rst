@@ -40,6 +40,22 @@ For more information please refer to :mod:`ml4chem.data.handler`.
 Visualization
 ===================
 
-We also offer a :mod:`ml4chem.data.visualization` module to plot some
-interesting graphics about your model, or even monitor the progress of the
-loss function minimization.
+We also offer a :mod:`ml4chem.data.visualization` module to plot interesting
+graphics about your model, features, or even monitor the progress of the loss
+function and error minimization.
+
+Two backends are supported to plot in ML4Chem: Seaborn and Plotly. 
+
+An example is shown below::
+
+    from ml4chem.data.visualization import plot_atomic_features
+    plot_atomic_features("latent_space.db", 
+                         method="tsne", 
+                         dimensions=3, 
+                         backend="plotly")
+
+This will produce an interactive plot with plotly where dimensionality was
+reduced using T-SNE.
+
+.. image:: https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/tsne_visual.png 
+

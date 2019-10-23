@@ -1,13 +1,15 @@
 ![alt text](https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/ml4chem.png "Logo")
+
 --------------------------------------------------------------------------------
 
+## About
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/Django.svg)](https://github.com/muammar/mkchromecast/)
 [![Build Status](https://travis-ci.com/muammar/ml4chem.svg?branch=master)](https://travis-ci.com/muammar/ml4chem)
 [![License](https://img.shields.io/badge/license-BSD-green)](https://github.com/muammar/ml4chem/blob/master/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/muammar/ml4chem/total.svg?maxAge=2592000?style=flat-square)](https://github.com/muammar/ml4chem/releases)
 [![GitHub release](https://img.shields.io/github/release/muammar/ml4chem.svg)](https://github.com/muammar/ml4chem/releases/latest)
 
-## About
+
 
 This package is written in Python 3, and intends to offer modern and rich
 features to perform machine learning workflows for chemical physics.
