@@ -57,5 +57,5 @@ An example is shown below::
 This will produce an interactive plot with plotly where dimensionality was
 reduced using T-SNE.
 
-.. image:: https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/tsne_visual.png 
+.. image:: https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/tsne_visual.png
 
