@@ -103,7 +103,7 @@ class LatentFeatures(object):
         features = features(**kwargs)
 
         feature_space = features.calculate_features(
-            images, data=data, purpose=purpose, svm=svm
+            images, data=data, purpose=purpose, svm=False
         )
 
         preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
