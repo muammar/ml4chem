@@ -261,10 +261,11 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2, backend="seab
         if dimensions == 3 and backend == "plotly":
             args["color"] = "Symbol"
             plt = px.scatter_3d(df, **args)
-            plt.update_traces(marker=dict(size=4))
+            plt.update_traces(marker=dict(size=2))
         elif dimensions == 2 and backend == "plotly":
             args["color"] = "Symbol"
             plt = px.scatter(df, **args)
+            plt.update_traces(marker=dict(size=2))
         elif dimensions == 3 and backend == "seaborn":
             raise ("This backend is for 2D visualization")
         elif dimensions == 2 and backend == "seaborn":
@@ -300,10 +301,11 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2, backend="seab
         if dimensions == 3 and backend == "plotly":
             args["color"] = "Symbol"
             plt = px.scatter_3d(df, **args)
-            plt.update_traces(marker=dict(size=4))
+            plt.update_traces(marker=dict(size=2))
         elif dimensions == 2 and backend == "plotly":
             args["color"] = "Symbol"
             plt = px.scatter(df, **args)
+            plt.update_traces(marker=dict(size=2))
         elif dimensions == 3 and backend == "seaborn":
             raise ("This backend is for 2D visualization")
         elif dimensions == 2 and backend == "seaborn":

@@ -40,6 +40,7 @@ class Potentials(Calculator, object):
     # This is a good way to make attributes available to the class. This can be
     # accessed as Potentials.attribute
     svm_models = ["KernelRidge", "GaussianProcess"]
+    autoencoders = ["AutoEncoder", "VAE"]
     module_names = {
         "PytorchPotentials": "neuralnetwork",
         "PytorchIonicPotentials": "ionic",
@@ -175,7 +176,7 @@ class Potentials(Calculator, object):
 
                 torch.save(model.state_dict(), path + ".ml4c")
 
-                if model_name == "AutoEncoder":
+                if model_name in Potentials.autoencoders:
                     output_dimension = {"output_dimension": model.output_dimension}
                     params["model"].update(output_dimension)
         else:
