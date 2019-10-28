@@ -13,7 +13,7 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
 
     Parameters
     ----------
-    predictions : list or ndarray 
+    predictions : list or ndarray
         Model predictions in a list.
     true : list or ndarray
         Targets or true values.
@@ -198,6 +198,12 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2, backend="seab
     """
     method = method.lower()
     backend = backend.lower()
+    dot_size = 2.0
+
+    supported_methods = ["pca", "tsne"]
+
+    if method not in supported_methods:
+        raise NotImplementedError
 
     if backend == "seaborn":
         # This hack is needed because it seems plotly import overwrite everything.
@@ -261,11 +267,11 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2, backend="seab
         if dimensions == 3 and backend == "plotly":
             args["color"] = "Symbol"
             plt = px.scatter_3d(df, **args)
-            plt.update_traces(marker=dict(size=2))
+            plt.update_traces(marker=dict(size=dot_size))
         elif dimensions == 2 and backend == "plotly":
             args["color"] = "Symbol"
             plt = px.scatter(df, **args)
-            plt.update_traces(marker=dict(size=2))
+            plt.update_traces(marker=dict(size=dot_size))
         elif dimensions == 3 and backend == "seaborn":
             raise ("This backend is for 2D visualization")
         elif dimensions == 2 and backend == "seaborn":
@@ -301,11 +307,11 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2, backend="seab
         if dimensions == 3 and backend == "plotly":
             args["color"] = "Symbol"
             plt = px.scatter_3d(df, **args)
-            plt.update_traces(marker=dict(size=2))
+            plt.update_traces(marker=dict(size=dot_size))
         elif dimensions == 2 and backend == "plotly":
             args["color"] = "Symbol"
             plt = px.scatter(df, **args)
-            plt.update_traces(marker=dict(size=2))
+            plt.update_traces(marker=dict(size=dot_size))
         elif dimensions == 3 and backend == "seaborn":
             raise ("This backend is for 2D visualization")
         elif dimensions == 2 and backend == "seaborn":
@@ -315,3 +321,5 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2, backend="seab
         plt.show()
     except:
         pass
+
+    return plt
