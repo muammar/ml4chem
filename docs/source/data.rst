@@ -49,13 +49,16 @@ Two backends are supported to plot in ML4Chem: Seaborn and Plotly.
 An example is shown below::
 
     from ml4chem.data.visualization import plot_atomic_features
-    plot_atomic_features("latent_space.db", 
-                         method="tsne", 
-                         dimensions=3, 
-                         backend="plotly")
+    fig = plot_atomic_features("latent_space.db", 
+                               method="tsne", 
+                               dimensions=3, 
+                               backend="plotly")
+    fig.write_html("latent_example.html")
 
 This will produce an interactive plot with plotly where dimensionality was
-reduced using T-SNE.
+reduced using T-SNE, and an html with the name `latent_example.html` is
+created.
 
-.. image:: https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/tsne_visual.png
+.. raw:: html
+   :file: _static/tsne_visual.html
 

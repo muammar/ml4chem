@@ -64,8 +64,15 @@ class AutoEncoder(torch.nn.Module):
 
     def __init__(self, hiddenlayers=None, activation="relu", **kwargs):
         super(AutoEncoder, self).__init__()
+
         self.hiddenlayers = hiddenlayers
         self.activation = activation
+        # A white list of supported kwargs.
+        supported_kwargs = []
+
+        for k, v in kwargs.items():
+            if k in supported_kwargs:
+                setattr(self, k, v)
 
     def prepare_model(
         self, input_dimension, output_dimension, data=None, purpose="training"
@@ -207,14 +214,14 @@ class AutoEncoder(torch.nn.Module):
 
     def encode(self, symbol, x):
         """Encode input
-        
+
         Parameters
         ----------
         symbol : str
             Chemical symbol.
         x : array
             Input array.
-        
+
         Returns
         -------
         z
@@ -225,18 +232,18 @@ class AutoEncoder(torch.nn.Module):
 
     def decode(self, symbol, z):
         """Decode latent vector, z
-        
+
         Parameters
         ----------
         symbol : str
             Chemical symbol.
         z : array
             Latent vector.
-        
+
         Returns
         -------
         reconstruction
-            Tensor with reconstruction. 
+            Tensor with reconstruction.
         """
         reconstruction = self.decoders[symbol](z)
         return reconstruction
@@ -330,6 +337,9 @@ class AutoEncoder(torch.nn.Module):
         else:
             latent_space = OrderedDict()
 
+            if isinstance(X, tuple):
+                X = X[0]
+
             for hash, image in X.items():
                 latent_space[hash] = []
                 for symbol, x in image:
@@ -383,14 +393,14 @@ class VAE(AutoEncoder):
 
     def encode(self, symbol, x):
         """Encode input
-        
+
         Parameters
         ----------
         symbol : str
             Chemical symbol.
         x : array
             Input array.
-        
+
         Returns
         -------
         mu, logvar
@@ -400,6 +410,24 @@ class VAE(AutoEncoder):
         mu = self.encoders[symbol]["mu"](h)
         logvar = self.encoders[symbol]["logvar"](h)
         return mu, logvar
+
+    def decode(self, symbol, z):
+        """Decode latent vector, z
+
+        Parameters
+        ----------
+        symbol : str
+            Chemical symbol.
+        z : array
+            Latent vector.
+
+        Returns
+        -------
+        reconstruction
+            Tensor with reconstruction.
+        """
+        reconstruction = self.decoders[symbol](z)
+        return torch.sigmoid(reconstruction)
 
     # def decode(self, symbol, z):
     #     """Decode latent vector, z
@@ -462,7 +490,7 @@ class VAE(AutoEncoder):
 
         Returns
         -------
-        mu and lovar for two multivariate gaussian 
+        mu and lovar for two multivariate gaussian
             Decoded latent vector.
         """
 
@@ -491,6 +519,86 @@ class VAE(AutoEncoder):
 
         # return outputs, mus_latent, logvars_latent, mus_output, logvars_output
         return outputs, mus_latent, logvars_latent
+
+    def get_latent_space(self, X, svm=False, purpose=None):
+        """Get latent space for training ML4Chem models
+
+        This method takes an input and use the encoder to return latent space
+        in the structure needed for training ML4Chem models or visualization.
+
+        Parameters
+        ----------
+        X : list
+            List of inputs either raw or in the feature space.
+        svm : bool
+            Whether or not these latent vectors are going to be used for kernel
+            methods.
+        purpose : str
+            The purpose for this latent space. This is just useful for the case
+            where the latent space will be preprocessed
+            (purpose='preprocessing').
+
+
+        Returns
+        -------
+        latent_space : dict
+            Latent space with structure: {'hash': [('H', [latent_vector]]}
+
+        Notes
+        -----
+        The latent space saved with this function creates a dictionary that can
+        operate with other parts of this package. Note that if you would need
+        to get the latent space for an unseen structure then you will have to
+        forward propagate and get the latent_space.
+        """
+
+        # FIXME parallelize me
+        if purpose == "preprocessing":
+            hashes = []
+            latent_space = []
+            symbols = []
+
+            for hash, image in X.items():
+                hashes.append(hash)
+                _symbols = []
+                for symbol, x in image:
+                    mu_latent, logvar_latent = self.encode(symbol, x)
+                    latent_vector = self.reparameterize(mu_latent, logvar_latent)
+                    _symbols.append(symbol)
+
+                    if svm:
+                        _latent_vector = latent_vector.detach().numpy()
+                    else:
+                        _latent_vector = latent_vector.detach()
+
+                    latent_space.append(_latent_vector)
+
+                symbols.append(_symbols)
+
+            if svm:
+                latent_space = np.array(latent_space)
+                return hashes, symbols, latent_space
+            else:
+                latent_space = torch.stack(latent_space)
+                return latent_space
+
+        else:
+            latent_space = OrderedDict()
+
+            for hash, image in X.items():
+                latent_space[hash] = []
+                for symbol, x in image:
+                    mu_latent, logvar_latent = self.encode(symbol, x)
+                    latent_vector = self.reparameterize(mu_latent, logvar_latent)
+
+                    if svm:
+                        _latent_vector = latent_vector.detach().numpy()
+                    else:
+                        _latent_vector = latent_vector.detach()
+
+                    latent_space[hash].append((symbol, _latent_vector))
+
+            return latent_space
 
 
 class train(object):
@@ -530,6 +638,9 @@ class train(object):
                             {'mode': 'min', 'patience': 10})
     anneal : bool
         Cyclical annealing based on https://arxiv.org/abs/1903.10145.
+    penalize_latent : bool
+        Set to True if latent vectors are going to be penalized. Default is
+        False.
     """
 
     def __init__(
@@ -546,11 +657,16 @@ class train(object):
         device="cpu",
         batch_size=None,
         lr_scheduler=None,
-        anneal=False,
+        **kwargs
     ):
 
+        supported_kwargs = ["anneal", "penalize_latent"]
+
+        for k, v in kwargs.items():
+            if k in supported_kwargs:
+                setattr(self, k, v)
+
         self.initial_time = time.time()
-        self.anneal = anneal
 
         if device == "cuda":
             pass
@@ -668,11 +784,11 @@ class train(object):
         _rmse = []
         epoch = 0
 
-        warm_up = 100
+        warm_up = 50
         warming = 0
-        step = 1 / 20
+        step = 1 / 50
         cycles = 0
-        stop = 10
+        stop = 5
 
         while not converged:
             epoch += 1
@@ -705,6 +821,9 @@ class train(object):
                 "annealing": annealing,
             }
 
+            if self.penalize_latent:
+                args.update({"penalize_latent": self.penalize_latent})
+
             loss, outputs_ = train.closure(**args)
 
             if self.optimizer_name != "LBFGS":
@@ -736,6 +855,8 @@ class train(object):
                 converged = True
             elif self.convergence is not None and rmse < self.convergence["rmse"]:
                 converged = True
+            # elif cycles == stop:
+            #   converged = True
 
         training_time = time.time() - self.initial_time
 
@@ -754,6 +875,7 @@ class train(object):
         device,
         inputs_chunk_vals=None,
         annealing=None,
+        penalize_latent=False
     ):
         """Closure
 
@@ -782,6 +904,7 @@ class train(object):
                         device,
                         inputs_chunk_vals,
                         annealing,
+                        penalize_latent
                     )
                 )
             )
@@ -810,7 +933,7 @@ class train(object):
 
     @classmethod
     def train_batches(
-        Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals, annealing
+        Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals, annealing, penalize_latent
     ):
         """A function that allows training per batches
 
@@ -838,6 +961,8 @@ class train(object):
             The loss function of the batch.
         """
         inputs = OrderedDict(chunk)
+        loss_name = lossfxn.__name__
+
         if model.name() == "VAE":
             # outputs, mus_latent, logvars_latent, mus_output, logvars_output = model(inputs)
             outputs, mus_latent, logvars_latent, = model(inputs)
@@ -853,32 +978,29 @@ class train(object):
             outputs = model(inputs)
             args = {"outputs": outputs, "targets": targets[index]}
 
-        _args, _varargs, _keywords, _defaults = inspect.getargspec(lossfxn)
 
-        if "latent" in _args:
-            latent = model.get_latent_space(inputs, svm=False, purpose="preprocessing")
-            latent = {"latent": latent}
+        # Latent space penalizations
+
+        if penalize_latent:
+            latent = {
+                "latent": model.get_latent_space(
+                    inputs, svm=False, purpose="preprocessing"
+                )
+            }
+            args.update(latent)
+
+        if loss_name == "EncoderMapLoss":
+            # This is for the EncoderMap
+            latent = {
+                "latent": model.get_latent_space(
+                    inputs, svm=False, purpose="preprocessing"
+                )
+            }
             args.update(latent)
 
             # In the case of using EncoderMapLoss the inputs are needed, too.
             args.update({"inputs": inputs_chunk_vals[index]})
 
-        # elif "mus_latent" in _args and "logvars_latent" in _args:
-        #    args = {
-        #        "outputs": outputs,
-        #        "targets": targets[index],
-        #        "mus_latent": mus_latent,
-        #        "logvars_latent": logvars_latent,
-        #        "annealing": annealing
-        #    }
-        # elif "mus_latent" in _args and "logvars_latent" in _args:
-        #     args = {
-        #         "targets": targets[index],
-        #         "mus_latent": mus_latent,
-        #         "logvars_latent": logvars_latent,
-        #         "mus_output": mus_output,
-        #         "logvars_output": logvars_output,
-        #     }
 
         loss = lossfxn(**args)
         loss.backward()
