@@ -172,7 +172,7 @@ because of a hidden-layer that serves as an informational bottleneck as shown
 in the figure below. In addition, this latent code is used by the decoder to
 reconstruct the input data.
 
-.. image:: https://en.wikipedia.org/wiki/Autoencoder#/media/File:Autoencoder_schema.png
+.. image:: https://upload.wikimedia.org/wikipedia/commons/3/37/Autoencoder_schema.png
 
 
 :: 
