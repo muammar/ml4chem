@@ -108,14 +108,14 @@ def read_log(logfile, metric="loss", refresh=None):
 
         if initiliazed is False:
             if metric == "loss":
-                fig, = plt.plot(epochs, loss, label="loss")
+                (fig,) = plt.plot(epochs, loss, label="loss")
 
             elif metric == "rmse":
-                fig, = plt.plot(epochs, rmse, label="rmse")
+                (fig,) = plt.plot(epochs, rmse, label="rmse")
 
             else:
-                fig, = plt.plot(epochs, loss, label="loss")
-                fig, = plt.plot(epochs, rmse, label="rmse")
+                (fig,) = plt.plot(epochs, loss, label="loss")
+                (fig,) = plt.plot(epochs, rmse, label="rmse")
         else:
             if metric == "loss":
                 fig.set_data(epochs, loss)
@@ -162,25 +162,25 @@ def read_log(logfile, metric="loss", refresh=None):
                     pass
 
         if metric == "loss":
-            fig, = plt.plot(epochs, loss, label="loss")
+            (fig,) = plt.plot(epochs, loss, label="loss")
 
         elif metric == "rmse":
-            fig, = plt.plot(epochs, rmse, label="rmse")
+            (fig,) = plt.plot(epochs, rmse, label="rmse")
 
         else:
-            fig, = plt.plot(epochs, loss, label="loss")
-            fig, = plt.plot(epochs, rmse, label="rmse")
+            (fig,) = plt.plot(epochs, loss, label="loss")
+            (fig,) = plt.plot(epochs, rmse, label="rmse")
 
         plt.show(block=True)
 
 
-def plot_atomic_features(latent_space, method="PCA", dimensions=2, backend="seaborn"):
+def plot_atomic_features(latent_space, method="PCA", dimensions=3, backend="seaborn"):
     """Plot high dimensional atomic feature vectors
 
     This function can take a feature space dictionary, or a database file
     and plot the atomic features using PCA or t-SNE.
 
-    $ mlchem --plot tsne --file path.db
+    $ ml4chem --plot tsne --file path.db
 
     Parameters
     ----------
@@ -198,7 +198,7 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2, backend="seab
     """
     method = method.lower()
     backend = backend.lower()
-    dot_size = 2.0
+    dot_size = 4.0
 
     supported_methods = ["pca", "tsne"]
 

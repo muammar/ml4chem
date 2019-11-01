@@ -464,15 +464,15 @@ class VAE(AutoEncoder):
 
         Parameters
         ----------
-        mu : [type]
-            [description]
-        logvar : [type]
-            [description]
+        mu : tensor
+            Mean values of distribution.
+        logvar : tensor
+            Logarithm of variance of distribution,
 
         Returns
         -------
-        [type]
-            [description]
+        Sample vector
+            A sample from the distribution.
         """
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
@@ -490,7 +490,7 @@ class VAE(AutoEncoder):
 
         Returns
         -------
-        mu and lovar for two multivariate gaussian
+        mu and logvar for two multivariate gaussian
             Decoded latent vector.
         """
 
@@ -875,7 +875,7 @@ class train(object):
         device,
         inputs_chunk_vals=None,
         annealing=None,
-        penalize_latent=False
+        penalize_latent=False,
     ):
         """Closure
 
@@ -904,7 +904,7 @@ class train(object):
                         device,
                         inputs_chunk_vals,
                         annealing,
-                        penalize_latent
+                        penalize_latent,
                     )
                 )
             )
@@ -933,7 +933,16 @@ class train(object):
 
     @classmethod
     def train_batches(
-        Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals, annealing, penalize_latent
+        Cls,
+        index,
+        chunk,
+        targets,
+        model,
+        lossfxn,
+        device,
+        inputs_chunk_vals,
+        annealing,
+        penalize_latent,
     ):
         """A function that allows training per batches
 
@@ -973,11 +982,11 @@ class train(object):
                 "mus_latent": mus_latent,
                 "logvars_latent": logvars_latent,
                 "annealing": annealing,
+                "input_dimension": model.input_dimension,
             }
         else:
             outputs = model(inputs)
             args = {"outputs": outputs, "targets": targets[index]}
-
 
         # Latent space penalizations
 
@@ -1000,7 +1009,6 @@ class train(object):
 
             # In the case of using EncoderMapLoss the inputs are needed, too.
             args.update({"inputs": inputs_chunk_vals[index]})
-
 
         loss = lossfxn(**args)
         loss.backward()

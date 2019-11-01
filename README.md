@@ -7,6 +7,7 @@
 [![Build Status](https://travis-ci.com/muammar/ml4chem.svg?branch=master)](https://travis-ci.com/muammar/ml4chem)
 [![License](https://img.shields.io/badge/license-BSD-green)](https://github.com/muammar/ml4chem/blob/master/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/muammar/ml4chem/total.svg?maxAge=2592000?style=flat-square)](https://github.com/muammar/ml4chem/releases)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/ml4chem)
 [![GitHub release](https://img.shields.io/github/release/muammar/ml4chem.svg)](https://github.com/muammar/ml4chem/releases/latest)
 
 
@@ -46,8 +47,9 @@ index](https://ml4chem.dev/genindex.html) to get more information about
 different classes and functions of ML4Chem.
 
 
-## Dask dashboard
+## Visualizations
 ![](https://raw.githubusercontent.com/muammar/ml4chem/master/docs/source/_static/dask_dashboard.png)
+
 
 Note: This package is under development.
 

@@ -26,7 +26,7 @@ Its usage is very simple::
 
     images = Trajectory("images.traj")
     data_handler = DataSet(images, purpose="training")
-    traing_set, targets = data_handler.get_images(purpose="training")
+    traing_set, targets = data_handler.get_data(purpose="training")
 
 In the example above, an ASE trajectory file is loaded into memory and passed
 as an argument to instantiate the ``DataSet`` class with
@@ -50,15 +50,15 @@ An example is shown below::
 
     from ml4chem.data.visualization import plot_atomic_features
     fig = plot_atomic_features("latent_space.db", 
-                               method="tsne", 
+                               method="pca", 
                                dimensions=3, 
                                backend="plotly")
     fig.write_html("latent_example.html")
 
 This will produce an interactive plot with plotly where dimensionality was
-reduced using T-SNE, and an html with the name `latent_example.html` is
+reduced using PCA, and an html with the name `latent_example.html` is
 created.
 
 .. raw:: html
-   :file: _static/tsne_visual.html
+   :file: _static/pca_visual.html
 
