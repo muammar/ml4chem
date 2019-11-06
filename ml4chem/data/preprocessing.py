@@ -86,9 +86,10 @@ class Preprocessing(object):
             self.preprocessor = joblib.load(self.preprocessing)
 
         else:
-            logger.warning("{} with {} is not supported.".format(self.preprocessing, self.kwargs))
+            logger.warning(
+                "{} with {} is not supported.".format(self.preprocessing, self.kwargs)
+            )
             self.preprocessor = preprocessor_name = None
-    
 
         if purpose == "training" and preprocessor_name is not None:
             logger.info("Data preprocessing")

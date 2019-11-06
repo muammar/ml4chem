@@ -18,9 +18,8 @@ def autoencode():
     for e in list(latent_space.values()):
         for symbol, features in e:
             latent_load.append(features)
-    
-    latent_load = np.array(latent_load).flatten()
 
+    latent_load = np.array(latent_load).flatten()
 
     images = Trajectory("cu_training.traj")
     purpose = "training"
@@ -59,8 +58,8 @@ def autoencode():
     for e in list(fingerprints.values()):
         for symbol, features in e:
             latent_svm.append(features)
-    
-    latent_svm = np.array(latent_svm).flatten() 
+
+    latent_svm = np.array(latent_svm).flatten()
 
     assert np.allclose(latent_load, latent_svm)
 

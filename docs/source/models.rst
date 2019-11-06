@@ -172,9 +172,10 @@ because of a hidden-layer that serves as an informational bottleneck as shown
 in the figure below. In addition, this latent code is used by the decoder to
 reconstruct the input data.
 
-.. image:: https://upload.wikimedia.org/wikipedia/commons/3/37/Autoencoder_schema.png
-
-
+.. image:: _static/Autoencoder_schema.png
+   :alt: Vanilla autoencoder
+   :scale: 50 %
+   :align: center
 :: 
 
     from ml4chem.models.autoencoders import AutoEncoder
@@ -186,8 +187,23 @@ reconstruct the input data.
     autoencoder.prepare_model(input_dimension, output_dimension, data=data_handler)
 
 
-ML4Chem also provides access to variational autoencoders. It just suffices to
-change the snippet above as follows:
+ML4Chem also provides access to variational autoencoders (VAE). These
+architectures differ from an AE in that the encoder codes a distribution with
+mean and variance (two vectors with the desired latent space dimension)
+instead of a single latent vector. Subsequently, this distribution is sampled
+and used by the decoder to reconstruct the input. This creates a generative
+model because now we will generate a latent distribution that allows a
+continuous change from one class to another.
+
+.. image:: _static/vae.png
+   :alt: VAE
+   :scale: 50 %
+   :align: center
+:: 
+
+To use this architecture, it just suffices to change the snippet shown above
+for an AE as follows:
+
 
 :: 
 
@@ -195,9 +211,9 @@ change the snippet above as follows:
 
     hiddenlayers = {"encoder": (20, 10, 4), "decoder": (4, 10, 20)}
     activation = "tanh"
-    autoencoder = VAE(hiddenlayers=hiddenlayers, activation=activation)
+    vae = VAE(hiddenlayers=hiddenlayers, activation=activation, multivariate=True)
     data_handler.get_unique_element_symbols(images, purpose=purpose)
-    autoencoder.prepare_model(input_dimension, output_dimension, data=data_handler)
+    vae.prepare_model(input_dimension, output_dimension, data=data_handler)
 
 
 Kernel Ridge Regression

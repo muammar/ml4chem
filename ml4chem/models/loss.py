@@ -296,15 +296,16 @@ def VAELoss(
 
     loss = []
 
+    dim = 1
     if multivariate:
         # loss_rec = LOG_2_PI + logvar_x + (x - mu_x)**2 / (2*torch.exp(logvar_x))
         # loss_rec = -torch.mean(torch.sum(-(0.5 * np.log(2 * np.pi) + 0.5 * logvars_decoder) - 0.5 * ((targets - mus_decoder)**2 / torch.exp(logvars_decoder)), dim=0))
-        loss_rec = torch.sum(
+        loss_rec = -torch.sum(
             (-0.5 * np.log(2.0 * np.pi))
             + (-0.5 * logvars_decoder)
-            + ((-0.5 / torch.exp(logvars_decoder)) * (targets - mus_decoder) ** 2.0)
+            + ((-0.5 / torch.exp(logvars_decoder)) * (targets - mus_decoder) ** 2.0),
+            dim=dim,
         )
-        loss_rec *= -1.0
 
     else:
         loss_rec = torch.nn.functional.binary_cross_entropy(
@@ -319,20 +320,20 @@ def VAELoss(
     # https://arxiv.org/abs/1312.6114
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
 
-    annealing = 1.0
-
     kld = (
         -0.5
-        * torch.sum(1 + logvars_latent - mus_latent.pow(2) - logvars_latent.exp())
+        * torch.sum(
+            1 + logvars_latent - mus_latent.pow(2) - logvars_latent.exp(), dim=dim
+        )
         * annealing
     )
     loss.append(kld)
 
     if latent is not None:
-        activation_reg = torch.mean(torch.pow(latent, 2))
+        activation_reg = torch.mean(torch.pow(latent, 2), dim=dim)
         loss.append(activation_reg)
 
-    print(loss)
+    # Mini-batch mean
     loss = torch.mean(torch.stack(loss))
 
     return loss
