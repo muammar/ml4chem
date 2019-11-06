@@ -69,11 +69,15 @@ class AutoEncoder(torch.nn.Module):
         self.activation = activation
 
         # A white list of supported kwargs.
-        supported_kwargs = ["multivariate"]
+        supported_keys = ["multivariate"]
 
-        for k, v in kwargs.items():
-            if k in supported_kwargs:
-                setattr(self, k, v)
+        if len(kwargs.items()) == 0:
+            for k in supported_keys:
+                setattr(self, k, None)
+        else:
+            for k, v in kwargs.items():
+                if k in supported_keys:
+                    setattr(self, k, v)
 
     def prepare_model(
         self, input_dimension, output_dimension, data=None, purpose="training"
@@ -652,11 +656,15 @@ class train(object):
         **kwargs
     ):
 
-        supported_kwargs = ["anneal", "penalize_latent"]
+        supported_keys = ["anneal", "penalize_latent"]
 
-        for k, v in kwargs.items():
-            if k in supported_kwargs:
-                setattr(self, k, v)
+        if len(kwargs.items()) == 0:
+            for k in supported_keys:
+                setattr(self, k, None)
+        else:
+            for k, v in kwargs.items():
+                if k in supported_keys:
+                    setattr(self, k, v)
 
         self.initial_time = time.time()
 

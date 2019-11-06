@@ -179,6 +179,8 @@ class Potentials(Calculator, object):
                 if model_name in Potentials.autoencoders:
                     output_dimension = {"output_dimension": model.output_dimension}
                     params["model"].update(output_dimension)
+                    multivariate = {"multivariate": model.multivariate}
+                    params["model"].update(multivariate)
         else:
             params = {}
 
