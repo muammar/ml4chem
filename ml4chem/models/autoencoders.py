@@ -880,7 +880,7 @@ class train(object):
         """Closure
 
         This method clears previous gradients, iterates over chunks, accumulate
-        the gradiends, update model params, and return loss.
+        the gradients, update model params, and return loss.
         """
 
         outputs_ = []
@@ -1014,7 +1014,6 @@ class train(object):
             args.update(latent)
 
         if loss_name == "EncoderMapLoss":
-            # This is for the EncoderMap
             latent = {
                 "latent": model.get_latent_space(
                     inputs, svm=False, purpose="preprocessing"

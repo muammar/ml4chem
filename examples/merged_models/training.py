@@ -104,6 +104,6 @@ def hybrid():
 if __name__ == "__main__":
     logger()
     cluster = LocalCluster(n_workers=5, threads_per_worker=2, dashboard_address=8798)
-    client = Client(cluster, asyncronous=True)
+    client = Client(cluster)
     # Let's do this
     hybrid()

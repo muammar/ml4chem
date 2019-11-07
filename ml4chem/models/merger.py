@@ -32,6 +32,8 @@ class ModelMerger(torch.nn.Module):
 
     NAME = "Merged"
 
+    autoencoders = ["AutoEncoder", "VAE"]
+
     @classmethod
     def name(cls):
         """Returns name of class"""
@@ -65,7 +67,7 @@ class ModelMerger(torch.nn.Module):
             if inspect.ismethod(x):
                 x = X[i - 1]
 
-            if name == "AutoEncoder":
+            if name in ModelMerger.autoencoders:
                 x = OrderedDict(x)
             elif name == "PytorchPotentials":
                 x = X[i](OrderedDict(x))
@@ -226,7 +228,7 @@ class ModelMerger(torch.nn.Module):
                 ]
                 targets[index] = _targets
                 del _targets
-            elif model.name() == "AutoEncoder":
+            elif model.name() in ModelMerger.autoencoders:
                 targets[index] = lod_to_list(targets[index])
 
         # Data scattering
@@ -392,7 +394,7 @@ class ModelMerger(torch.nn.Module):
             )
             return loss, outputs_
 
-        elif name == "AutoEncoder" and independent_loss:
+        elif name in ModelMerger.autoencoders and independent_loss:
             train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
             targets = self.targets[index]
 

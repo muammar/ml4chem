@@ -119,14 +119,14 @@ predicting energy and atomic forces.
 
     features = Gaussian(cutoff=6.5, normalized=True, save_preprocessor="features.scaler")
 
-In the code snippet above we are building Gaussian type using the
+In the code snippet above we are building Gaussian type features using the
 :class:`ml4chem.fingerprints.gaussian.Gaussian` class. We use a ``cutoff``
-radius of :math:`6.5` angstrom, normalized, and the preprocessing is saved to
-the file ``features.scaler`` (by default the scaler is ``MinMaxScaler`` in a
-range :math:`(-1, 1)` as implemented in ``scikit-learn``). The ``angular``
-symmetry function used by default is :math:`G_i^3`, if you are interested in
-using :math:`G_i^4`, then you need to pass ``angular_type`` keyword
-argument::
+radius of :math:`6.5` angstrom, we normalized by the squared cutoff raidous,
+and the preprocessing is saved to the file ``features.scaler`` (by default
+the preprocessing used is ``MinMaxScaler`` in a range :math:`(-1, 1)` as
+implemented in ``scikit-learn``). The ``angular`` symmetry functions used by
+default are :math:`G_i^3`, if you are interested in using :math:`G_i^4`, then
+you need to pass ``angular_type`` keyword argument::
 
     features = Gaussian(cutoff=6.5, normalized=True,
                         save_preprocessor="features.scaler", angular_type="G4")
@@ -160,7 +160,7 @@ In ML4Chem, a neural network can be instantiated as shown below:
     nn = NeuralNetwork(hiddenlayers=(n, n), activation=activation)
     nn.prepare_model()
 
-Here, weare building a NN with the
+Here, we are building a NN with the
 :class:`ml4chem.models.neuralnetwork.NeuralNetwork` class with two
 hidden-layers composed 10 neurons each, and a ReLu activation function.
 
@@ -187,13 +187,13 @@ reconstruct the input data.
     autoencoder.prepare_model(input_dimension, output_dimension, data=data_handler)
 
 
-ML4Chem also provides access to variational autoencoders (VAE). These
-architectures differ from an AE in that the encoder codes a distribution with
-mean and variance (two vectors with the desired latent space dimension)
-instead of a single latent vector. Subsequently, this distribution is sampled
-and used by the decoder to reconstruct the input. This creates a generative
-model because now we will generate a latent distribution that allows a
-continuous change from one class to another.
+ML4Chem also provides access to variational autoencoders (VAE)[Kingma2013]_.
+These architectures differ from an AE in that the encoder codes a
+distribution with mean and variance (two vectors with the desired latent
+space dimension) instead of a single latent vector. Subsequently, this
+distribution is sampled and used by the decoder to reconstruct the input.
+This creates a generative model because now we will generate a latent
+distribution that allows a continuous change from one class to another.
 
 .. image:: _static/vae.png
    :alt: VAE
@@ -240,4 +240,5 @@ uncertainty of each prediction.
 
 .. [Behler2007] Behler, J. & Parrinello, M. Generalized Neural-Network Representation of High-Dimensional Potential-Energy Surfaces. Phys. Rev. Lett. 98, 146401 (2007).
 .. [Behler2015] Behler, J. Constructing high-dimensional neural network potentials: A tutorial review. Int. J. Quantum Chem. 115, 1032–1050 (2015).
+.. [Kingma2013] Kingma, D. P. & Welling, M. Auto-Encoding Variational Bayes. arXiv Prepr. arXiv1312.6114 (2013).
 .. [Rupp2015] Rupp, M. Machine learning for quantum mechanics in a nutshell. Int. J. Quantum Chem. 115, 1058–1073 (2015).
