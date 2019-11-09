@@ -17,7 +17,6 @@ features to perform machine learning workflows for chemical physics.
 
 A list of features and methods are shown below.
 
-  processes for the prediction of properties. 
 - PyTorch backend.
 - Completely modular. You can use any part of this package in your project.
 - Free software <3. No secrets! Pull requests and additions are more than
