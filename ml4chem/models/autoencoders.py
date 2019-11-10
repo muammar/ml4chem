@@ -69,8 +69,9 @@ class AutoEncoder(torch.nn.Module):
         self.activation = activation
 
         # A white list of supported kwargs.
-        supported_keys = ["multivariate"]
+        supported_keys = ["variant"]
 
+        # If kwarg is supported but not passed we initialize as None.
         if len(kwargs.items()) == 0:
             for k in supported_keys:
                 setattr(self, k, None)
@@ -113,6 +114,9 @@ class AutoEncoder(torch.nn.Module):
                     self.name(), "(input, " + str(self.hiddenlayers)[1:-1] + ", output)"
                 )
             )
+
+        if self.name() == "VAE":
+            logger.info("Variant: {}.".format(self.variant))
 
         try:
             unique_element_symbols = data.unique_element_symbols[purpose]
@@ -179,7 +183,7 @@ class AutoEncoder(torch.nn.Module):
 
             inp_dim = out_dim
 
-            if self.multivariate:
+            if self.variant == "multivariate":
                 h = torch.nn.Sequential(*decoder)
                 mu = torch.nn.Linear(inp_dim, output_dimension)
                 mu = torch.nn.Sequential(*[mu])
@@ -370,9 +374,17 @@ class VAE(AutoEncoder):
         Dictionary with encoder, and decoder layers in the Auto Encoder.
     activation : str
         The activation function.
-    multivariate : bool
-        If multivariate is set to True we treat the distribution as a
-        multivariate Gaussian distribution otherwise we use Bernoulli.
+    variant : str
+        The following variants are supported:
+        - "multivariate": decoder outputs a distribution with mean and
+          variance, we minimize the negative of the log likelihood plus the
+          KL-Divergence. Useful for continuous variables. Feature range [-inf,
+          inf].
+        - "bernoulli": decoder outputs a layer with sigmoid activation
+          function, and we minimize cross-entropy plus KL-diverence. Features
+          must be in a range [0, 1].
+        - "dcgan": decoder outputs a single layer with tanh, and loss equals to
+          KL-Diverngence plus MSELoss. Useful for feature ranges [-1, 1].
 
 
     Notes
@@ -437,14 +449,21 @@ class VAE(AutoEncoder):
         See page 11 "Kingma, D. P. & Welling, M. Auto-Encoding Variational
         Bayes. (2013)".
         """
-        if self.multivariate:
+        if self.variant == "multivariate":
             h = self.decoders[symbol]["h"](z)
             mu = self.decoders[symbol]["mu"](h)
             logvar = self.decoders[symbol]["logvar"](h)
             return mu, logvar
-        else:
+
+        elif self.variant == "bernoulli":
             reconstruction = self.decoders[symbol](z)
             return torch.sigmoid(reconstruction)
+
+        elif self.variant == "dcgan":
+            reconstruction = self.decoders[symbol](z)
+            return torch.tanh(reconstruction)
+        else:
+            raise NotImplementedError
 
     def reparameterize(self, mu, logvar):
         """Reparameterization trick
@@ -497,7 +516,7 @@ class VAE(AutoEncoder):
                 mus_latent.append(mu_latent)
                 logvars_latent.append(logvar_latent)
 
-                if self.multivariate:
+                if self.variant == "multivariate":
                     mu_decoder, logvar_decoder = self.decode(symbol, z)
                     mus_decoder.append(mu_decoder)
                     logvars_decoder.append(logvar_decoder)
@@ -508,10 +527,11 @@ class VAE(AutoEncoder):
         mus_latent = torch.stack(mus_latent)
         logvars_latent = torch.stack(logvars_latent)
 
-        if self.multivariate:
+        if self.variant == "multivariate":
             mus_decoder = torch.stack(mus_decoder)
             logvars_decoder = torch.stack(logvars_decoder)
             return mus_decoder, logvars_decoder, mus_latent, logvars_latent
+
         else:
             outputs = torch.stack(outputs)
             return outputs, mus_latent, logvars_latent
@@ -973,7 +993,7 @@ class train(object):
         loss_name = lossfxn.__name__
 
         if model.name() == "VAE":
-            if model.multivariate:
+            if model.variant == "multivariate":
                 mus_decoder, logvars_decoder, mus_latent, logvars_latent = model(inputs)
 
                 args = {
@@ -983,7 +1003,7 @@ class train(object):
                     "mus_latent": mus_latent,
                     "logvars_latent": logvars_latent,
                     "annealing": annealing,
-                    "multivariate": model.multivariate,
+                    "variant": model.variant,
                     "input_dimension": model.input_dimension,
                 }
 
@@ -996,7 +1016,7 @@ class train(object):
                     "mus_latent": mus_latent,
                     "logvars_latent": logvars_latent,
                     "annealing": annealing,
-                    "multivariate": model.multivariate,
+                    "variant": model.variant,
                     "input_dimension": model.input_dimension,
                 }
 
@@ -1032,7 +1052,7 @@ class train(object):
         for param in model.parameters():
             gradients.append(param.grad.detach().numpy())
 
-        if model.multivariate:
+        if model.variant == "multivariate":
             return mus_decoder, loss, gradients
         else:
             return outputs, loss, gradients
