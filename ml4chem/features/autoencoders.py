@@ -75,13 +75,13 @@ class LatentFeatures(object):
         self.params = OrderedDict()
         self.params["name"] = self.name()
 
-    def calculate_features(self, images, purpose="training", data=None, svm=False):
+    def calculate(self, images, purpose="training", data=None, svm=False):
         """Return features per atom in an atoms object
 
         Parameters
         ----------
         images : dict
-            Hashed images using the DataSet class.
+            Hashed images using the Data class.
         purpose : str
             The supported purposes are: 'training', 'inference'.
         data : obj
@@ -99,10 +99,10 @@ class LatentFeatures(object):
         # Now, we need to take the inputs and convert them to the right feature
         # space
         name, kwargs = self.features
-        features = dynamic_import(name, "ml4chem.fingerprints")
+        features = dynamic_import(name, "ml4chem.features")
         features = features(**kwargs)
 
-        feature_space = features.calculate_features(
+        feature_space = features.calculate(
             images, data=data, purpose=purpose, svm=False
         )
 

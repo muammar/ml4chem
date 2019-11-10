@@ -106,7 +106,7 @@ class ModelMerger(torch.nn.Module):
         model : object
             The NeuralNetwork class.
         data : object
-            DataSet object created from the handler.
+            Data object created from the handler.
         optimizer : tuple
             The optimizer is a tuple with the structure:
                 >>> ('adam', {'lr': float, 'weight_decay'=float})

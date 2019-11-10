@@ -94,7 +94,7 @@ def dynamic_import(name, package, alt_name=None):
     name : str
         Name of the module to be imported.
     package : str
-        Path to package. Example: ml4chem.fingerprints
+        Path to package. Example: ml4chem.features
     alt_name : str
         Alternative module_name.
 

@@ -3,8 +3,8 @@ import sys
 sys.path.append("../../")
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
-from ml4chem.data.handler import DataSet
-from ml4chem.fingerprints import LatentFeatures
+from ml4chem.data.handler import Data
+from ml4chem.features import LatentFeatures
 from ml4chem.data.serialization import load
 from ml4chem.utils import logger
 import numpy as np
@@ -27,12 +27,12 @@ def autoencode():
     # Arguments for fingerprinting the images
     normalized = True
 
-    data_handler = DataSet(images, purpose=purpose)
+    data_handler = Data(images, purpose=purpose)
     images, energies = data_handler.get_data(purpose=purpose)
 
     preprocessor = ("MinMaxScaler", {"feature_range": (-1, 1)})
 
-    fingerprints = (
+    features = (
         "Gaussian",
         {
             "cutoff": 6.5,
@@ -43,19 +43,19 @@ def autoencode():
     )
     encoder = {"model": "ml4chem.ml4c", "params": "ml4chem.params"}
 
-    fingerprints = LatentFeatures(
-        features=fingerprints,
+    features = LatentFeatures(
+        features=features,
         encoder=encoder,
         preprocessor=None,
         save_preprocessor="latent_space_min_max.scaler",
     )
 
-    fingerprints = fingerprints.calculate_features(
+    features = features.calculate(
         images, purpose=purpose, data=data_handler, svm=True
     )
 
     latent_svm = []
-    for e in list(fingerprints.values()):
+    for e in list(features.values()):
         for symbol, features in e:
             latent_svm.append(features)
 

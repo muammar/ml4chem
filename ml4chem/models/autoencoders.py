@@ -92,7 +92,7 @@ class AutoEncoder(torch.nn.Module):
         output_dimension : int
             Output's dimension.
         data : object
-            DataSet object created from the handler.
+            Data object created from the handler.
         purpose : str
             Purpose of this model: 'training', 'inference'.
         """
@@ -629,7 +629,7 @@ class train(object):
     model : object
         The NeuralNetwork class.
     data : object
-        DataSet object created from the handler.
+        Data object created from the handler.
     optimizer : tuple
         The optimizer is a tuple with the structure:
             >>> ('adam', {'lr': float, 'weight_decay'=float})
@@ -720,7 +720,7 @@ class train(object):
 
         del targets
 
-        # This change is needed because the targets are fingerprints or
+        # This change is needed because the targets are features or
         # positions and they are built as a dictionary.
 
         targets = lod_to_list(targets_)

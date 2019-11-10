@@ -81,7 +81,7 @@ class Gaussian(object):
         custom=None,
         save_preprocessor="ml4chem",
         scheduler="distributed",
-        filename="fingerprints.db",
+        filename="features.db",
         overwrite=True,
         angular_type="G3",
         weighted=False,
@@ -143,13 +143,13 @@ class Gaussian(object):
         else:
             self.cutofffxn = cutofffxn
 
-    def calculate_features(self, images=None, purpose="training", data=None, svm=False):
+    def calculate(self, images=None, purpose="training", data=None, svm=False):
         """Calculate the features per atom in an atoms objects
 
         Parameters
         ----------
         image : dict
-            Hashed images using the DataSet class.
+            Hashed images using the Data class.
         purpose : str
             The supported purposes are: 'training', 'inference'.
         data : obj
@@ -232,7 +232,7 @@ class Gaussian(object):
         preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
         preprocessor.set(purpose=purpose)
 
-        # We start populating computations to get atomic fingerprints.
+        # We start populating computations to get atomic features.
         logger.info("")
         logger.info("Adding atomic feature calculations to computational graph...")
 
@@ -281,7 +281,7 @@ class Gaussian(object):
         )
 
         logger.info("")
-        # In this block we compute the fingerprints.
+        # In this block we compute the features.
 
         stacked_features = dask.persist(*computations, scheduler=self.scheduler)
 
@@ -398,14 +398,14 @@ class Gaussian(object):
 
             if svm:
                 if self.filename is not None:
-                    logger.info("Fingerprints saved to {}.".format(self.filename))
+                    logger.info("features saved to {}.".format(self.filename))
                     data = {"feature_space": feature_space}
                     data.update({"reference_space": reference_space})
                     dump(data, filename=self.filename)
                 return feature_space, reference_space
             else:
                 if self.filename is not None:
-                    logger.info("Fingerprints saved to {}.".format(self.filename))
+                    logger.info("features saved to {}.".format(self.filename))
                     dump(feature_space, filename=self.filename)
                 return feature_space
 
@@ -526,8 +526,8 @@ class Gaussian(object):
         return hash, features
 
     @dask.delayed
-    def fingerprints_per_image(self, image):
-        """A delayed function to parallelize fingerprints per image
+    def features_per_image(self, image):
+        """A delayed function to parallelize features per image
 
         Parameters
         ----------
@@ -591,7 +591,7 @@ class Gaussian(object):
         image_molecule=None,
         weighted=False,
     ):
-        """Delayed class method to compute atomic fingerprints
+        """Delayed class method to compute atomic features
 
         Parameters
         ----------

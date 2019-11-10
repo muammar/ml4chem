@@ -5,8 +5,8 @@ import logging
 logger = logging.getLogger()
 
 
-class DataSet(object):
-    """A DataSet class
+class Data(object):
+    """A Data class
 
     An adequate data structure is very important to develop machine-learning
     models. In general a model receives a data set (X) and a target vector (y).

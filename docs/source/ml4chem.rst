@@ -8,7 +8,7 @@ Subpackages
 
     ml4chem.backends
     ml4chem.data
-    ml4chem.fingerprints
+    ml4chem.features
     ml4chem.models
     ml4chem.optim
 

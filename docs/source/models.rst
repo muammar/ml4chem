@@ -115,12 +115,12 @@ predicting energy and atomic forces.
 
 ::
 
-    from ml4chem.fingerprints.gaussian import Gaussian
+    from ml4chem.features.gaussian import Gaussian
 
     features = Gaussian(cutoff=6.5, normalized=True, save_preprocessor="features.scaler")
 
 In the code snippet above we are building Gaussian type features using the
-:class:`ml4chem.fingerprints.gaussian.Gaussian` class. We use a ``cutoff``
+:class:`ml4chem.features.gaussian.Gaussian` class. We use a ``cutoff``
 radius of :math:`6.5` angstrom, we normalized by the squared cutoff raidous,
 and the preprocessing is saved to the file ``features.scaler`` (by default
 the preprocessing used is ``MinMaxScaler`` in a range :math:`(-1, 1)` as
