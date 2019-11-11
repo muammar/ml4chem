@@ -179,8 +179,10 @@ class Potentials(Calculator, object):
                 if model_name in Potentials.autoencoders:
                     output_dimension = {"output_dimension": model.output_dimension}
                     params["model"].update(output_dimension)
-                    multivariate = {"multivariate": model.multivariate}
-                    params["model"].update(multivariate)
+                    variant = {"variant": model.variant}
+                    params["model"].update(variant)
+                    one_for_all = {"one_for_all": model.one_for_all}
+                    params["model"].update(one_for_all)
         else:
             params = {}
 
@@ -308,9 +310,7 @@ class Potentials(Calculator, object):
                 batch_size=batch_size,
             )
 
-        self.save(
-            self.model, features=self.features, path=self.path, label=self.label
-        )
+        self.save(self.model, features=self.features, path=self.path, label=self.label)
 
     def calculate(self, atoms, properties, system_changes):
         """Calculate things

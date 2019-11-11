@@ -38,6 +38,9 @@ class AutoEncoder(torch.nn.Module):
         Dictionary with encoder, and decoder layers in the Auto Encoder.
     activation : str
         The activation function.
+    one_for_all : bool
+        Use one autoencoder model for all atoms instead of a model per atom
+        type as in the Behler-Parrinello scheme. Default is False.
 
 
     Notes
@@ -62,11 +65,14 @@ class AutoEncoder(torch.nn.Module):
         """Returns name of class"""
         return cls.NAME
 
-    def __init__(self, hiddenlayers=None, activation="relu", **kwargs):
+    def __init__(
+        self, hiddenlayers=None, activation="relu", one_for_all=False, **kwargs
+    ):
         super(AutoEncoder, self).__init__()
 
         self.hiddenlayers = hiddenlayers
         self.activation = activation
+        self.one_for_all = one_for_all
 
         # A white list of supported kwargs.
         supported_keys = ["variant"]
@@ -124,19 +130,13 @@ class AutoEncoder(torch.nn.Module):
             unique_element_symbols = data.get_unique_element_symbols(purpose=purpose)
             unique_element_symbols = unique_element_symbols[purpose]
 
-        symbol_encoder_pair = []
-        symbol_decoder_pair = []
-
-        for symbol in unique_element_symbols:
+        if self.one_for_all:
             encoder = []
             encoder_layers = self.hiddenlayers["encoder"]
             decoder = []
             decoder_layers = self.hiddenlayers["decoder"]
 
-            """
-            Encoder
-            """
-            # The first encoder's layer for symbol
+            """Build Encoder"""
             out_dimension = encoder_layers[0]
             _encoder = torch.nn.Linear(input_dimension, out_dimension)
             encoder.append(_encoder)
@@ -147,33 +147,6 @@ class AutoEncoder(torch.nn.Module):
                 encoder.append(_encoder)
                 encoder.append(activation[self.activation]())
 
-            # Stacking up the layers.
-            if self.name() == "VAE":
-                keys = ["h", "mu", "logvar"]
-                mu = []
-                logvar = []
-
-                index = -3
-                for _ in range(2):
-                    index += 1
-                    if index == -2:
-                        mu.append(encoder.pop(index))
-                    else:
-                        encoder.pop(index)
-
-                h = torch.nn.Sequential(*encoder)
-                logvar = torch.nn.Linear(inp_dim, out_dim)
-                logvar = torch.nn.Sequential(*[logvar])
-                mu = torch.nn.Sequential(*mu)
-
-                values = [h, mu, logvar]
-                encoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
-
-            else:
-                encoder = torch.nn.Sequential(*encoder)
-
-            symbol_encoder_pair.append([symbol, encoder])
-
             """
             Decoder
             """
@@ -181,30 +154,102 @@ class AutoEncoder(torch.nn.Module):
                 decoder.append(torch.nn.Linear(inp_dim, out_dim))
                 decoder.append(activation[self.activation]())
 
-            inp_dim = out_dim
+                inp_dim = out_dim
 
-            if self.variant == "multivariate":
-                h = torch.nn.Sequential(*decoder)
-                mu = torch.nn.Linear(inp_dim, output_dimension)
-                mu = torch.nn.Sequential(*[mu])
-                logvar = torch.nn.Linear(inp_dim, output_dimension)
-                logvar = torch.nn.Sequential(*[logvar])
-                values = [h, mu, logvar]
-                decoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
-            else:
-                # The last decoder layer for symbol
-                decoder.append(torch.nn.Linear(inp_dim, output_dimension))
-                # According to this video https://youtu.be/xTU79Zs4XKY?t=416
-                # real numbered inputs need no activation function in the output
-                # layer decoder.append(activation[self.activation]())
+            decoder.append(torch.nn.Linear(inp_dim, output_dimension))
+
+            encoder = torch.nn.Sequential(*encoder)
+            decoder = torch.nn.Sequential(*decoder)
+
+            if self.name() == "VAE":
+                raise NotImplementedError
+
+            self.encoders = encoder
+            self.decoders = decoder
+
+        else:
+            symbol_encoder_pair = []
+            symbol_decoder_pair = []
+
+            for symbol in unique_element_symbols:
+                encoder = []
+                encoder_layers = self.hiddenlayers["encoder"]
+                decoder = []
+                decoder_layers = self.hiddenlayers["decoder"]
+
+                """
+                Encoder
+                """
+                # The first encoder's layer for symbol
+                out_dimension = encoder_layers[0]
+                _encoder = torch.nn.Linear(input_dimension, out_dimension)
+                encoder.append(_encoder)
+                encoder.append(activation[self.activation]())
+
+                for inp_dim, out_dim in zip(encoder_layers, encoder_layers[1:]):
+                    _encoder = torch.nn.Linear(inp_dim, out_dim)
+                    encoder.append(_encoder)
+                    encoder.append(activation[self.activation]())
 
                 # Stacking up the layers.
-                decoder = torch.nn.Sequential(*decoder)
+                if self.name() == "VAE":
+                    keys = ["h", "mu", "logvar"]
+                    mu = []
+                    logvar = []
 
-            symbol_decoder_pair.append([symbol, decoder])
+                    index = -3
+                    for _ in range(2):
+                        index += 1
+                        if index == -2:
+                            mu.append(encoder.pop(index))
+                        else:
+                            encoder.pop(index)
 
-        self.encoders = torch.nn.ModuleDict(symbol_encoder_pair)
-        self.decoders = torch.nn.ModuleDict(symbol_decoder_pair)
+                    h = torch.nn.Sequential(*encoder)
+                    logvar = torch.nn.Linear(inp_dim, out_dim)
+                    logvar = torch.nn.Sequential(*[logvar])
+                    mu = torch.nn.Sequential(*mu)
+
+                    values = [h, mu, logvar]
+                    encoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+
+                else:
+                    encoder = torch.nn.Sequential(*encoder)
+
+                symbol_encoder_pair.append([symbol, encoder])
+
+                """
+                Decoder
+                """
+                for inp_dim, out_dim in zip(decoder_layers, decoder_layers[1:]):
+                    decoder.append(torch.nn.Linear(inp_dim, out_dim))
+                    decoder.append(activation[self.activation]())
+
+                inp_dim = out_dim
+
+                if self.variant == "multivariate":
+                    h = torch.nn.Sequential(*decoder)
+                    mu = torch.nn.Linear(inp_dim, output_dimension)
+                    mu = torch.nn.Sequential(*[mu])
+                    logvar = torch.nn.Linear(inp_dim, output_dimension)
+                    logvar = torch.nn.Sequential(*[logvar])
+                    values = [h, mu, logvar]
+                    decoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+                else:
+                    # The last decoder layer for symbol
+                    decoder.append(torch.nn.Linear(inp_dim, output_dimension))
+                    # According to this video https://youtu.be/xTU79Zs4XKY?t=416
+                    # real numbered inputs need no activation function in the output
+                    # layer decoder.append(activation[self.activation]())
+
+                    # Stacking up the layers.
+                    decoder = torch.nn.Sequential(*decoder)
+
+                symbol_decoder_pair.append([symbol, decoder])
+
+            self.encoders = torch.nn.ModuleDict(symbol_encoder_pair)
+            self.decoders = torch.nn.ModuleDict(symbol_decoder_pair)
+
         logger.info(self.encoders)
         logger.info(self.decoders)
 
@@ -216,43 +261,50 @@ class AutoEncoder(torch.nn.Module):
             )
             for m in self.modules():
                 if isinstance(m, torch.nn.Linear):
+                    print(m)
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
                     torch.nn.init.xavier_uniform_(m.weight)
 
-    def encode(self, symbol, x):
+    def encode(self, x, symbol=None):
         """Encode input
 
         Parameters
         ----------
-        symbol : str
-            Chemical symbol.
         x : array
             Input array.
+        symbol : str, optional
+            Chemical symbol. Default is None.
 
         Returns
         -------
         z
             Latent vector.
         """
-        z = self.encoders[symbol](x)
+        if symbol is None:
+            z = self.encoders(x)
+        else:
+            z = self.encoders[symbol](x)
         return z
 
-    def decode(self, symbol, z):
+    def decode(self, z, symbol=None):
         """Decode latent vector, z
 
         Parameters
         ----------
-        symbol : str
-            Chemical symbol.
         z : array
             Latent vector.
+        symbol : str, optional
+            Chemical symbol. Default is None.
 
         Returns
         -------
         reconstruction
             Tensor with reconstruction.
         """
-        reconstruction = self.decoders[symbol](z)
+        if symbol is None:
+            reconstruction = self.decoders(z)
+        else:
+            reconstruction = self.decoders[symbol](z)
         return reconstruction
 
     def forward(self, X):
@@ -274,8 +326,12 @@ class AutoEncoder(torch.nn.Module):
         outputs = []
         for hash, image in X.items():
             for symbol, x in image:
-                z = self.encode(symbol, x)
-                output = self.decode(symbol, z)
+                if self.one_for_all:
+                    z = self.encode(x)
+                    output = self.decode(z)
+                else:
+                    z = self.encode(x, symbol=symbol)
+                    output = self.decode(z, symbol=symbol)
                 outputs.append(output)
         outputs = torch.stack(outputs)
         return outputs
@@ -322,7 +378,10 @@ class AutoEncoder(torch.nn.Module):
                 hashes.append(hash)
                 _symbols = []
                 for symbol, x in image:
-                    latent_vector = self.encode(symbol, x)
+                    if self.one_for_all:
+                        latent_vector = self.encode(x)
+                    else:
+                        latent_vector = self.encode(x, symbol=symbol)
                     _symbols.append(symbol)
 
                     if svm:
@@ -350,7 +409,10 @@ class AutoEncoder(torch.nn.Module):
             for hash, image in X.items():
                 latent_space[hash] = []
                 for symbol, x in image:
-                    latent_vector = self.encode(symbol, x)
+                    if self.one_for_all:
+                        latent_vector = self.encode(x)
+                    else:
+                        latent_vector = self.encode(x, symbol=symbol)
 
                     if svm:
                         _latent_vector = latent_vector.detach().numpy()
@@ -376,6 +438,7 @@ class VAE(AutoEncoder):
         The activation function.
     variant : str
         The following variants are supported:
+
         - "multivariate": decoder outputs a distribution with mean and
           variance, we minimize the negative of the log likelihood plus the
           KL-Divergence. Useful for continuous variables. Feature range [-inf,
@@ -385,6 +448,10 @@ class VAE(AutoEncoder):
           must be in a range [0, 1].
         - "dcgan": decoder outputs a single layer with tanh, and loss equals to
           KL-Diverngence plus MSELoss. Useful for feature ranges [-1, 1].
+
+    one_for_all : bool
+        Use one autoencoder model for all atoms instead of a model per atom
+        type as in the Behler-Parrinello scheme. Default is False.
 
 
     Notes
