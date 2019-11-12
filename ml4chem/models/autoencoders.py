@@ -136,7 +136,9 @@ class AutoEncoder(torch.nn.Module):
             decoder = []
             decoder_layers = self.hiddenlayers["decoder"]
 
-            """Build Encoder"""
+            """
+            Encoder
+            """
             out_dimension = encoder_layers[0]
             _encoder = torch.nn.Linear(input_dimension, out_dimension)
             encoder.append(_encoder)
@@ -147,6 +149,30 @@ class AutoEncoder(torch.nn.Module):
                 encoder.append(_encoder)
                 encoder.append(activation[self.activation]())
 
+            if self.name() == "VAE":
+                keys = ["h", "mu", "logvar"]
+                mu = []
+                logvar = []
+
+                index = -3
+                for _ in range(2):
+                    index += 1
+                    if index == -2:
+                        mu.append(encoder.pop(index))
+                    else:
+                        encoder.pop(index)
+
+                h = torch.nn.Sequential(*encoder)
+                logvar = torch.nn.Linear(inp_dim, out_dim)
+                logvar = torch.nn.Sequential(*[logvar])
+                mu = torch.nn.Sequential(*mu)
+
+                values = [h, mu, logvar]
+                encoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+            else: 
+
+                encoder = torch.nn.Sequential(*encoder)
+
             """
             Decoder
             """
@@ -154,15 +180,19 @@ class AutoEncoder(torch.nn.Module):
                 decoder.append(torch.nn.Linear(inp_dim, out_dim))
                 decoder.append(activation[self.activation]())
 
-                inp_dim = out_dim
+            inp_dim = out_dim
 
-            decoder.append(torch.nn.Linear(inp_dim, output_dimension))
-
-            encoder = torch.nn.Sequential(*encoder)
-            decoder = torch.nn.Sequential(*decoder)
-
-            if self.name() == "VAE":
-                raise NotImplementedError
+            if self.variant == "multivariate":
+                h = torch.nn.Sequential(*decoder)
+                mu = torch.nn.Linear(inp_dim, output_dimension)
+                mu = torch.nn.Sequential(*[mu])
+                logvar = torch.nn.Linear(inp_dim, output_dimension)
+                logvar = torch.nn.Sequential(*[logvar])
+                values = [h, mu, logvar]
+                decoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+            else:
+                decoder.append(torch.nn.Linear(inp_dim, output_dimension))
+                decoder = torch.nn.Sequential(*decoder)
 
             self.encoders = encoder
             self.decoders = decoder
@@ -261,7 +291,6 @@ class AutoEncoder(torch.nn.Module):
             )
             for m in self.modules():
                 if isinstance(m, torch.nn.Linear):
-                    print(m)
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
                     torch.nn.init.xavier_uniform_(m.weight)
 
@@ -476,35 +505,40 @@ class VAE(AutoEncoder):
         """Returns name of class"""
         return cls.NAME
 
-    def encode(self, symbol, x):
+    def encode(self, x, symbol=None):
         """Encode input
 
         Parameters
         ----------
-        symbol : str
-            Chemical symbol.
         x : array
             Input array.
+        symbol : str, optional
+            Chemical symbol. Default is None.
 
         Returns
         -------
         mu, logvar
             Mean and variance.
         """
-        h = self.encoders[symbol]["h"](x)
-        mu = self.encoders[symbol]["mu"](h)
-        logvar = self.encoders[symbol]["logvar"](h)
+        if symbol is None:
+            h = self.encoders["h"](x)
+            mu = self.encoders["mu"](h)
+            logvar = self.encoders["logvar"](h)
+        else:
+            h = self.encoders[symbol]["h"](x)
+            mu = self.encoders[symbol]["mu"](h)
+            logvar = self.encoders[symbol]["logvar"](h)
         return mu, logvar
 
-    def decode(self, symbol, z):
+    def decode(self, z, symbol=None):
         """Decode latent vector, z
 
         Parameters
         ----------
-        symbol : str
-            Chemical symbol.
         z : array
             Latent vector.
+        symbol : str, optional
+            Chemical symbol. Default is None.
 
         Returns
         -------
@@ -517,17 +551,30 @@ class VAE(AutoEncoder):
         Bayes. (2013)".
         """
         if self.variant == "multivariate":
-            h = self.decoders[symbol]["h"](z)
-            mu = self.decoders[symbol]["mu"](h)
-            logvar = self.decoders[symbol]["logvar"](h)
+            if symbol is None:
+                h = self.decoders["h"](z)
+                mu = self.decoders["mu"](h)
+                logvar = self.decoders["logvar"](h)
+            else:
+                h = self.decoders[symbol]["h"](z)
+                mu = self.decoders[symbol]["mu"](h)
+                logvar = self.decoders[symbol]["logvar"](h)
+
             return mu, logvar
 
         elif self.variant == "bernoulli":
-            reconstruction = self.decoders[symbol](z)
+            if symbol is None:
+                reconstruction = self.decoders(z)
+            else:
+                reconstruction = self.decoders[symbol](z)
+
             return torch.sigmoid(reconstruction)
 
         elif self.variant == "dcgan":
-            reconstruction = self.decoders[symbol](z)
+            if symbol is None:
+                reconstruction = self.decoders(z)
+            else:
+                reconstruction = self.decoders[symbol](z)
             return torch.tanh(reconstruction)
         else:
             raise NotImplementedError
@@ -578,17 +625,27 @@ class VAE(AutoEncoder):
         outputs = []
         for hash, image in X.items():
             for symbol, x in image:
-                mu_latent, logvar_latent = self.encode(symbol, x)
+                if self.one_for_all:
+                    mu_latent, logvar_latent = self.encode(x)
+                else:
+                    mu_latent, logvar_latent = self.encode(x, symbol=symbol)
                 z = self.reparameterize(mu_latent, logvar_latent)
                 mus_latent.append(mu_latent)
                 logvars_latent.append(logvar_latent)
 
                 if self.variant == "multivariate":
-                    mu_decoder, logvar_decoder = self.decode(symbol, z)
+                    if self.one_for_all:
+                        mu_decoder, logvar_decoder = self.decode(z)
+                    else:
+                        mu_decoder, logvar_decoder = self.decode(z, symbol=symbol)
+
                     mus_decoder.append(mu_decoder)
                     logvars_decoder.append(logvar_decoder)
                 else:
-                    reconstruction = self.decode(symbol, z)
+                    if self.one_for_all:
+                        reconstruction = self.decode(z)
+                    else:
+                        reconstruction = self.decode(z, symbol=symbol)
                     outputs.append(reconstruction)
 
         mus_latent = torch.stack(mus_latent)
@@ -645,7 +702,10 @@ class VAE(AutoEncoder):
                 hashes.append(hash)
                 _symbols = []
                 for symbol, x in image:
-                    mu_latent, logvar_latent = self.encode(symbol, x)
+                    if self.one_for_all:
+                        mu_latent, logvar_latent = self.encode(x)
+                    else:
+                        mu_latent, logvar_latent = self.encode(x, symbol=symbol)
                     latent_vector = self.reparameterize(mu_latent, logvar_latent)
                     _symbols.append(symbol)
 
@@ -671,7 +731,10 @@ class VAE(AutoEncoder):
             for hash, image in X.items():
                 latent_space[hash] = []
                 for symbol, x in image:
-                    mu_latent, logvar_latent = self.encode(symbol, x)
+                    if self.one_for_all:
+                        mu_latent, logvar_latent = self.encode(x)
+                    else:
+                        mu_latent, logvar_latent = self.encode(x, symbol=symbol)
                     latent_vector = self.reparameterize(mu_latent, logvar_latent)
 
                     if svm:
