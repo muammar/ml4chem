@@ -67,5 +67,5 @@ def autoencode():
 if __name__ == "__main__":
     logger("cu_inference.log")
     cluster = LocalCluster()
-    client = Client(cluster, asyncronous=True)
+    client = Client(cluster)
     autoencode()

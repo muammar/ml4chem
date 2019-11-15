@@ -187,7 +187,7 @@ reconstruct the input data.
     autoencoder.prepare_model(input_dimension, output_dimension, data=data_handler)
 
 
-ML4Chem also provides access to variational autoencoders (VAE)[Kingma2013]_.
+ML4Chem also provides access to variational autoencoders (VAE) [Kingma2013]_.
 These architectures differ from an AE in that the encoder codes a
 distribution with mean and variance (two vectors with the desired latent
 space dimension) instead of a single latent vector. Subsequently, this

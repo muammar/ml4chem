@@ -1,11 +1,11 @@
 ml4chem.features package
-============================
+========================
 
 Submodules
 ----------
 
 ml4chem.features.autoencoders module
-----------------------------------------
+------------------------------------
 
 .. automodule:: ml4chem.features.autoencoders
     :members:
@@ -13,7 +13,7 @@ ml4chem.features.autoencoders module
     :show-inheritance:
 
 ml4chem.features.cartesian module
--------------------------------------
+---------------------------------
 
 .. automodule:: ml4chem.features.cartesian
     :members:
@@ -21,7 +21,7 @@ ml4chem.features.cartesian module
     :show-inheritance:
 
 ml4chem.features.cutoff module
-----------------------------------
+------------------------------
 
 .. automodule:: ml4chem.features.cutoff
     :members:
@@ -29,7 +29,7 @@ ml4chem.features.cutoff module
     :show-inheritance:
 
 ml4chem.features.gaussian module
-------------------------------------
+--------------------------------
 
 .. automodule:: ml4chem.features.gaussian
     :members:

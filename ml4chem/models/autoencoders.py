@@ -579,7 +579,7 @@ class VAE(AutoEncoder):
         else:
             raise NotImplementedError
 
-    def reparameterize(self, mu, logvar):
+    def reparameterize(self, mu, logvar, purpose=None):
         """Reparameterization trick
 
         This trick samples the posterior (a latent vector) from a
@@ -598,9 +598,16 @@ class VAE(AutoEncoder):
         Sample vector
             A sample from the distribution.
         """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mu + eps * std
+        if purpose is None:
+            raise("You need to provide a purpose")
+
+        elif purpose == "training":
+            std = torch.exp(0.5 * logvar)
+            eps = torch.randn_like(std)
+            return mu + eps * std
+
+        else:
+            return mu
 
     def forward(self, X):
         """Forward propagation
@@ -692,6 +699,9 @@ class VAE(AutoEncoder):
         forward propagate and get the latent_space.
         """
 
+        if purpose is None:
+            raise("You need to provide a purpose")
+
         # FIXME parallelize me
         if purpose == "preprocessing":
             hashes = []
@@ -706,7 +716,7 @@ class VAE(AutoEncoder):
                         mu_latent, logvar_latent = self.encode(x)
                     else:
                         mu_latent, logvar_latent = self.encode(x, symbol=symbol)
-                    latent_vector = self.reparameterize(mu_latent, logvar_latent)
+                    latent_vector = self.reparameterize(mu_latent, logvar_latent, purpose="latent")
                     _symbols.append(symbol)
 
                     if svm:
@@ -735,7 +745,7 @@ class VAE(AutoEncoder):
                         mu_latent, logvar_latent = self.encode(x)
                     else:
                         mu_latent, logvar_latent = self.encode(x, symbol=symbol)
-                    latent_vector = self.reparameterize(mu_latent, logvar_latent)
+                    latent_vector = self.reparameterize(mu_latent, logvar_latent, purpose=purpose)
 
                     if svm:
                         _latent_vector = latent_vector.detach().numpy()

@@ -240,16 +240,17 @@ class Potentials(Calculator, object):
             None.
         """
 
-        data_handler = Data(training_set, purpose="training")
+        purpose = "training"
+        data_handler = Data(training_set, purpose=purpose)
         # Raw input and targets aka X, y
-        training_set, targets = data_handler.get_data(purpose="training")
+        training_set, targets = data_handler.get_data(purpose=purpose)
 
         # Now let's train
         # SVM models
         if self.model.name() in Potentials.svm_models:
             # Mapping raw positions into a feature space aka X
             feature_space, reference_features = self.features.calculate(
-                training_set, data=data_handler, purpose="training", svm=True
+                training_set, data=data_handler, purpose=purpose, svm=True
             )
             self.model.prepare_model(
                 feature_space, reference_features, data=data_handler
@@ -258,8 +259,9 @@ class Potentials(Calculator, object):
             self.model.train(feature_space, targets)
         else:
             # Mapping raw positions into a feature space aka X
+
             feature_space = self.features.calculate(
-                training_set, data=data_handler, purpose="training", svm=False
+                training_set, data=data_handler, purpose=purpose, svm=False
             )
 
             # Fixed fingerprint dimension
