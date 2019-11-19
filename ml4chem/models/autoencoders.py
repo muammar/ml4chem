@@ -38,6 +38,9 @@ class AutoEncoder(torch.nn.Module):
         Dictionary with encoder, and decoder layers in the Auto Encoder.
     activation : str
         The activation function.
+    one_for_all : bool
+        Use one autoencoder model for all atoms instead of a model per atom
+        type as in the Behler-Parrinello scheme. Default is False.
 
 
     Notes
@@ -62,10 +65,26 @@ class AutoEncoder(torch.nn.Module):
         """Returns name of class"""
         return cls.NAME
 
-    def __init__(self, hiddenlayers=None, activation="relu", **kwargs):
+    def __init__(
+        self, hiddenlayers=None, activation="relu", one_for_all=False, **kwargs
+    ):
         super(AutoEncoder, self).__init__()
+
         self.hiddenlayers = hiddenlayers
         self.activation = activation
+        self.one_for_all = one_for_all
+
+        # A white list of supported kwargs.
+        supported_keys = ["variant"]
+
+        # If kwarg is supported but not passed we initialize as None.
+        if len(kwargs.items()) == 0:
+            for k in supported_keys:
+                setattr(self, k, None)
+        else:
+            for k, v in kwargs.items():
+                if k in supported_keys:
+                    setattr(self, k, v)
 
     def prepare_model(
         self, input_dimension, output_dimension, data=None, purpose="training"
@@ -79,7 +98,7 @@ class AutoEncoder(torch.nn.Module):
         output_dimension : int
             Output's dimension.
         data : object
-            DataSet object created from the handler.
+            Data object created from the handler.
         purpose : str
             Purpose of this model: 'training', 'inference'.
         """
@@ -93,14 +112,17 @@ class AutoEncoder(torch.nn.Module):
         }
 
         if purpose == "training":
-            logger.info("Model Training")
-            logger.info("==============")
+            logger.info("Model")
+            logger.info("=====")
             logger.info("Model name: {}.".format(self.name()))
             logger.info(
-                "Structure of Autoencoder: {}".format(
-                    "(input, " + str(self.hiddenlayers)[1:-1] + ", output)"
+                "Structure of {}: {}".format(
+                    self.name(), "(input, " + str(self.hiddenlayers)[1:-1] + ", output)"
                 )
             )
+
+        if self.name() == "VAE":
+            logger.info("Variant: {}.".format(self.variant))
 
         try:
             unique_element_symbols = data.unique_element_symbols[purpose]
@@ -108,10 +130,7 @@ class AutoEncoder(torch.nn.Module):
             unique_element_symbols = data.get_unique_element_symbols(purpose=purpose)
             unique_element_symbols = unique_element_symbols[purpose]
 
-        symbol_encoder_pair = []
-        symbol_decoder_pair = []
-
-        for symbol in unique_element_symbols:
+        if self.one_for_all:
             encoder = []
             encoder_layers = self.hiddenlayers["encoder"]
             decoder = []
@@ -120,7 +139,6 @@ class AutoEncoder(torch.nn.Module):
             """
             Encoder
             """
-            # The first encoder layer for symbol
             out_dimension = encoder_layers[0]
             _encoder = torch.nn.Linear(input_dimension, out_dimension)
             encoder.append(_encoder)
@@ -131,37 +149,142 @@ class AutoEncoder(torch.nn.Module):
                 encoder.append(_encoder)
                 encoder.append(activation[self.activation]())
 
-            # Stacking up the layers.
-            encoder = torch.nn.Sequential(*encoder)
-            symbol_encoder_pair.append([symbol, encoder])
+            if self.name() == "VAE":
+                keys = ["h", "mu", "logvar"]
+                mu = []
+                logvar = []
+
+                index = -3
+                for _ in range(2):
+                    index += 1
+                    if index == -2:
+                        mu.append(encoder.pop(index))
+                    else:
+                        encoder.pop(index)
+
+                h = torch.nn.Sequential(*encoder)
+                logvar = torch.nn.Linear(inp_dim, out_dim)
+                logvar = torch.nn.Sequential(*[logvar])
+                mu = torch.nn.Sequential(*mu)
+
+                values = [h, mu, logvar]
+                encoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+            else: 
+
+                encoder = torch.nn.Sequential(*encoder)
 
             """
             Decoder
             """
             for inp_dim, out_dim in zip(decoder_layers, decoder_layers[1:]):
-                _decoder = torch.nn.Linear(inp_dim, out_dim)
-                decoder.append(_decoder)
+                decoder.append(torch.nn.Linear(inp_dim, out_dim))
                 decoder.append(activation[self.activation]())
 
-            # The last decoder layer for symbol
             inp_dim = out_dim
-            _decoder = torch.nn.Linear(inp_dim, output_dimension)
-            decoder.append(_decoder)
-            # According to this video https://youtu.be/xTU79Zs4XKY?t=416
-            # real numbered inputs need no activation function in the output
-            # layer decoder.append(activation[self.activation]())
 
-            # Stacking up the layers.
-            decoder = torch.nn.Sequential(*decoder)
-            symbol_decoder_pair.append([symbol, decoder])
+            if self.variant == "multivariate":
+                h = torch.nn.Sequential(*decoder)
+                mu = torch.nn.Linear(inp_dim, output_dimension)
+                mu = torch.nn.Sequential(*[mu])
+                logvar = torch.nn.Linear(inp_dim, output_dimension)
+                logvar = torch.nn.Sequential(*[logvar])
+                values = [h, mu, logvar]
+                decoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+            else:
+                decoder.append(torch.nn.Linear(inp_dim, output_dimension))
+                decoder = torch.nn.Sequential(*decoder)
 
-        self.encoders = torch.nn.ModuleDict(symbol_encoder_pair)
-        self.decoders = torch.nn.ModuleDict(symbol_decoder_pair)
+            self.encoders = encoder
+            self.decoders = decoder
+
+        else:
+            symbol_encoder_pair = []
+            symbol_decoder_pair = []
+
+            for symbol in unique_element_symbols:
+                encoder = []
+                encoder_layers = self.hiddenlayers["encoder"]
+                decoder = []
+                decoder_layers = self.hiddenlayers["decoder"]
+
+                """
+                Encoder
+                """
+                # The first encoder's layer for symbol
+                out_dimension = encoder_layers[0]
+                _encoder = torch.nn.Linear(input_dimension, out_dimension)
+                encoder.append(_encoder)
+                encoder.append(activation[self.activation]())
+
+                for inp_dim, out_dim in zip(encoder_layers, encoder_layers[1:]):
+                    _encoder = torch.nn.Linear(inp_dim, out_dim)
+                    encoder.append(_encoder)
+                    encoder.append(activation[self.activation]())
+
+                # Stacking up the layers.
+                if self.name() == "VAE":
+                    keys = ["h", "mu", "logvar"]
+                    mu = []
+                    logvar = []
+
+                    index = -3
+                    for _ in range(2):
+                        index += 1
+                        if index == -2:
+                            mu.append(encoder.pop(index))
+                        else:
+                            encoder.pop(index)
+
+                    h = torch.nn.Sequential(*encoder)
+                    logvar = torch.nn.Linear(inp_dim, out_dim)
+                    logvar = torch.nn.Sequential(*[logvar])
+                    mu = torch.nn.Sequential(*mu)
+
+                    values = [h, mu, logvar]
+                    encoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+
+                else:
+                    encoder = torch.nn.Sequential(*encoder)
+
+                symbol_encoder_pair.append([symbol, encoder])
+
+                """
+                Decoder
+                """
+                for inp_dim, out_dim in zip(decoder_layers, decoder_layers[1:]):
+                    decoder.append(torch.nn.Linear(inp_dim, out_dim))
+                    decoder.append(activation[self.activation]())
+
+                inp_dim = out_dim
+
+                if self.variant == "multivariate":
+                    h = torch.nn.Sequential(*decoder)
+                    mu = torch.nn.Linear(inp_dim, output_dimension)
+                    mu = torch.nn.Sequential(*[mu])
+                    logvar = torch.nn.Linear(inp_dim, output_dimension)
+                    logvar = torch.nn.Sequential(*[logvar])
+                    values = [h, mu, logvar]
+                    decoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
+                else:
+                    # The last decoder layer for symbol
+                    decoder.append(torch.nn.Linear(inp_dim, output_dimension))
+                    # According to this video https://youtu.be/xTU79Zs4XKY?t=416
+                    # real numbered inputs need no activation function in the output
+                    # layer decoder.append(activation[self.activation]())
+
+                    # Stacking up the layers.
+                    decoder = torch.nn.Sequential(*decoder)
+
+                symbol_decoder_pair.append([symbol, decoder])
+
+            self.encoders = torch.nn.ModuleDict(symbol_encoder_pair)
+            self.decoders = torch.nn.ModuleDict(symbol_decoder_pair)
+
         logger.info(self.encoders)
         logger.info(self.decoders)
 
         if purpose == "training":
-            # Iterate over all modules and just intialize those that are
+            # Iterate over all modules and just initialize those that are
             # a linear layer.
             logger.warning(
                 "Initialization of weights with Xavier Uniform by " "default."
@@ -170,6 +293,48 @@ class AutoEncoder(torch.nn.Module):
                 if isinstance(m, torch.nn.Linear):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
                     torch.nn.init.xavier_uniform_(m.weight)
+
+    def encode(self, x, symbol=None):
+        """Encode input
+
+        Parameters
+        ----------
+        x : array
+            Input array.
+        symbol : str, optional
+            Chemical symbol. Default is None.
+
+        Returns
+        -------
+        z
+            Latent vector.
+        """
+        if symbol is None:
+            z = self.encoders(x)
+        else:
+            z = self.encoders[symbol](x)
+        return z
+
+    def decode(self, z, symbol=None):
+        """Decode latent vector, z
+
+        Parameters
+        ----------
+        z : array
+            Latent vector.
+        symbol : str, optional
+            Chemical symbol. Default is None.
+
+        Returns
+        -------
+        reconstruction
+            Tensor with reconstruction.
+        """
+        if symbol is None:
+            reconstruction = self.decoders(z)
+        else:
+            reconstruction = self.decoders[symbol](z)
+        return reconstruction
 
     def forward(self, X):
         """Forward propagation
@@ -190,17 +355,21 @@ class AutoEncoder(torch.nn.Module):
         outputs = []
         for hash, image in X.items():
             for symbol, x in image:
-                latent_vector = self.encoders[symbol](x)
-                decoder = self.decoders[symbol](latent_vector)
-                outputs.append(decoder)
+                if self.one_for_all:
+                    z = self.encode(x)
+                    output = self.decode(z)
+                else:
+                    z = self.encode(x, symbol=symbol)
+                    output = self.decode(z, symbol=symbol)
+                outputs.append(output)
         outputs = torch.stack(outputs)
         return outputs
 
     def get_latent_space(self, X, svm=False, purpose=None):
-        """Get latent space for training ML4Chem
+        """Get latent space for training ML4Chem models
 
         This method takes an input and use the encoder to return latent space
-        in the structure needed for training ML4Chem.
+        in the structure needed for training ML4Chem models or visualization.
 
         Parameters
         ----------
@@ -238,7 +407,316 @@ class AutoEncoder(torch.nn.Module):
                 hashes.append(hash)
                 _symbols = []
                 for symbol, x in image:
-                    latent_vector = self.encoders[symbol](x)
+                    if self.one_for_all:
+                        latent_vector = self.encode(x)
+                    else:
+                        latent_vector = self.encode(x, symbol=symbol)
+                    _symbols.append(symbol)
+
+                    if svm:
+                        _latent_vector = latent_vector.detach().numpy()
+                    else:
+                        _latent_vector = latent_vector.detach()
+
+                    latent_space.append(_latent_vector)
+
+                symbols.append(_symbols)
+
+            if svm:
+                latent_space = np.array(latent_space)
+                return hashes, symbols, latent_space
+            else:
+                latent_space = torch.stack(latent_space)
+                return latent_space
+
+        else:
+            latent_space = OrderedDict()
+
+            if isinstance(X, tuple):
+                X = X[0]
+
+            for hash, image in X.items():
+                latent_space[hash] = []
+                for symbol, x in image:
+                    if self.one_for_all:
+                        latent_vector = self.encode(x)
+                    else:
+                        latent_vector = self.encode(x, symbol=symbol)
+
+                    if svm:
+                        _latent_vector = latent_vector.detach().numpy()
+                    else:
+                        _latent_vector = latent_vector.detach()
+
+                    latent_space[hash].append((symbol, _latent_vector))
+
+            return latent_space
+
+
+class VAE(AutoEncoder):
+    """Variational Autoencoder (VAE)
+
+
+    This module uses variational autoencoders for pipelines in chemistry.
+
+    Parameters
+    ----------
+    hiddenlayers : dict
+        Dictionary with encoder, and decoder layers in the Auto Encoder.
+    activation : str
+        The activation function.
+    variant : str
+        The following variants are supported:
+
+        - "multivariate": decoder outputs a distribution with mean and
+          variance, we minimize the negative of the log likelihood plus the
+          KL-Divergence. Useful for continuous variables. Feature range [-inf,
+          inf].
+        - "bernoulli": decoder outputs a layer with sigmoid activation
+          function, and we minimize cross-entropy plus KL-diverence. Features
+          must be in a range [0, 1].
+        - "dcgan": decoder outputs a single layer with tanh, and loss equals to
+          KL-Diverngence plus MSELoss. Useful for feature ranges [-1, 1].
+
+    one_for_all : bool
+        Use one autoencoder model for all atoms instead of a model per atom
+        type as in the Behler-Parrinello scheme. Default is False.
+
+
+    Notes
+    -----
+    When defining the hiddenlayers keyword argument, input and output
+    dimensions are automatically determined. For example, suppose you have an
+    input data point with 10 dimensions and you want to autoencode with
+    targets having 14 dimensions, a latent space with 4 dimensions and just one
+    hidden layer with 5 nodes between input-layer / latent-layer and
+    latent-layer / output-layer. Your `hiddenlayers` dictionary would look like
+    this:
+
+        >>> hiddenlayers = {'encoder': (5, 4), 'decoder': (4, 5)}
+
+    That would generate an autoencoder with topology (10, 5, 4 | 4, 5, 14).
+    """
+
+    NAME = "VAE"
+
+    @classmethod
+    def name(cls):
+        """Returns name of class"""
+        return cls.NAME
+
+    def encode(self, x, symbol=None):
+        """Encode input
+
+        Parameters
+        ----------
+        x : array
+            Input array.
+        symbol : str, optional
+            Chemical symbol. Default is None.
+
+        Returns
+        -------
+        mu, logvar
+            Mean and variance.
+        """
+        if symbol is None:
+            h = self.encoders["h"](x)
+            mu = self.encoders["mu"](h)
+            logvar = self.encoders["logvar"](h)
+        else:
+            h = self.encoders[symbol]["h"](x)
+            mu = self.encoders[symbol]["mu"](h)
+            logvar = self.encoders[symbol]["logvar"](h)
+        return mu, logvar
+
+    def decode(self, z, symbol=None):
+        """Decode latent vector, z
+
+        Parameters
+        ----------
+        z : array
+            Latent vector.
+        symbol : str, optional
+            Chemical symbol. Default is None.
+
+        Returns
+        -------
+        reconstruction
+            Tensor with reconstruction.
+
+        Notes
+        -----
+        See page 11 "Kingma, D. P. & Welling, M. Auto-Encoding Variational
+        Bayes. (2013)".
+        """
+        if self.variant == "multivariate":
+            if symbol is None:
+                h = self.decoders["h"](z)
+                mu = self.decoders["mu"](h)
+                logvar = self.decoders["logvar"](h)
+            else:
+                h = self.decoders[symbol]["h"](z)
+                mu = self.decoders[symbol]["mu"](h)
+                logvar = self.decoders[symbol]["logvar"](h)
+
+            return mu, logvar
+
+        elif self.variant == "bernoulli":
+            if symbol is None:
+                reconstruction = self.decoders(z)
+            else:
+                reconstruction = self.decoders[symbol](z)
+
+            return torch.sigmoid(reconstruction)
+
+        elif self.variant == "dcgan":
+            if symbol is None:
+                reconstruction = self.decoders(z)
+            else:
+                reconstruction = self.decoders[symbol](z)
+            return torch.tanh(reconstruction)
+        else:
+            raise NotImplementedError
+
+    def reparameterize(self, mu, logvar, purpose=None):
+        """Reparameterization trick
+
+        This trick samples the posterior (a latent vector) from a
+        multivariate Gaussian probability distribution. At the same time it
+        allows the model to be backward-propagated.
+
+        Parameters
+        ----------
+        mu : tensor
+            Mean values of distribution.
+        logvar : tensor
+            Logarithm of variance of distribution.
+
+        Returns
+        -------
+        Sample vector
+            A sample from the distribution.
+        """
+        if purpose is None:
+            raise("You need to provide a purpose")
+
+        elif purpose == "training":
+            std = torch.exp(0.5 * logvar)
+            eps = torch.randn_like(std)
+            return mu + eps * std
+
+        else:
+            return mu
+
+    def forward(self, X):
+        """Forward propagation
+
+        This method takes an input and applies encoder and decoder layers.
+
+        Parameters
+        ----------
+        X : list
+            List of inputs either raw or in the feature space.
+
+        Returns
+        -------
+        mu and logvar for two multivariate gaussian
+            Decoded latent vector.
+        """
+
+        mus_latent = []
+        logvars_latent = []
+        mus_decoder = []
+        logvars_decoder = []
+        outputs = []
+        for hash, image in X.items():
+            for symbol, x in image:
+                if self.one_for_all:
+                    mu_latent, logvar_latent = self.encode(x)
+                else:
+                    mu_latent, logvar_latent = self.encode(x, symbol=symbol)
+                z = self.reparameterize(mu_latent, logvar_latent)
+                mus_latent.append(mu_latent)
+                logvars_latent.append(logvar_latent)
+
+                if self.variant == "multivariate":
+                    if self.one_for_all:
+                        mu_decoder, logvar_decoder = self.decode(z)
+                    else:
+                        mu_decoder, logvar_decoder = self.decode(z, symbol=symbol)
+
+                    mus_decoder.append(mu_decoder)
+                    logvars_decoder.append(logvar_decoder)
+                else:
+                    if self.one_for_all:
+                        reconstruction = self.decode(z)
+                    else:
+                        reconstruction = self.decode(z, symbol=symbol)
+                    outputs.append(reconstruction)
+
+        mus_latent = torch.stack(mus_latent)
+        logvars_latent = torch.stack(logvars_latent)
+
+        if self.variant == "multivariate":
+            mus_decoder = torch.stack(mus_decoder)
+            logvars_decoder = torch.stack(logvars_decoder)
+            return mus_decoder, logvars_decoder, mus_latent, logvars_latent
+
+        else:
+            outputs = torch.stack(outputs)
+            return outputs, mus_latent, logvars_latent
+
+    def get_latent_space(self, X, svm=False, purpose=None):
+        """Get latent space for training ML4Chem models
+
+        This method takes an input and use the encoder to return latent space
+        in the structure needed for training ML4Chem models or visualization.
+
+        Parameters
+        ----------
+        X : list
+            List of inputs either raw or in the feature space.
+        svm : bool
+            Whether or not these latent vectors are going to be used for kernel
+            methods.
+        purpose : str
+            The purpose for this latent space. This is just useful for the case
+            where the latent space will be preprocessed
+            (purpose='preprocessing').
+
+
+        Returns
+        -------
+        latent_space : dict
+            Latent space with structure: {'hash': [('H', [latent_vector]]}
+
+        Notes
+        -----
+        The latent space saved with this function creates a dictionary that can
+        operate with other parts of this package. Note that if you would need
+        to get the latent space for an unseen structure then you will have to
+        forward propagate and get the latent_space.
+        """
+
+        if purpose is None:
+            raise("You need to provide a purpose")
+
+        # FIXME parallelize me
+        if purpose == "preprocessing":
+            hashes = []
+            latent_space = []
+            symbols = []
+
+            for hash, image in X.items():
+                hashes.append(hash)
+                _symbols = []
+                for symbol, x in image:
+                    if self.one_for_all:
+                        mu_latent, logvar_latent = self.encode(x)
+                    else:
+                        mu_latent, logvar_latent = self.encode(x, symbol=symbol)
+                    latent_vector = self.reparameterize(mu_latent, logvar_latent, purpose="latent")
                     _symbols.append(symbol)
 
                     if svm:
@@ -263,7 +741,11 @@ class AutoEncoder(torch.nn.Module):
             for hash, image in X.items():
                 latent_space[hash] = []
                 for symbol, x in image:
-                    latent_vector = self.encoders[symbol](x)
+                    if self.one_for_all:
+                        mu_latent, logvar_latent = self.encode(x)
+                    else:
+                        mu_latent, logvar_latent = self.encode(x, symbol=symbol)
+                    latent_vector = self.reparameterize(mu_latent, logvar_latent, purpose=purpose)
 
                     if svm:
                         _latent_vector = latent_vector.detach().numpy()
@@ -287,7 +769,7 @@ class train(object):
     model : object
         The NeuralNetwork class.
     data : object
-        DataSet object created from the handler.
+        Data object created from the handler.
     optimizer : tuple
         The optimizer is a tuple with the structure:
             >>> ('adam', {'lr': float, 'weight_decay'=float})
@@ -310,6 +792,11 @@ class train(object):
 
         >>> lr_scheduler = ('ReduceLROnPlateau',
                             {'mode': 'min', 'patience': 10})
+    anneal : bool
+        Cyclical annealing based on https://arxiv.org/abs/1903.10145.
+    penalize_latent : bool
+        Set to True if latent vectors are going to be penalized. Default is
+        False.
     """
 
     def __init__(
@@ -326,7 +813,18 @@ class train(object):
         device="cpu",
         batch_size=None,
         lr_scheduler=None,
+        **kwargs
     ):
+
+        supported_keys = ["anneal", "penalize_latent"]
+
+        if len(kwargs.items()) == 0:
+            for k in supported_keys:
+                setattr(self, k, None)
+        else:
+            for k, v in kwargs.items():
+                if k in supported_keys:
+                    setattr(self, k, v)
 
         self.initial_time = time.time()
 
@@ -362,7 +860,7 @@ class train(object):
 
         del targets
 
-        # This change is needed because the targets are fingerprints or
+        # This change is needed because the targets are features or
         # positions and they are built as a dictionary.
 
         targets = lod_to_list(targets_)
@@ -446,8 +944,30 @@ class train(object):
         _rmse = []
         epoch = 0
 
+        warm_up = 50
+        warming = 0
+        step = 1 / 50
+        cycles = 0
+        stop = 5
+
         while not converged:
             epoch += 1
+
+            if cycles < stop and self.anneal:
+                if warming < warm_up:
+                    annealing = 0
+                    warming += 1
+                elif warming == warm_up:
+                    annealing += step
+                    warming += 1
+                else:
+                    annealing += step
+
+                if np.isclose(annealing, 1.0):
+                    warming = 0
+                    cycles += 1
+            else:
+                annealing = 1.0
 
             self.optimizer.zero_grad()  # clear previous gradients
 
@@ -458,7 +978,11 @@ class train(object):
                 "lossfxn": self.lossfxn,
                 "device": self.device,
                 "inputs_chunk_vals": self.inputs_chunk_vals,
+                "annealing": annealing,
             }
+
+            if self.penalize_latent:
+                args.update({"penalize_latent": self.penalize_latent})
 
             loss, outputs_ = train.closure(**args)
 
@@ -491,6 +1015,8 @@ class train(object):
                 converged = True
             elif self.convergence is not None and rmse < self.convergence["rmse"]:
                 converged = True
+            # elif cycles == stop:
+            #   converged = True
 
         training_time = time.time() - self.initial_time
 
@@ -500,11 +1026,21 @@ class train(object):
         )
 
     @classmethod
-    def closure(Cls, chunks, targets, model, lossfxn, device, inputs_chunk_vals=None):
+    def closure(
+        Cls,
+        chunks,
+        targets,
+        model,
+        lossfxn,
+        device,
+        inputs_chunk_vals=None,
+        annealing=None,
+        penalize_latent=False,
+    ):
         """Closure
 
         This method clears previous gradients, iterates over chunks, accumulate
-        the gradiends, update model params, and return loss.
+        the gradients, update model params, and return loss.
         """
 
         outputs_ = []
@@ -519,7 +1055,17 @@ class train(object):
             accumulation.append(
                 client.submit(
                     train.train_batches,
-                    *(index, chunk, targets, model, lossfxn, device, inputs_chunk_vals)
+                    *(
+                        index,
+                        chunk,
+                        targets,
+                        model,
+                        lossfxn,
+                        device,
+                        inputs_chunk_vals,
+                        annealing,
+                        penalize_latent,
+                    )
                 )
             )
         dask.distributed.wait(accumulation)
@@ -547,7 +1093,16 @@ class train(object):
 
     @classmethod
     def train_batches(
-        Cls, index, chunk, targets, model, lossfxn, device, inputs_chunk_vals
+        Cls,
+        index,
+        chunk,
+        targets,
+        model,
+        lossfxn,
+        device,
+        inputs_chunk_vals,
+        annealing,
+        penalize_latent,
     ):
         """A function that allows training per batches
 
@@ -575,14 +1130,55 @@ class train(object):
             The loss function of the batch.
         """
         inputs = OrderedDict(chunk)
-        outputs = model(inputs)
-        args = {"outputs": outputs, "targets": targets[index]}
+        loss_name = lossfxn.__name__
 
-        _args, _varargs, _keywords, _defaults = inspect.getargspec(lossfxn)
+        if model.name() == "VAE":
+            if model.variant == "multivariate":
+                mus_decoder, logvars_decoder, mus_latent, logvars_latent = model(inputs)
 
-        if "latent" in _args:
-            latent = model.get_latent_space(inputs, svm=False, purpose="preprocessing")
-            latent = {"latent": latent}
+                args = {
+                    "targets": targets[index],
+                    "mus_decoder": mus_decoder,
+                    "logvars_decoder": logvars_decoder,
+                    "mus_latent": mus_latent,
+                    "logvars_latent": logvars_latent,
+                    "annealing": annealing,
+                    "variant": model.variant,
+                    "input_dimension": model.input_dimension,
+                }
+
+            else:
+                outputs, mus_latent, logvars_latent, = model(inputs)
+
+                args = {
+                    "outputs": outputs,
+                    "targets": targets[index],
+                    "mus_latent": mus_latent,
+                    "logvars_latent": logvars_latent,
+                    "annealing": annealing,
+                    "variant": model.variant,
+                    "input_dimension": model.input_dimension,
+                }
+
+        else:
+            outputs = model(inputs)
+            args = {"outputs": outputs, "targets": targets[index]}
+
+        # Latent space penalization
+        if penalize_latent:
+            latent = {
+                "latent": model.get_latent_space(
+                    inputs, svm=False, purpose="preprocessing"
+                )
+            }
+            args.update(latent)
+
+        if loss_name == "EncoderMapLoss":
+            latent = {
+                "latent": model.get_latent_space(
+                    inputs, svm=False, purpose="preprocessing"
+                )
+            }
             args.update(latent)
 
             # In the case of using EncoderMapLoss the inputs are needed, too.
@@ -596,7 +1192,10 @@ class train(object):
         for param in model.parameters():
             gradients.append(param.grad.detach().numpy())
 
-        return outputs, loss, gradients
+        if model.variant == "multivariate":
+            return mus_decoder, loss, gradients
+        else:
+            return outputs, loss, gradients
 
     @staticmethod
     def get_inputs_chunks(chunks):

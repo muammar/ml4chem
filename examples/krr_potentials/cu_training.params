@@ -14,7 +14,7 @@
         "batch_size": 160,
         "kwargs": {}
     },
-    "fingerprints": {
+    "features": {
         "name": "Gaussian",
         "cutoff": 6.5,
         "normalized": true,
@@ -23,7 +23,7 @@
             null
         ],
         "save_preprocessor": "cu_training.scaler",
-        "filename": "fingerprints.db",
+        "filename": "features.db",
         "angular_type": "G3",
         "weighted": false,
         "custom": {

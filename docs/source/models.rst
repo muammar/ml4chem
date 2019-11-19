@@ -115,18 +115,18 @@ predicting energy and atomic forces.
 
 ::
 
-    from ml4chem.fingerprints.gaussian import Gaussian
+    from ml4chem.features.gaussian import Gaussian
 
     features = Gaussian(cutoff=6.5, normalized=True, save_preprocessor="features.scaler")
 
-In the code snippet above we are building Gaussian type using the
-:class:`ml4chem.fingerprints.gaussian.Gaussian` class. We use a ``cutoff``
-radius of :math:`6.5` angstrom, normalized, and the preprocessing is saved to
-the file ``features.scaler`` (by default the scaler is ``MinMaxScaler`` in a
-range :math:`(-1, 1)` as implemented in ``scikit-learn``). The ``angular``
-symmetry function used by default is :math:`G_i^3`, if you are interested in
-using :math:`G_i^4`, then you need to pass ``angular_type`` keyword
-argument::
+In the code snippet above we are building Gaussian type features using the
+:class:`ml4chem.features.gaussian.Gaussian` class. We use a ``cutoff``
+radius of :math:`6.5` angstrom, we normalized by the squared cutoff raidous,
+and the preprocessing is saved to the file ``features.scaler`` (by default
+the preprocessing used is ``MinMaxScaler`` in a range :math:`(-1, 1)` as
+implemented in ``scikit-learn``). The ``angular`` symmetry functions used by
+default are :math:`G_i^3`, if you are interested in using :math:`G_i^4`, then
+you need to pass ``angular_type`` keyword argument::
 
     features = Gaussian(cutoff=6.5, normalized=True,
                         save_preprocessor="features.scaler", angular_type="G4")
@@ -143,11 +143,13 @@ Models
 Neural Networks
 ----------------
 Neural Network (NN) are models inspired on how the human brain works. They
-consist of a set of hidden-layers with some nodes. The most simple NN
-architecture is the *fully-connected* case in which each neuron is connected
-to every neuron in the previous/next layer, and each connection has its own
+consist of a set of hidden-layers with some nodes (neurons). The most simple NN
+architecture is the *fully-connected* case in which each neuron is inter-connected
+to every other neuron in the previous/next layer, and each connection has its own
 weight. When an activation function is applied to the output of a
-hidden-layer, the NN is able to learn from non-linear data. 
+neuron, the NN is able to learn non-linearity aspects from the data.
+
+In ML4Chem, a neural network can be instantiated as shown below:
 
 :: 
 
@@ -155,22 +157,71 @@ hidden-layer, the NN is able to learn from non-linear data.
 
     n = 10
     activation = "relu"
-    model = NeuralNetwork(hiddenlayers=(n, n), activation=activation)
+    nn = NeuralNetwork(hiddenlayers=(n, n), activation=activation)
+    nn.prepare_model()
 
-In the example above, we are building a NN using the
+Here, we are building a NN with the
 :class:`ml4chem.models.neuralnetwork.NeuralNetwork` class with two
-hidden-layers of 10 neurons each, and a ReLu activation function.
+hidden-layers composed 10 neurons each, and a ReLu activation function.
 
 Autoencoders
 -------------
-Something here
+Autoencoders (AE) are NN architectures that able to extract features from
+data in an unsupervised learning manner. AE learns how to encode information
+because of a hidden-layer that serves as an informational bottleneck as shown
+in the figure below. In addition, this latent code is used by the decoder to
+reconstruct the input data.
+
+.. image:: _static/Autoencoder_schema.png
+   :alt: Vanilla autoencoder
+   :scale: 50 %
+   :align: center
+:: 
+
+    from ml4chem.models.autoencoders import AutoEncoder
+
+    hiddenlayers = {"encoder": (20, 10, 4), "decoder": (4, 10, 20)}
+    activation = "tanh"
+    autoencoder = AutoEncoder(hiddenlayers=hiddenlayers, activation=activation)
+    data_handler.get_unique_element_symbols(images, purpose=purpose)
+    autoencoder.prepare_model(input_dimension, output_dimension, data=data_handler)
+
+
+ML4Chem also provides access to variational autoencoders (VAE) [Kingma2013]_.
+These architectures differ from an AE in that the encoder codes a
+distribution with mean and variance (two vectors with the desired latent
+space dimension) instead of a single latent vector. Subsequently, this
+distribution is sampled and used by the decoder to reconstruct the input.
+This creates a generative model because now we will generate a latent
+distribution that allows a continuous change from one class to another.
+
+.. image:: _static/vae.png
+   :alt: VAE
+   :scale: 50 %
+   :align: center
+:: 
+
+To use this architecture, it just suffices to change the snippet shown above
+for an AE as follows:
+
+
+:: 
+
+    from ml4chem.models.autoencoders import VAE
+
+    hiddenlayers = {"encoder": (20, 10, 4), "decoder": (4, 10, 20)}
+    activation = "tanh"
+    vae = VAE(hiddenlayers=hiddenlayers, activation=activation, multivariate=True)
+    data_handler.get_unique_element_symbols(images, purpose=purpose)
+    vae.prepare_model(input_dimension, output_dimension, data=data_handler)
+
 
 Kernel Ridge Regression
 ------------------------
 Kernel Ridge Regression (KRR) is a type of support vector machine model that
-combines Ridge Regression with a kernel trick. In ML4Chem, this method is
-implemeted by Rupp in Ref. [Rupp2015]_. Below there is a description of this
-implementation:
+combines Ridge Regression with the kernel trick. In ML4Chem, this method is
+implemeted as described by Rupp in Ref. [Rupp2015]_. Below there is a
+description of this implementation:
 
 #. Molecules are featurized.  
 #. A kernel function :math:`k(x, y)` is applied to all possible pairs of
@@ -185,9 +236,9 @@ Gaussian Process Regression
 Gaussian Process Regression (GP) is similar to KRR with the addition of the
 uncertainty of each prediction.
 
-
 **References:**
 
 .. [Behler2007] Behler, J. & Parrinello, M. Generalized Neural-Network Representation of High-Dimensional Potential-Energy Surfaces. Phys. Rev. Lett. 98, 146401 (2007).
 .. [Behler2015] Behler, J. Constructing high-dimensional neural network potentials: A tutorial review. Int. J. Quantum Chem. 115, 1032–1050 (2015).
+.. [Kingma2013] Kingma, D. P. & Welling, M. Auto-Encoding Variational Bayes. arXiv Prepr. arXiv1312.6114 (2013).
 .. [Rupp2015] Rupp, M. Machine learning for quantum mechanics in a nutshell. Int. J. Quantum Chem. 115, 1058–1073 (2015).

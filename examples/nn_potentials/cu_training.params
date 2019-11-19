@@ -10,7 +10,7 @@
         "type": "nn",
         "input_dimension": 8
     },
-    "fingerprints": {
+    "features": {
         "name": "Gaussian",
         "cutoff": 6.5,
         "normalized": true,
@@ -19,7 +19,7 @@
             null
         ],
         "save_preprocessor": "model.scaler",
-        "filename": "fingerprints.db",
+        "filename": "features.db",
         "angular_type": "G3",
         "weighted": false,
         "custom": {

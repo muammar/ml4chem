@@ -168,7 +168,7 @@ class KernelRidge(object):
         reference_features : dict
             A dictionary with raveled tuples of symbol, atomic fingerprint.
         data : object
-            DataSet object created from the handler.
+            Data object created from the handler.
         purpose : str
             Purpose of this model: 'training', 'inference'.
 
@@ -269,7 +269,7 @@ class KernelRidge(object):
 
         Parameters
         ----------
-        fingerprints : dict
+        features : dict
             Dictionary with hash and features. 
         reference_space : array
             Array with reference feature space.
@@ -345,7 +345,7 @@ class KernelRidge(object):
         targets : list
             The expected values that the model has to learn aka y.
         data : object
-            DataSet object created from the handler.
+            Data object created from the handler.
 
         """
 
@@ -370,12 +370,12 @@ class KernelRidge(object):
         ]
         self.weights["energy"] = _weights
 
-    def get_potential_energy(self, fingerprints, reference_space, purpose):
+    def get_potential_energy(self, features, reference_space, purpose):
         """Get potential energy with Kernel Ridge
         
         Parameters
         ----------
-        fingerprints : dict
+        features : dict
             Dictionary with hash and features. 
         reference_space : array
             Array with reference feature space.
@@ -389,7 +389,7 @@ class KernelRidge(object):
         """
         reference_space = reference_space[b"reference_space"]
         computations = self.get_kernel_matrix(
-            fingerprints, reference_space, purpose=purpose
+            features, reference_space, purpose=purpose
         )
         kernel = np.array(dask.compute(*computations, scheduler=self.scheduler))
         weights = np.array(self.weights["energy"])
@@ -411,7 +411,7 @@ class KernelRidge(object):
         Returns
         -------
         _LT : list
-            Returns a list that maps atomic fingerprints in the images.
+            Returns a list that maps atomic features in the images.
         """
         _LT = []
 

@@ -20,7 +20,7 @@ def main():
     )
 
     # Passage of fingerprint database with reference space
-    calc.reference_space = "fingerprints.db"
+    calc.reference_space = "features.db"
 
     for atoms in images:
         energy = calc.get_potential_energy(atoms)

@@ -58,13 +58,13 @@ class Cartesian(object):
         self.save_preprocessor = save_preprocessor
         self.overwrite = overwrite
 
-    def calculate_features(self, images=None, purpose="training", data=None, svm=False):
+    def calculate(self, images=None, purpose="training", data=None, svm=False):
         """Return features per atom in an atoms objects
 
         Parameters
         ----------
         image : dict
-            Hashed images using the DataSet class.
+            Hashed images using the Data class.
         purpose : str
             The supported purposes are: 'training', 'inference'.
         data : obj

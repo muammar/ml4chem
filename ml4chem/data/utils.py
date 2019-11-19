@@ -2,7 +2,7 @@ from ase.io import Trajectory
 import random
 
 
-def split_dataset(
+def split_Data(
     images,
     training_name="training_images.traj",
     test_name="test_images.traj",
@@ -10,7 +10,7 @@ def split_dataset(
     test_set=20,
     logfile="data_split.log",
 ):
-    """Split dataset
+    """Split Data
     
     Parameters
     ----------
@@ -23,7 +23,7 @@ def split_dataset(
     randomize : bool, optional
         Randomize indices of images, by default True
     test_set : int, optional
-        Percentage of the dataset to be used as test set, by default 20
+        Percentage of the Data to be used as test set, by default 20
     logfile : str, optional
         Log file name, by default 'data_split.log'
     """

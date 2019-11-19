@@ -8,20 +8,12 @@ Subpackages
 
     ml4chem.backends
     ml4chem.data
-    ml4chem.fingerprints
+    ml4chem.features
     ml4chem.models
     ml4chem.optim
 
 Submodules
 ----------
-
-ml4chem.active module
----------------------
-
-.. automodule:: ml4chem.active
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 ml4chem.metrics module
 ----------------------

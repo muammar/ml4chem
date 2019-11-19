@@ -5,7 +5,7 @@ import logging
 import torch
 from ase.calculators.calculator import Calculator
 from ml4chem.backends.available import available_backends
-from ml4chem.data.handler import DataSet
+from ml4chem.data.handler import Data
 from ml4chem.data.serialization import dump, load
 from ml4chem.utils import get_header_message, dynamic_import
 
@@ -21,9 +21,9 @@ class Potentials(Calculator, object):
 
     Parameters
     ----------
-    fingerprints : object
+    features : object
         Atomic feature vectors (local chemical environments) from any of the
-        fingerprints module.
+        features module.
     model : object
         Machine learning algorithm to build a model.
     path : str
@@ -40,6 +40,7 @@ class Potentials(Calculator, object):
     # This is a good way to make attributes available to the class. This can be
     # accessed as Potentials.attribute
     svm_models = ["KernelRidge", "GaussianProcess"]
+    autoencoders = ["AutoEncoder", "VAE"]
     module_names = {
         "PytorchPotentials": "neuralnetwork",
         "PytorchIonicPotentials": "ionic",
@@ -50,7 +51,7 @@ class Potentials(Calculator, object):
 
     def __init__(
         self,
-        fingerprints=None,
+        features=None,
         model=None,
         path=None,
         label="ml4chem",
@@ -60,7 +61,7 @@ class Potentials(Calculator, object):
     ):
 
         Calculator.__init__(self, label=label, atoms=atoms)
-        self.fingerprints = fingerprints
+        self.features = features
         self.available_backends = available_backends()
         self.path = path
         self.label = label
@@ -117,18 +118,18 @@ class Potentials(Calculator, object):
                 model = model_class(**model_params)
 
         # Instantiation of fingerprint class
-        fingerprint_params = ml4chem_params.get("fingerprints", None)
+        fingerprint_params = ml4chem_params.get("features", None)
 
         if fingerprint_params is None:
-            fingerprints = fingerprint_params
+            features = fingerprint_params
         else:
             name = fingerprint_params.get("name")
             del fingerprint_params["name"]
 
-            fingerprints = dynamic_import(name, "ml4chem.fingerprints")
-            fingerprints = fingerprints(**fingerprint_params)
+            features = dynamic_import(name, "ml4chem.features")
+            features = features(**fingerprint_params)
 
-        calc = Cls(fingerprints=fingerprints, model=model, **kwargs)
+        calc = Cls(features=features, model=model, **kwargs)
 
         return calc
 
@@ -175,16 +176,20 @@ class Potentials(Calculator, object):
 
                 torch.save(model.state_dict(), path + ".ml4c")
 
-                if model_name == "AutoEncoder":
+                if model_name in Potentials.autoencoders:
                     output_dimension = {"output_dimension": model.output_dimension}
                     params["model"].update(output_dimension)
+                    variant = {"variant": model.variant}
+                    params["model"].update(variant)
+                    one_for_all = {"one_for_all": model.one_for_all}
+                    params["model"].update(one_for_all)
         else:
             params = {}
 
         if features is not None:
-            # Adding fingerprints to .params json file.
-            fingerprints = {"fingerprints": features.params}
-            params.update(fingerprints)
+            # Adding features to .params json file.
+            features = {"features": features.params}
+            params.update(features)
 
         # Save parameters to file
         with open(path + ".params", "wb") as json_file:
@@ -235,16 +240,17 @@ class Potentials(Calculator, object):
             None.
         """
 
-        data_handler = DataSet(training_set, purpose="training")
+        purpose = "training"
+        data_handler = Data(training_set, purpose=purpose)
         # Raw input and targets aka X, y
-        training_set, targets = data_handler.get_data(purpose="training")
+        training_set, targets = data_handler.get_data(purpose=purpose)
 
         # Now let's train
         # SVM models
         if self.model.name() in Potentials.svm_models:
             # Mapping raw positions into a feature space aka X
-            feature_space, reference_features = self.fingerprints.calculate_features(
-                training_set, data=data_handler, purpose="training", svm=True
+            feature_space, reference_features = self.features.calculate(
+                training_set, data=data_handler, purpose=purpose, svm=True
             )
             self.model.prepare_model(
                 feature_space, reference_features, data=data_handler
@@ -253,8 +259,9 @@ class Potentials(Calculator, object):
             self.model.train(feature_space, targets)
         else:
             # Mapping raw positions into a feature space aka X
-            feature_space = self.fingerprints.calculate_features(
-                training_set, data=data_handler, purpose="training", svm=False
+
+            feature_space = self.features.calculate(
+                training_set, data=data_handler, purpose=purpose, svm=False
             )
 
             # Fixed fingerprint dimension
@@ -305,9 +312,7 @@ class Potentials(Calculator, object):
                 batch_size=batch_size,
             )
 
-        self.save(
-            self.model, features=self.fingerprints, path=self.path, label=self.label
-        )
+        self.save(self.model, features=self.features, path=self.path, label=self.label)
 
     def calculate(self, atoms, properties, system_changes):
         """Calculate things
@@ -322,22 +327,22 @@ class Potentials(Calculator, object):
         Calculator.calculate(self, atoms, properties, system_changes)
         model_name = self.model.name()
 
-        # We convert the atoms in atomic fingerprints
-        data_handler = DataSet([atoms], purpose=purpose)
+        # We convert the atoms in atomic features
+        data_handler = Data([atoms], purpose=purpose)
         atoms = data_handler.get_data(purpose=purpose)
 
         # We copy the loaded fingerprint class
-        fingerprints = copy.deepcopy(self.fingerprints)
+        features = copy.deepcopy(self.features)
         kwargs = {"data": data_handler, "purpose": purpose}
 
         if model_name in Potentials.svm_models:
             kwargs.update({"svm": True})
 
-        if fingerprints.name() == "LatentFeatures":
-            fingerprints = fingerprints.calculate_features(atoms, **kwargs)
+        if features.name() == "LatentFeatures":
+            features = features.calculate(atoms, **kwargs)
         else:
-            fingerprints.preprocessor = self.preprocessor
-            fingerprints = fingerprints.calculate_features(atoms, **kwargs)
+            features.preprocessor = self.preprocessor
+            features = features.calculate(atoms, **kwargs)
 
         if "energy" in properties:
             logger.info("Computing energy...")
@@ -349,10 +354,10 @@ class Potentials(Calculator, object):
                     raise ("This is not a database...")
 
                 energy = self.model.get_potential_energy(
-                    fingerprints, reference_space, purpose=purpose
+                    features, reference_space, purpose=purpose
                 )
             else:
-                input_dimension = len(list(fingerprints.values())[0][0][-1])
+                input_dimension = len(list(features.values())[0][0][-1])
                 model = copy.deepcopy(self.model)
                 model.prepare_model(input_dimension, data=data_handler, purpose=purpose)
                 try:
@@ -363,7 +368,7 @@ class Potentials(Calculator, object):
                     )
                     model.load_state_dict(torch.load(self.ml4chem_path), strict=False)
                 model.eval()
-                energy = model(fingerprints).item()
+                energy = model(features).item()
 
             # Populate ASE's self.results dict
             self.results["energy"] = energy

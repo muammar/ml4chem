@@ -60,7 +60,7 @@ class NeuralNetwork(torch.nn.Module):
         input_dimension : int
             Input's dimension.
         data : object
-            DataSet object created from the handler.
+            Data object created from the handler.
         purpose : str
             Purpose of this model: 'training', 'inference'.
         """
@@ -216,7 +216,7 @@ class train(object):
     model : object
         The NeuralNetwork class.
     data : object
-        DataSet object created from the handler.
+        Data object created from the handler.
     optimizer : tuple
         The optimizer is a tuple with the structure:
             >>> ('adam', {'lr': float, 'weight_decay'=float})

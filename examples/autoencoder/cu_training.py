@@ -1,14 +1,14 @@
-import logging
 import sys
 
 sys.path.append("../../")
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
 from ml4chem import Potentials
-from ml4chem.data.handler import DataSet
-from ml4chem.fingerprints import Cartesian, Gaussian
+from ml4chem.data.handler import Data
+from ml4chem.features import Gaussian
 from ml4chem.models.autoencoders import AutoEncoder, train
 from ml4chem.data.serialization import dump
+from ml4chem.utils import logger
 
 
 def autoencode():
@@ -22,17 +22,17 @@ def autoencode():
     """
     Data Structure Preparation
     """
-    data_handler = DataSet(images, purpose=purpose)
-    training_set, energy_targets = data_handler.get_images(purpose=purpose)
+    data_handler = Data(images, purpose=purpose)
+    training_set, energy_targets = data_handler.get_data(purpose=purpose)
 
     """
     Let's create the targets of the model
     """
-    fingerprints = Gaussian(
+    features = Gaussian(
         cutoff=6.5, normalized=normalized, save_preprocessor="cu_training.scaler"
     )
 
-    targets = fingerprints.calculate_features(
+    targets = features.calculate(
         training_set, data=data_handler, purpose=purpose, svm=False
     )
     output_dimension = len(list(targets.values())[0][0][1])
@@ -50,12 +50,11 @@ def autoencode():
     # Arguments for training the potential
     convergence = {"rmse": 5e-2}
     epochs = 2000
-    lr = 1e-0
+    lr = 1e-3
     weight_decay = 0
     regularization = None
 
-    opt_kwars = {"lr": lr}
-    optimizer = ("lbfgs", opt_kwars)
+    optimizer = ("adam", {"lr": lr, "weight_decay": weight_decay, "amsgrad": True})
 
     inputs = targets
     train(
@@ -81,11 +80,7 @@ def autoencode():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        filename="cu_training.log",
-        level=logging.INFO,
-        format="%(filename)s:%(lineno)s %(levelname)s:%(message)s",
-    )
+    logger(filename="cu_training.log")
     cluster = LocalCluster()
-    client = Client(cluster, asyncronous=True)
+    client = Client(cluster)
     inputs, outputs, data_handler = autoencode()

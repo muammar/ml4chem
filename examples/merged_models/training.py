@@ -3,8 +3,8 @@ from dask.distributed import Client, LocalCluster
 import sys
 
 sys.path.append("../ml4chem")
-from ml4chem.data.handler import DataSet
-from ml4chem.fingerprints import Cartesian
+from ml4chem.data.handler import Data
+from ml4chem.features import Cartesian
 from ml4chem.models.autoencoders import AutoEncoder
 from ml4chem.models.neuralnetwork import NeuralNetwork
 from ml4chem.models.merger import ModelMerger
@@ -21,7 +21,7 @@ def hybrid():
     purpose = "training"
 
     latent_dimension = 32
-    data_handler = DataSet(images, purpose=purpose)
+    data_handler = Data(images, purpose=purpose)
     data_handler.get_unique_element_symbols(images, purpose=purpose)
     training_set, energy_targets = data_handler.get_data(purpose=purpose)
 
@@ -34,7 +34,7 @@ def hybrid():
     features = Cartesian(
         preprocessor=preprocessor, save_preprocessor="cartesian.scaler"
     )
-    _inputs = features.calculate_features(training_set, data=data_handler)
+    _inputs = features.calculate(training_set, data=data_handler)
 
     """
     Building AutoEncoder Model1
@@ -104,6 +104,6 @@ def hybrid():
 if __name__ == "__main__":
     logger()
     cluster = LocalCluster(n_workers=5, threads_per_worker=2, dashboard_address=8798)
-    client = Client(cluster, asyncronous=True)
+    client = Client(cluster)
     # Let's do this
     hybrid()

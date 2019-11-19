@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 
 def AtomicMSELoss(outputs, targets, atoms_per_image):
@@ -33,8 +34,6 @@ def AtomicMSELoss(outputs, targets, atoms_per_image):
 def SumSquaredDiff(outputs, targets):
     """Sum of squared differences loss function
 
-    This is the default loss function for a real-valued autoencoder.
-
     Parameters
     ----------
     outputs : tensor
@@ -57,10 +56,7 @@ def SumSquaredDiff(outputs, targets):
 
 
 def MSELoss(outputs, targets):
-    """Default loss function
-
-    If user does not input loss function we provide mean-squared error loss
-    function.
+    """Mean-squared error loss function
 
     Parameters
     ----------
@@ -217,7 +213,7 @@ def get_distance(i, j, periodicity):
     Returns
     -------
         tensor with distances.
-    
+
     Notes
     -----
     Cases where periodicity is present are not yet supported.
@@ -229,7 +225,7 @@ def get_distance(i, j, periodicity):
 
 def get_pairwise_distances(positions, squared=False):
     """Get pairwise distances of a matrix
-    
+
     Parameters
     ----------
     positions : tensor
@@ -237,7 +233,7 @@ def get_pairwise_distances(positions, squared=False):
     squared : bool, optional
         Whether or not the squared of pairwise distances are computed, by
         default False.
-    
+
     Returns
     -------
     distances
@@ -253,3 +249,103 @@ def get_pairwise_distances(positions, squared=False):
         distances = torch.sqrt(distances)
 
     return distances
+
+
+def VAELoss(
+    outputs=None,
+    targets=None,
+    mus_latent=None,
+    logvars_latent=None,
+    mus_decoder=None,
+    logvars_decoder=None,
+    annealing=None,
+    variant=None,
+    latent=None,
+    input_dimension=None,
+):
+    """Variational Autoencoder loss function
+
+
+    Parameters
+    ----------
+    outputs : tensor
+        Outputs of the model.
+    targets : tensor
+        Expected value of outputs.
+    mus_latent : tensor
+        Mean values of distribution.
+    logvars_latent : tensor
+        Logarithm of the variance.
+    variant : str
+        The following variants are supported:
+        - "multivariate": decoder outputs a distribution with mean and
+          variance, we minimize the negative of the log likelihood plus the
+          KL-Divergence. Useful for continuous variables. Feature range [-inf,
+          inf].
+        - "bernoulli": decoder outputs a layer with sigmoid activation
+          function, and we minimize cross-entropy plus KL-diverence. Features
+          must be in a range [0, 1].
+        - "dcgan": decoder outputs a single layer with tanh, and loss equals to
+          KL-Diverngence plus MSELoss. Useful for feature ranges [-1, 1].
+    annealing : float
+        Contribution of distance loss function to total loss.
+    latent : tensor, optional
+        The latent space tensor.
+    input_dimension : int, optional
+        Input's dimension.
+
+
+    Returns
+    -------
+    loss : tensor
+        The value of the loss function.
+
+    """
+
+    loss = []
+
+    dim = 1
+
+    if variant == "multivariate":
+        # loss_rec = LOG_2_PI + logvar_x + (x - mu_x)**2 / (2*torch.exp(logvar_x))
+        # loss_rec = -torch.mean(torch.sum(-(0.5 * np.log(2 * np.pi) + 0.5 * logvars_decoder) - 0.5 * ((targets - mus_decoder)**2 / torch.exp(logvars_decoder)), dim=0))
+        loss_rec = -torch.sum(
+            (-0.5 * np.log(2.0 * np.pi))
+            + (-0.5 * logvars_decoder)
+            + ((-0.5 / torch.exp(logvars_decoder)) * (targets - mus_decoder) ** 2.0),
+        )
+
+    elif variant == "bernoulli":
+        loss_rec = torch.nn.functional.binary_cross_entropy(
+            outputs, targets, reduction="sum"
+        )
+        loss_rec *= input_dimension
+
+    elif variant == "dcgan":
+        loss_rec = MSELoss(outputs, targets)
+
+    else:
+        raise NotImplementedError
+
+    loss.append(loss_rec)
+
+    # see Appendix B from VAE paper:
+    # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+    # https://arxiv.org/abs/1312.6114
+    # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+
+    kld = (
+        -0.5
+        * torch.sum(1 + logvars_latent - mus_latent.pow(2) - logvars_latent.exp())
+        * annealing
+    )
+    loss.append(kld)
+
+    if latent is not None:
+        activation_reg = torch.mean(torch.pow(latent, 2))
+        loss.append(activation_reg)
+
+    # Mini-batch mean
+    loss = torch.mean(torch.stack(loss))
+
+    return loss

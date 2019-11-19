@@ -63,9 +63,9 @@ Options:
 Adding atomic feature calculations to scheduler...
 ... finished in 0 hours 0 minutes 1.87 seconds.
 
-Computing fingerprints...
+Computing features...
 Fingerprinting finished in 0 hours 0 minutes 12.67 seconds.
-Fingerprints saved to fingerprints.db.
+features saved to features.db.
  
 Model Training
 ==============
