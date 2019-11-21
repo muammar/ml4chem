@@ -48,5 +48,5 @@ def train():
 if __name__ == "__main__":
     logger(filename="cu_training.log")
     cluster = LocalCluster()
-    client = Client(cluster, asyncronous=True)
+    client = Client(cluster)
     train()

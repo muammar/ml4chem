@@ -169,7 +169,7 @@ class AutoEncoder(torch.nn.Module):
 
                 values = [h, mu, logvar]
                 encoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
-            else: 
+            else:
 
                 encoder = torch.nn.Sequential(*encoder)
 
@@ -599,7 +599,7 @@ class VAE(AutoEncoder):
             A sample from the distribution.
         """
         if purpose is None:
-            raise("You need to provide a purpose")
+            raise ("You need to provide a purpose")
 
         elif purpose == "training":
             std = torch.exp(0.5 * logvar)
@@ -700,7 +700,7 @@ class VAE(AutoEncoder):
         """
 
         if purpose is None:
-            raise("You need to provide a purpose")
+            raise ("You need to provide a purpose")
 
         # FIXME parallelize me
         if purpose == "preprocessing":
@@ -716,7 +716,9 @@ class VAE(AutoEncoder):
                         mu_latent, logvar_latent = self.encode(x)
                     else:
                         mu_latent, logvar_latent = self.encode(x, symbol=symbol)
-                    latent_vector = self.reparameterize(mu_latent, logvar_latent, purpose="latent")
+                    latent_vector = self.reparameterize(
+                        mu_latent, logvar_latent, purpose="latent"
+                    )
                     _symbols.append(symbol)
 
                     if svm:
@@ -745,7 +747,9 @@ class VAE(AutoEncoder):
                         mu_latent, logvar_latent = self.encode(x)
                     else:
                         mu_latent, logvar_latent = self.encode(x, symbol=symbol)
-                    latent_vector = self.reparameterize(mu_latent, logvar_latent, purpose=purpose)
+                    latent_vector = self.reparameterize(
+                        mu_latent, logvar_latent, purpose=purpose
+                    )
 
                     if svm:
                         _latent_vector = latent_vector.detach().numpy()

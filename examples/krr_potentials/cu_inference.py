@@ -31,5 +31,5 @@ def main():
 if __name__ == "__main__":
     logger(filename="cu_inference.log")
     cluster = LocalCluster(n_workers=8, threads_per_worker=2)
-    client = Client(cluster, asyncronous=True)
+    client = Client(cluster)
     main()

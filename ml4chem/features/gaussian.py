@@ -168,8 +168,8 @@ class Gaussian(object):
         """
 
         logger.info(" ")
-        logger.info("Fingerprinting")
-        logger.info("==============")
+        logger.info("Featurization")
+        logger.info("=============")
 
         # FIXME the block below should become a function.
         if os.path.isfile(self.filename) and self.overwrite is False:
@@ -392,7 +392,7 @@ class Gaussian(object):
             h, m, s = convert_elapsed_time(fp_time)
 
             logger.info(
-                "Fingerprinting finished in {} hours {} minutes {:.2f}"
+                "Featurization finished in {} hours {} minutes {:.2f}"
                 " seconds.".format(h, m, s)
             )
 
@@ -443,7 +443,7 @@ class Gaussian(object):
             h, m, s = convert_elapsed_time(fp_time)
 
             logger.info(
-                "Fingerprinting finished in {} hours {} minutes {:.2f}"
+                "Featurization finished in {} hours {} minutes {:.2f}"
                 " seconds.".format(h, m, s)
             )
 

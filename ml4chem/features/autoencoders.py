@@ -172,7 +172,9 @@ class LatentFeatures(object):
         else:
             if encoder.name() == "VAE":
                 purpose = "inference"
-            latent_space = encoder.get_latent_space(feature_space, svm=svm, purpose=purpose)
+            latent_space = encoder.get_latent_space(
+                feature_space, svm=svm, purpose=purpose
+            )
 
         return latent_space
 

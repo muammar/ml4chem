@@ -277,11 +277,12 @@ class train(object):
         logging.info("Batch size: {} elements per batch.".format(batch_size))
         logger.info(" ")
 
-        atoms_per_image = torch.tensor(
-            atoms_per_image, requires_grad=False, dtype=torch.float
-        )
+        atoms_per_image = [
+            torch.tensor(n_atoms, requires_grad=False, dtype=torch.float)
+            for n_atoms in atoms_per_image
+        ]
 
-        targets = torch.tensor(targets, requires_grad=False)
+        targets = [torch.tensor(t, requires_grad=False) for t in targets]
 
         if device == "cuda":
             logger.info("Moving data to CUDA...")
@@ -381,7 +382,7 @@ class train(object):
             client = dask.distributed.get_client()
 
             rmse = client.submit(compute_rmse, *(outputs_, self.targets))
-            atoms_per_image = self.atoms_per_image.view(1, -1)
+            atoms_per_image = torch.cat(self.atoms_per_image)
             rmse_atom = client.submit(
                 compute_rmse, *(outputs_, self.targets, atoms_per_image)
             )
