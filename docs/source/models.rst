@@ -211,7 +211,7 @@ for an AE as follows:
 
     hiddenlayers = {"encoder": (20, 10, 4), "decoder": (4, 10, 20)}
     activation = "tanh"
-    vae = VAE(hiddenlayers=hiddenlayers, activation=activation, multivariate=True)
+    vae = VAE(hiddenlayers=hiddenlayers, activation=activation, variant="multivariate")
     data_handler.get_unique_element_symbols(images, purpose=purpose)
     vae.prepare_model(input_dimension, output_dimension, data=data_handler)
 
