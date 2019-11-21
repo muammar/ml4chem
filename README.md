@@ -12,10 +12,11 @@
 
 
 
-This package is written in Python 3, and intends to offer modern and rich
-features to perform machine learning workflows for chemical physics.
+ML4Chem is a package to deploy machine learning for chemistry and materials
+science. It is written in Python 3, and intends to offer modern and rich
+features to perform machine learning (ML) workflows for chemical physics.
 
-A list of features and methods are shown below.
+A list of features and ML algorithms are shown below.
 
 - PyTorch backend.
 - Completely modular. You can use any part of this package in your project.
@@ -23,7 +24,7 @@ A list of features and methods are shown below.
   welcome!
 - Documentation (work in progress).
 - Explicit and idiomatic: `ml4chem.get_me_a_coffee()`.
-- Distributed training in a data parallelism paradigm (mini-batches).
+- Distributed training in a data parallel paradigm aka mini-batches.
 - Scalability and distributed computations are powered by Dask.
 - Real-time tools to track status of your computations.
 - [Messagepack serialization](https://msgpack.org/index.html).
@@ -38,10 +39,10 @@ If you find this software useful, please use this DOI to cite it:
 
 ## Documentation
 
-You can read the documentation at [https://ml4chem.dev](https://ml4chem.dev)
-where you can get started. It is arranged in a way that you can go through
-the theory as well as some code snippets to understand how to use this
-software. Additionally, you can dive through the [module
+To get started,  read the documentation at
+[https://ml4chem.dev](https://ml4chem.dev). It is arranged in a way that you
+can go through the theory as well as some code snippets to understand how to
+use this software. Additionally, you can dive through the [module
 index](https://ml4chem.dev/genindex.html) to get more information about
 different classes and functions of ML4Chem.
 
