@@ -131,7 +131,7 @@ class Preprocessing(object):
             Scaled features using requested preprocessor.
         """
 
-        logger.info("Calling feature scaler...")
+        logger.info("Calling feature preprocessor...")
         if isinstance(stacked_features, np.ndarray):
             # The Normalizer() is not supported by dask_ml.
             self.preprocessor.fit(stacked_features)

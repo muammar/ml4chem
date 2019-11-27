@@ -9,7 +9,7 @@ from collections import OrderedDict
 from .cutoff import Cosine
 from ml4chem.data.serialization import dump, load
 from ml4chem.data.preprocessing import Preprocessing
-from ml4chem.utils import get_neighborlist, convert_elapsed_time
+from ml4chem.utils import get_chunks, get_neighborlist, convert_elapsed_time
 
 logger = logging.getLogger()
 
@@ -52,6 +52,8 @@ class Gaussian(object):
         Compute "G3" or "G4" angular symmetry functions.
     weighted : bool
         True if applying weighted feature of Gaussian function. See Ref. 2.
+    batch_size : int
+        Number of data points per batch to use for training. Default is None.
 
     References
     ----------
@@ -85,6 +87,7 @@ class Gaussian(object):
         overwrite=True,
         angular_type="G3",
         weighted=False,
+        batch_size=None,
     ):
 
         self.cutoff = cutoff
@@ -96,6 +99,7 @@ class Gaussian(object):
         self.overwrite = overwrite
         self.angular_type = angular_type.upper()
         self.weighted = weighted
+        self.batch_size = batch_size
 
         # Let's add parameters that are going to be stored in the .params json
         # file.
@@ -125,7 +129,16 @@ class Gaussian(object):
         _params = vars()
 
         # Delete useless variables
-        delete = ["self", "scheduler", "overwrite", "k", "v", "value", "keys"]
+        delete = [
+            "self",
+            "scheduler",
+            "overwrite",
+            "k",
+            "v",
+            "value",
+            "keys",
+            "batch_size",
+        ]
 
         for param in delete:
             try:
@@ -167,6 +180,7 @@ class Gaussian(object):
             A reference space useful for SVM models.
         """
 
+        client = dask.distributed.get_client()
         logger.info(" ")
         logger.info("Featurization")
         logger.info("=============")
@@ -234,97 +248,118 @@ class Gaussian(object):
 
         # We start populating computations to get atomic features.
         logger.info("")
-        logger.info("Adding atomic feature calculations to computational graph...")
+        logger.info("Embarrassingly parallel computation of atomic features...")
 
-        ini = end = 0
-
-        computations = []
+        stacked_features = []
         atoms_index_map = []  # This list is used to reconstruct images from atoms.
 
-        for image in images.items():
-            key, image = image
-            end = ini + len(image)
-            atoms_index_map.append(list(range(ini, end)))
-            ini = end
-            for atom in image:
-                index = atom.index
-                symbol = atom.symbol
-                nl = get_neighborlist(image, cutoff=self.cutoff)
-                # n_indices: neighbor indices for central atom_i.
-                # n_offsets: neighbor offsets for central atom_i.
-                n_indices, n_offsets = nl[atom.index]
+        if self.batch_size is None:
+            self.batch_size = data.get_total_number_atoms()
 
-                n_symbols = np.array(image.get_chemical_symbols())[n_indices]
-                neighborpositions = image.positions[n_indices] + np.dot(
-                    n_offsets, image.get_cell()
-                )
+        chunks = get_chunks(images, self.batch_size, svm=svm)
 
-                afp = self.get_atomic_fingerprint(
-                    atom,
-                    index,
-                    symbol,
-                    n_symbols,
-                    neighborpositions,
-                    self.preprocessor,
-                    image_molecule=image,
-                    weighted=self.weighted,
-                    n_indices=n_indices,
-                )
+        ini = end = 0
+        for chunk in chunks:
+            images_ = OrderedDict(chunk)
+            intermediate = []
 
-                computations.append(afp)
+            for image in images_.items():
+                key, image = image
+                end = ini + len(image)
+                atoms_index_map.append(list(range(ini, end)))
+                ini = end
+                for atom in image:
+                    index = atom.index
+                    symbol = atom.symbol
+                    nl = get_neighborlist(image, cutoff=self.cutoff)
+                    # n_indices: neighbor indices for central atom_i.
+                    # n_offsets: neighbor offsets for central atom_i.
+                    n_indices, n_offsets = nl[atom.index]
+
+                    n_symbols = np.array(image.get_chemical_symbols())[n_indices]
+                    neighborpositions = image.positions[n_indices] + np.dot(
+                        n_offsets, image.get_cell()
+                    )
+
+                    afp = self.get_atomic_fingerprint(
+                        atom,
+                        index,
+                        symbol,
+                        n_symbols,
+                        neighborpositions,
+                        self.preprocessor,
+                        image_molecule=image,
+                        weighted=self.weighted,
+                        n_indices=n_indices,
+                    )
+
+                    intermediate.append(afp)
+
+            intermediate = client.persist(intermediate, scheduler=self.scheduler)
+            stacked_features += intermediate
+            del intermediate
 
         scheduler_time = time.time() - initial_time
 
+        dask.distributed.wait(stacked_features)
         h, m, s = convert_elapsed_time(scheduler_time)
         logger.info(
             "... finished in {} hours {} minutes {:.2f}" " seconds.".format(h, m, s)
         )
 
         logger.info("")
-        # In this block we compute the features.
-
-        stacked_features = dask.persist(*computations, scheduler=self.scheduler)
-
-        # dask.distributed.wait(stacked_features)
 
         if self.preprocessor is not None:
-            logger.info("Adding Dask array construction to computational graph...")
+            logger.info("Converting features to dask array...")
             symbol = data.unique_element_symbols[purpose][0]
             sample = np.zeros(len(self.GP[symbol]))
-            dim = (len(stacked_features), len(sample))
+            # dim = (len(stacked_features), len(sample))
 
             stacked_features = [
                 dask.array.from_delayed(lazy, dtype=float, shape=sample.shape)
                 for lazy in stacked_features
             ]
 
-            stacked_features = (
-                dask.array.stack(stacked_features, axis=0).reshape(dim).rechunk(dim)
+            layout = {0: tuple(len(i) for i in atoms_index_map), 1: -1}
+            # stacked_features = dask.array.stack(stacked_features, axis=0).rechunk(layout)
+            stacked_features = dask.array.stack(stacked_features, axis=0).rechunk(
+                layout
             )
 
-        # Clean
-        # del computations
+            logger.info(
+                "Shape of array is {} and chunks {}.".format(
+                    stacked_features.shape, stacked_features.chunks
+                )
+            )
 
         if purpose == "training":
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
-            client = dask.distributed.get_client()
 
             if self.preprocessor is not None:
                 scaled_feature_space = []
 
+                # Note that dask_ml by default convert the output of .fit
+                # in a concrete value.
                 stacked_features = preprocessor.fit(
                     stacked_features, scheduler=self.scheduler
                 )
-                atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
 
-                for indices in atoms_index_map:
+                atoms_index_map = [
+                    client.scatter(indices) for indices in atoms_index_map
+                ]
+                # stacked_features = [client.scatter(features) for features in stacked_features]
+                stacked_features = client.scatter(stacked_features, broadcast=True)
+
+                for index, indices in enumerate(atoms_index_map):
                     features = client.submit(
                         self.stack_features, *(indices, stacked_features)
                     )
+                    # features = self.stack_features(indices, stacked_features)
+
                     scaled_feature_space.append(features)
 
-                # More data processing depending on the method used.
+                # scaled_feature_space = client.gather(scaled_feature_space)
 
             else:
                 feature_space = []
@@ -337,11 +372,11 @@ class Gaussian(object):
                     feature_space.append(features)
 
             # Clean
-            del computations
             del stacked_features
-            computations = []
 
+            # Restack images
             if svm:
+                computations = []
                 reference_space = []
 
                 for i, image in enumerate(images.items()):
@@ -361,16 +396,14 @@ class Gaussian(object):
                     *reference_space, scheduler=self.scheduler
                 )
             else:
+                feature_space = []
                 try:
                     for i, image in enumerate(images.items()):
-                        computations.append(
-                            self.restack_image(
-                                i,
-                                image,
-                                scaled_feature_space=scaled_feature_space,
-                                svm=svm,
-                            )
+                        restacked = client.submit(
+                            self.restack_image,
+                            *(i, image, None, scaled_feature_space, svm)
                         )
+                        feature_space.append(restacked)
 
                 except UnboundLocalError:
                     # scaled_feature_space does not exist.
@@ -381,9 +414,10 @@ class Gaussian(object):
                             )
                         )
 
-            feature_space = dask.compute(*computations, scheduler=self.scheduler)
+            feature_space = client.gather(feature_space)
             feature_space = OrderedDict(feature_space)
-            del computations
+            # feature_space = dask.compute(*computations, scheduler=self.scheduler)
+            # del computations
 
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
@@ -482,10 +516,7 @@ class Gaussian(object):
 
         return symbol, features
 
-    @dask.delayed
-    def restack_image(
-        self, index, image, feature_space=None, scaled_feature_space=None, svm=False
-    ):
+    def restack_image(self, index, image, feature_space, scaled_feature_space, svm):
         """Restack images to correct dictionary's structure to train
 
         Parameters
