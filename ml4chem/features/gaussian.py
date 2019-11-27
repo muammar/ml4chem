@@ -375,16 +375,17 @@ class Gaussian(object):
             del stacked_features
 
             # Restack images
+            feature_space = []
+
             if svm:
-                computations = []
                 reference_space = []
 
                 for i, image in enumerate(images.items()):
-                    computations.append(
-                        self.restack_image(
-                            i, image, scaled_feature_space=scaled_feature_space, svm=svm
-                        )
+                    restacked = client.submit(
+                        self.restack_image,
+                        *(i, image, None, scaled_feature_space, svm)
                     )
+                    feature_space.append(restacked)
 
                     # image = (hash, ase_image) -> tuple
                     for atom in image[1]:
@@ -396,7 +397,6 @@ class Gaussian(object):
                     *reference_space, scheduler=self.scheduler
                 )
             else:
-                feature_space = []
                 try:
                     for i, image in enumerate(images.items()):
                         restacked = client.submit(
@@ -408,16 +408,14 @@ class Gaussian(object):
                 except UnboundLocalError:
                     # scaled_feature_space does not exist.
                     for i, image in enumerate(images.items()):
-                        computations.append(
-                            self.restack_image(
-                                i, image, feature_space=feature_space, svm=svm
-                            )
+                        restacked = client.submit(
+                            self.restack_image,
+                            *(i, image, feature_space, None, svm)
                         )
+                        feature_space.append(restacked)
 
             feature_space = client.gather(feature_space)
             feature_space = OrderedDict(feature_space)
-            # feature_space = dask.compute(*computations, scheduler=self.scheduler)
-            # del computations
 
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 

@@ -58,10 +58,10 @@ class Data(object):
         """
         logger.info("Preparing images for {}...".format(purpose))
         self.images = OrderedDict()
-
+        self.atoms_per_image = []
+        
         if purpose == "training":
             self.targets = []
-            self.atoms_per_image = []
 
         duplicates = 0
 
