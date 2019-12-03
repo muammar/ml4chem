@@ -75,8 +75,8 @@ class NeuralNetwork(torch.nn.Module):
         hl = len(self.hiddenlayers)
         if purpose == "training":
             logger.info(" ")
-            logger.info("Model Training")
-            logger.info("==============")
+            logger.info("Model")
+            logger.info("=====")
             logger.info("Model name: {}.".format(self.name()))
             logger.info("Number of hidden-layers: {}".format(hl))
             logger.info(

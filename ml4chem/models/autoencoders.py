@@ -636,7 +636,7 @@ class VAE(AutoEncoder):
                     mu_latent, logvar_latent = self.encode(x)
                 else:
                     mu_latent, logvar_latent = self.encode(x, symbol=symbol)
-                z = self.reparameterize(mu_latent, logvar_latent)
+                z = self.reparameterize(mu_latent, logvar_latent, purpose="training")
                 mus_latent.append(mu_latent)
                 logvars_latent.append(logvar_latent)
 
@@ -1203,7 +1203,7 @@ class train(object):
 
     @staticmethod
     def get_inputs_chunks(chunks):
-        """Get inputs in chunks for encodermap
+        """Get inputs in chunks for EncoderMapLoss
 
         Returns
         -------

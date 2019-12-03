@@ -9,6 +9,7 @@
 [![Downloads](https://img.shields.io/github/downloads/muammar/ml4chem/total.svg?maxAge=2592000?style=flat-square)](https://github.com/muammar/ml4chem/releases)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/ml4chem)
 [![GitHub release](https://img.shields.io/github/release/muammar/ml4chem.svg)](https://github.com/muammar/ml4chem/releases/latest)
+[![Slack channel](https://img.shields.io/badge/slack-ml4chem-yellow.svg?logo=slack)](https://ml4chem.slack.com/)
 
 
 
@@ -34,7 +35,7 @@ A list of features and ML algorithms are shown below.
 
 If you find this software useful, please use this DOI to cite it:
 
-[![DOI](https://zenodo.org/badge/161847010.svg)](https://zenodo.org/badge/latestdoi/161847010)
+[DOI: 10.5281/zenodo.3471761](https://doi.org/10.5281/zenodo.3471761)
 
 
 ## Documentation
