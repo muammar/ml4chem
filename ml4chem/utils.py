@@ -73,7 +73,7 @@ def get_chunks(sequence, chunk_size, svm=True):
     """
     res = []
 
-    #if svm is False and isinstance(sequence, dict):
+    # if svm is False and isinstance(sequence, dict):
     if isinstance(sequence, dict):
         sequence = sequence.items()
 

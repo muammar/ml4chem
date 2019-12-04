@@ -948,31 +948,14 @@ class train(object):
         _rmse = []
         epoch = 0
 
-        warm_up = 50
-        warming = 0
-        step = 1 / 50
-        cycles = 0
-        stop = 5
-
+        annealer = Annealer()
         while not converged:
             epoch += 1
 
-            if cycles < stop and self.anneal:
-                if warming < warm_up:
-                    annealing = 0
-                    warming += 1
-                elif warming == warm_up:
-                    annealing += step
-                    warming += 1
-                else:
-                    annealing += step
-
-                if np.isclose(annealing, 1.0):
-                    warming = 0
-                    cycles += 1
-            else:
-                annealing = 1.0
-
+            if self.anneal:
+                annealing = annealer.update(epoch)
+                print(annealing)
+                
             self.optimizer.zero_grad()  # clear previous gradients
 
             args = {
@@ -1223,3 +1206,59 @@ class train(object):
             inputs_chunk_vals.append(vectors)
 
         return inputs_chunk_vals
+
+
+class Annealer(object):
+    """Annealing class
+
+    Based on on https://arxiv.org/abs/1903.10145.
+    
+    Parameters
+    ----------
+    warm_up : int, optional
+        Number of epochs that we let reconstruction to dominate VAE, by
+        default 50
+    step : int, optional
+        Number of steps to increase from 0 to 1, by default 50
+    n_cycles : int, optional
+        The number of cycles we will repeat the annealing, by default 5
+    """
+    def __init__(self, warm_up=50, step=50, n_cycles=5):
+        self.step = 1 / step
+        self.warming = 0
+        self.cycles = 0
+        self.n_cycles = n_cycles
+        self.warm_up = warm_up
+        self.annealing = 0
+    
+    def update(self, epoch):
+        """Update annealing value
+        
+        Parameters
+        ----------
+        epoch : int
+            Epoch on the training process. 
+        
+        Returns
+        -------
+        annealing
+            Float number with annealing magnitude.
+        """
+        if self.cycles < self.n_cycles:
+            if self.warming < self.warm_up:
+                self.warming += 1
+            elif self.warming == self.warm_up:
+                self.annealing += self.step
+                self.warming += 1
+            else:
+                self.annealing += self.step
+
+            if np.isclose(self.annealing, 1.0):
+                self.warming = 0
+                self.cycles += 1
+                self.annealing = 0
+
+            return self.annealing
+
+        else:
+            return 1.

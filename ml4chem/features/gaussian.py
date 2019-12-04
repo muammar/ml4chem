@@ -382,8 +382,7 @@ class Gaussian(object):
 
                 for i, image in enumerate(images.items()):
                     restacked = client.submit(
-                        self.restack_image,
-                        *(i, image, None, scaled_feature_space, svm)
+                        self.restack_image, *(i, image, None, scaled_feature_space, svm)
                     )
                     feature_space.append(restacked)
 
@@ -409,8 +408,7 @@ class Gaussian(object):
                     # scaled_feature_space does not exist.
                     for i, image in enumerate(images.items()):
                         restacked = client.submit(
-                            self.restack_image,
-                            *(i, image, feature_space, None, svm)
+                            self.restack_image, *(i, image, feature_space, None, svm)
                         )
                         feature_space.append(restacked)
 

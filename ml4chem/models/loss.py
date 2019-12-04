@@ -307,7 +307,7 @@ def VAELoss(
     dim = 1
 
     if annealing is None:
-        annealing = 1.
+        annealing = 1.0
 
     if variant == "multivariate":
         # loss_rec = LOG_2_PI + logvar_x + (x - mu_x)**2 / (2*torch.exp(logvar_x))
