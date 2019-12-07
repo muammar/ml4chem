@@ -136,13 +136,11 @@ class Preprocessing(object):
             # The Normalizer() is not supported by dask_ml.
             self.preprocessor.fit(stacked_features)
             scaled_features = self.preprocessor.transform(stacked_features)
+            return scaled_features
         else:
-            self.preprocessor.fit(stacked_features.compute(scheduler=scheduler))
-            scaled_features = self.preprocessor.transform(
-                stacked_features.compute(scheduler=scheduler)
-            )
-
-        return scaled_features
+            self.preprocessor.fit(stacked_features)
+            scaled_features = self.preprocessor.transform(stacked_features)
+            return scaled_features.compute(scheduler=scheduler)
 
     def transform(self, raw_features):
         """Transform features to scaled features
@@ -159,6 +157,10 @@ class Preprocessing(object):
         scaled_features : list
             Scaled features using the scaler set in self.set().
         """
+
         scaled_features = self.preprocessor.transform(raw_features)
 
-        return scaled_features
+        try:
+            return scaled_features.compute()
+        except:
+            return scaled_features

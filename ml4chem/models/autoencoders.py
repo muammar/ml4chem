@@ -955,7 +955,7 @@ class train(object):
             if self.anneal:
                 annealing = annealer.update(epoch)
                 print(annealing)
-                
+
             self.optimizer.zero_grad()  # clear previous gradients
 
             args = {
@@ -1223,6 +1223,7 @@ class Annealer(object):
     n_cycles : int, optional
         The number of cycles we will repeat the annealing, by default 5
     """
+
     def __init__(self, warm_up=50, step=50, n_cycles=5):
         self.step = 1 / step
         self.warming = 0
@@ -1230,7 +1231,7 @@ class Annealer(object):
         self.n_cycles = n_cycles
         self.warm_up = warm_up
         self.annealing = 0
-    
+
     def update(self, epoch):
         """Update annealing value
         
@@ -1261,4 +1262,4 @@ class Annealer(object):
             return self.annealing
 
         else:
-            return 1.
+            return 1.0

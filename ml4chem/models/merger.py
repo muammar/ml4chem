@@ -289,8 +289,13 @@ class ModelMerger(torch.nn.Module):
         for key in self.models[1].state_dict():
             old_state_dict[key] = self.models[1].state_dict()[key].clone()
 
+        from ml4chem.models.autoencoders import Annealer
+
+        annealer = Annealer()
+
         while not converged:
             epoch += 1
+            self.annealing = annealer.update(epoch)
 
             self.optimizer.zero_grad()  # clear previous gradients
 
@@ -412,7 +417,7 @@ class ModelMerger(torch.nn.Module):
             )
             return loss, outputs_
 
-        else: # Models are dependent on each other
+        else:  # Models are dependent on each other
 
             running_loss = torch.tensor(0, dtype=torch.float)
             accumulation = []
@@ -481,9 +486,12 @@ class ModelMerger(torch.nn.Module):
                 )
 
             elif model.name() in ModelMerger.autoencoders:
-                _args, _varargs, _keywords, _defaults = inspect.getargspec(lossfxn[model_index])
+                _args, _varargs, _keywords, _defaults = inspect.getargspec(
+                    lossfxn[model_index]
+                )
 
                 if "variant" in _args and model.variant == "multivariate":
+                    print(self.annealing)
                     mus_decoder, logvars_decoder, mus_latent, logvars_latent = output
                     args = {
                         "targets": targets[model_index][chunk_index],
@@ -491,13 +499,15 @@ class ModelMerger(torch.nn.Module):
                         "logvars_decoder": logvars_decoder,
                         "mus_latent": mus_latent,
                         "logvars_latent": logvars_latent,
-                        "annealing": None,
+                        "annealing": self.annealing,
                         "variant": model.variant,
                         "input_dimension": model.input_dimension,
                     }
                     loss = lossfxn[model_index](**args)
                 else:
-                    loss = lossfxn[model_index](output, targets[model_index][chunk_index])
+                    loss = lossfxn[model_index](
+                        output, targets[model_index][chunk_index]
+                    )
 
             batch_loss += loss * self.loss_weights[model_index]
             losses.append(loss)

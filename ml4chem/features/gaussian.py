@@ -332,151 +332,113 @@ class Gaussian(object):
                 )
             )
 
-        if purpose == "training":
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
 
-            if self.preprocessor is not None:
-                scaled_feature_space = []
+            scaled_feature_space = []
 
-                # Note that dask_ml by default convert the output of .fit
-                # in a concrete value.
+            # Note that dask_ml by default convert the output of .fit
+            # in a concrete value.
+            if purpose == "training":
                 stacked_features = preprocessor.fit(
                     stacked_features, scheduler=self.scheduler
                 )
-
-                atoms_index_map = [
-                    client.scatter(indices) for indices in atoms_index_map
-                ]
-                # stacked_features = [client.scatter(features) for features in stacked_features]
-                stacked_features = client.scatter(stacked_features, broadcast=True)
-
-                for index, indices in enumerate(atoms_index_map):
-                    features = client.submit(
-                        self.stack_features, *(indices, stacked_features)
-                    )
-                    # features = self.stack_features(indices, stacked_features)
-
-                    scaled_feature_space.append(features)
-
-                # scaled_feature_space = client.gather(scaled_feature_space)
-
             else:
-                feature_space = []
-                atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
+                stacked_features = preprocessor.transform(stacked_features)
 
-                for indices in atoms_index_map:
-                    features = client.submit(
-                        self.stack_features, *(indices, stacked_features)
-                    )
-                    feature_space.append(features)
+            atoms_index_map = [client.scatter(indices) for indices in atoms_index_map]
+            # stacked_features = [client.scatter(features) for features in stacked_features]
+            stacked_features = client.scatter(stacked_features, broadcast=True)
 
-            # Clean
-            del stacked_features
+            logger.info("Stacking features using atoms index map...")
 
-            # Restack images
+            for indices in atoms_index_map:
+                features = client.submit(
+                    self.stack_features, *(indices, stacked_features)
+                )
+
+                # features = self.stack_features(indices, stacked_features)
+
+                scaled_feature_space.append(features)
+
+            # scaled_feature_space = client.gather(scaled_feature_space)
+
+        else:
             feature_space = []
+            atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
 
-            if svm:
-                reference_space = []
+            for indices in atoms_index_map:
+                features = client.submit(
+                    self.stack_features, *(indices, stacked_features)
+                )
+                feature_space.append(features)
+        # Clean
+        del stacked_features
 
+        # Restack images
+        feature_space = []
+
+        if svm and purpose == "training":
+            logger.info("Building array with reference space.")
+            reference_space = []
+
+            for i, image in enumerate(images.items()):
+                restacked = client.submit(
+                    self.restack_image, *(i, image, None, scaled_feature_space, svm)
+                )
+                feature_space.append(restacked)
+
+                # image = (hash, ase_image) -> tuple
+                for atom in image[1]:
+                    reference_space.append(
+                        self.restack_atom(i, atom, scaled_feature_space)
+                    )
+
+            reference_space = dask.compute(*reference_space, scheduler=self.scheduler)
+        else:
+            try:
                 for i, image in enumerate(images.items()):
                     restacked = client.submit(
                         self.restack_image, *(i, image, None, scaled_feature_space, svm)
                     )
                     feature_space.append(restacked)
 
-                    # image = (hash, ase_image) -> tuple
-                    for atom in image[1]:
-                        reference_space.append(
-                            self.restack_atom(i, atom, scaled_feature_space)
-                        )
+            except UnboundLocalError:
+                # scaled_feature_space does not exist.
+                for i, image in enumerate(images.items()):
+                    restacked = client.submit(
+                        self.restack_image, *(i, image, feature_space, None, svm)
+                    )
+                    feature_space.append(restacked)
 
-                reference_space = dask.compute(
-                    *reference_space, scheduler=self.scheduler
-                )
-            else:
-                try:
-                    for i, image in enumerate(images.items()):
-                        restacked = client.submit(
-                            self.restack_image,
-                            *(i, image, None, scaled_feature_space, svm)
-                        )
-                        feature_space.append(restacked)
+        feature_space = client.gather(feature_space)
+        feature_space = OrderedDict(feature_space)
 
-                except UnboundLocalError:
-                    # scaled_feature_space does not exist.
-                    for i, image in enumerate(images.items()):
-                        restacked = client.submit(
-                            self.restack_image, *(i, image, feature_space, None, svm)
-                        )
-                        feature_space.append(restacked)
+        preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
-            feature_space = client.gather(feature_space)
-            feature_space = OrderedDict(feature_space)
+        fp_time = time.time() - initial_time
 
-            preprocessor.save_to_file(preprocessor, self.save_preprocessor)
+        h, m, s = convert_elapsed_time(fp_time)
 
-            fp_time = time.time() - initial_time
+        logger.info(
+            "Featurization finished in {} hours {} minutes {:.2f}"
+            " seconds.".format(h, m, s)
+        )
 
-            h, m, s = convert_elapsed_time(fp_time)
+        if svm and purpose == "training":
+            if self.filename is not None:
+                logger.info("features saved to {}.".format(self.filename))
+                data = {"feature_space": feature_space}
+                data.update({"reference_space": reference_space})
+                dump(data, filename=self.filename)
+            return feature_space, reference_space
 
-            logger.info(
-                "Featurization finished in {} hours {} minutes {:.2f}"
-                " seconds.".format(h, m, s)
-            )
-
-            if svm:
-                if self.filename is not None:
-                    logger.info("features saved to {}.".format(self.filename))
-                    data = {"feature_space": feature_space}
-                    data.update({"reference_space": reference_space})
-                    dump(data, filename=self.filename)
-                return feature_space, reference_space
-            else:
-                if self.filename is not None:
-                    logger.info("features saved to {}.".format(self.filename))
-                    dump(feature_space, filename=self.filename)
-                return feature_space
-
-        elif purpose == "inference":
-            feature_space = OrderedDict()
-            scaled_feature_space = preprocessor.transform(stacked_features)
-
-            # TODO this has to be parallelized.
-            for key, image in images.items():
-                if key not in feature_space.keys():
-                    feature_space[key] = []
-                for index, atom in enumerate(image):
-                    symbol = atom.symbol
-
-                    if svm:
-                        scaled = scaled_feature_space[index]
-                        # TODO change this to something more elegant later
-                        try:
-                            self.reference_space
-                        except AttributeError:
-                            # If self.reference does not exist it means that
-                            # reference_space is being loaded by Messagepack.
-                            symbol = symbol.encode("utf-8")
-                    else:
-                        scaled = torch.tensor(
-                            scaled_feature_space[index].compute(),
-                            requires_grad=False,
-                            dtype=torch.float,
-                        )
-
-                    feature_space[key].append((symbol, scaled))
-
-            fp_time = time.time() - initial_time
-
-            h, m, s = convert_elapsed_time(fp_time)
-
-            logger.info(
-                "Featurization finished in {} hours {} minutes {:.2f}"
-                " seconds.".format(h, m, s)
-            )
-
+        elif svm is False and purpose == "training":
+            if self.filename is not None:
+                logger.info("features saved to {}.".format(self.filename))
+                dump(feature_space, filename=self.filename)
+            return feature_space
+        else:
             return feature_space
 
     def stack_features(self, indices, stacked_features):

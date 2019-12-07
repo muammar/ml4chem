@@ -1,3 +1,4 @@
+import ase
 import codecs
 import copy
 import json
@@ -32,6 +33,8 @@ class Potentials(Calculator, object):
         Name of files. Default ml4chem.
     preprocessor : str
         Path to load sklearn preprocessor object. Useful when doing inference.
+    batch_size : int
+        Number of data points per batch to use for training. Default is None.
     """
 
     # This is needed by ASE
@@ -58,6 +61,7 @@ class Potentials(Calculator, object):
         atoms=None,
         ml4chem_path=None,
         preprocessor=None,
+        batch_size=None,
     ):
 
         Calculator.__init__(self, label=label, atoms=atoms)
@@ -68,6 +72,7 @@ class Potentials(Calculator, object):
         self.model = model
         self.ml4chem_path = ml4chem_path
         self.preprocessor = preprocessor
+        self.batch_size = batch_size
 
         logger.info(get_header_message())
 
@@ -324,11 +329,14 @@ class Potentials(Calculator, object):
         properties :
         """
         purpose = "inference"
-        Calculator.calculate(self, atoms, properties, system_changes)
+        # Calculator.calculate(self, atoms, properties, system_changes)
         model_name = self.model.name()
 
         # We convert the atoms in atomic features
-        data_handler = Data([atoms], purpose=purpose)
+        if isinstance(atoms, ase.atoms.Atoms):
+            atoms = [atoms]
+
+        data_handler = Data(atoms, purpose=purpose)
         atoms = data_handler.get_data(purpose=purpose)
 
         # We copy the loaded fingerprint class
@@ -341,6 +349,7 @@ class Potentials(Calculator, object):
         if features.name() == "LatentFeatures":
             features = features.calculate(atoms, **kwargs)
         else:
+            features.batch_size = self.batch_size
             features.preprocessor = self.preprocessor
             features = features.calculate(atoms, **kwargs)
 
@@ -368,7 +377,13 @@ class Potentials(Calculator, object):
                     )
                     model.load_state_dict(torch.load(self.ml4chem_path), strict=False)
                 model.eval()
-                energy = model(features).item()
+
+                try:
+                    # A single-point energy calculation
+                    energy = model(features).item()
+                except ValueError:
+                    # A list of single-point energy calculations.
+                    energy = model(features).tolist()
 
             # Populate ASE's self.results dict
             self.results["energy"] = energy
