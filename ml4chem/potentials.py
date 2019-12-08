@@ -216,6 +216,7 @@ class Potentials(Calculator, object):
         lossfxn=None,
         regularization=0.0,
         batch_size=None,
+        **kwargs
     ):
         """Method to train models
 
@@ -315,6 +316,7 @@ class Potentials(Calculator, object):
                 lossfxn=lossfxn,
                 device=device,
                 batch_size=batch_size,
+                **kwargs
             )
 
         self.save(self.model, features=self.features, path=self.path, label=self.label)
