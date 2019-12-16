@@ -414,8 +414,6 @@ class Gaussian(object):
         feature_space = client.gather(feature_space)
         feature_space = OrderedDict(feature_space)
 
-        preprocessor.save_to_file(preprocessor, self.save_preprocessor)
-
         fp_time = time.time() - initial_time
 
         h, m, s = convert_elapsed_time(fp_time)
@@ -425,7 +423,11 @@ class Gaussian(object):
             " seconds.".format(h, m, s)
         )
 
+
         if svm and purpose == "training":
+            client.restart()    # Reclaims memory aggressively
+            preprocessor.save_to_file(preprocessor, self.save_preprocessor)
+
             if self.filename is not None:
                 logger.info("features saved to {}.".format(self.filename))
                 data = {"feature_space": feature_space}
@@ -434,6 +436,9 @@ class Gaussian(object):
             return feature_space, reference_space
 
         elif svm is False and purpose == "training":
+            client.restart()    # Reclaims memory aggressively
+            preprocessor.save_to_file(preprocessor, self.save_preprocessor)
+
             if self.filename is not None:
                 logger.info("features saved to {}.".format(self.filename))
                 dump(feature_space, filename=self.filename)

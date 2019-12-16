@@ -324,7 +324,7 @@ class KernelRidge(object):
                                 j_symbol=j_symbol,
                                 sigma=self.sigma,
                             )
-                            computations.append(kernel.compute())
+                            computations.append(kernel)
                 self.fingerprint_map.append(f_map)
         else:
             for i_symbol, i_afp in feature_space:
