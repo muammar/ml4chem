@@ -155,7 +155,6 @@ def get_lr_scheduler(optimizer, lr_scheduler):
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, **kwargs)
         name = "StepLR"
 
-
     logger.info("Learning Rate Scheduler")
     logger.info("-----------------------")
     logger.info("    - Name: {}.".format(name))
@@ -179,4 +178,4 @@ def get_lr(optimizer):
         Current learning rate.
     """
     for param_group in optimizer.param_groups:
-        return param_group['lr']
+        return param_group["lr"]

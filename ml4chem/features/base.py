@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class DeepLearningModel(ABC):
+class AtomisticFeatures(ABC):
     @abstractmethod
     def name(cls):
         """Return name of the class"""
@@ -9,15 +9,15 @@ class DeepLearningModel(ABC):
 
     @abstractmethod
     def __init__(self, **kwargs):
-        """Arguments needed to instantiate the model"""
+        """Arguments needed to instantiate Features"""
         pass
 
     @abstractmethod
-    def prepare_model(self, **kwargs):
-        """Prepare model for training or inference"""
+    def calculate(self, **kwargs):
+        """Calculate features"""
         pass
 
     @abstractmethod
-    def forward(self, X):
-        """Forward propagation pass"""
+    def to_pandas(self):
+        """Convert features to pandas DataFrame"""
         pass

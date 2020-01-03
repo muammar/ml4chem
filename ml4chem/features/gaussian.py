@@ -4,9 +4,11 @@ import os
 import time
 import torch
 import numpy as np
+import pandas as pd
 from ase.data import atomic_numbers
 from collections import OrderedDict
-from .cutoff import Cosine
+from ml4chem.features.cutoff import Cosine
+from ml4chem.features.base import AtomisticFeatures
 from ml4chem.data.serialization import dump, load
 from ml4chem.data.preprocessing import Preprocessing
 from ml4chem.utils import get_chunks, get_neighborlist, convert_elapsed_time
@@ -14,7 +16,7 @@ from ml4chem.utils import get_chunks, get_neighborlist, convert_elapsed_time
 logger = logging.getLogger()
 
 
-class Gaussian(object):
+class Gaussian(AtomisticFeatures):
     """Behler-Parrinello symmetry functions
     This class builds local chemical environments for atoms based on the
     Behler-Parrinello Gaussian type symmetry functions. It is modular enough
@@ -423,9 +425,8 @@ class Gaussian(object):
             " seconds.".format(h, m, s)
         )
 
-
         if svm and purpose == "training":
-            client.restart()    # Reclaims memory aggressively
+            client.restart()  # Reclaims memory aggressively
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             if self.filename is not None:
@@ -433,18 +434,28 @@ class Gaussian(object):
                 data = {"feature_space": feature_space}
                 data.update({"reference_space": reference_space})
                 dump(data, filename=self.filename)
-            return feature_space, reference_space
+                self.feature_space = feature_space
+                self.reference_space = reference_space
+
+            return self.feature_space, self.reference_space
 
         elif svm is False and purpose == "training":
-            client.restart()    # Reclaims memory aggressively
+            client.restart()  # Reclaims memory aggressively
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             if self.filename is not None:
                 logger.info("features saved to {}.".format(self.filename))
                 dump(feature_space, filename=self.filename)
-            return feature_space
+                self.feature_space = feature_space
+
+            return self.feature_space
         else:
-            return feature_space
+            self.feature_space = feature_space
+            return self.feature_space
+
+    def to_pandas(self):
+        """Convert features to pandas DataFrame"""
+        return pd.DataFrame.from_dict(self.feature_space, orient="index")
 
     def stack_features(self, indices, stacked_features):
         """Stack features """

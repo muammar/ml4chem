@@ -174,7 +174,9 @@ def read_log(logfile, metric="loss", refresh=None):
         plt.show(block=True)
 
 
-def plot_atomic_features(latent_space, method="PCA", dimensions=2, backend="seaborn"):
+def plot_atomic_features(
+    latent_space, method="PCA", dimensions=2, backend="seaborn", **kwargs
+):
     """Plot high dimensional atomic feature vectors
 
     This function can take a feature space dictionary, or a database file
@@ -198,7 +200,7 @@ def plot_atomic_features(latent_space, method="PCA", dimensions=2, backend="seab
     """
     method = method.lower()
     backend = backend.lower()
-    dot_size = 4.0
+    dot_size = kwargs["dot_size"]
 
     supported_methods = ["pca", "tsne"]
 
