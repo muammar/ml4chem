@@ -147,6 +147,14 @@ def get_lr_scheduler(optimizer, lr_scheduler):
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **kwargs)
         name = "ReduceLROnPlateau"
 
+    elif scheduler_name == "multisteplr":
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, **kwargs)
+        name = "MultiStepLR"
+
+    elif scheduler_name == "steplr":
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, **kwargs)
+        name = "StepLR"
+
     logger.info("Learning Rate Scheduler")
     logger.info("-----------------------")
     logger.info("    - Name: {}.".format(name))
@@ -154,3 +162,20 @@ def get_lr_scheduler(optimizer, lr_scheduler):
     logger.info("")
 
     return scheduler
+
+
+def get_lr(optimizer):
+    """Get current learning rate
+    
+    Parameters
+    ----------
+    optimizer : obj
+        An optimizer object.
+    
+    Returns
+    -------
+    lr
+        Current learning rate.
+    """
+    for param_group in optimizer.param_groups:
+        return param_group["lr"]

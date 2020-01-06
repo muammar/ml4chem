@@ -70,12 +70,9 @@ class ModelMerger(torch.nn.Module):
             if name in ModelMerger.autoencoders:
                 x = OrderedDict(x)
             elif name == "PytorchPotentials":
-                x = X[i](OrderedDict(x))
+                x = X[i](OrderedDict(x), purpose="inference")
 
             output = model(x)
-            # _output.append(output)
-
-            # outputs.append(_output)
             outputs.append(output)
         return outputs
 
@@ -292,8 +289,13 @@ class ModelMerger(torch.nn.Module):
         for key in self.models[1].state_dict():
             old_state_dict[key] = self.models[1].state_dict()[key].clone()
 
+        from ml4chem.models.autoencoders import Annealer
+
+        annealer = Annealer()
+
         while not converged:
             epoch += 1
+            self.annealing = annealer.update(epoch)
 
             self.optimizer.zero_grad()  # clear previous gradients
 
@@ -312,7 +314,14 @@ class ModelMerger(torch.nn.Module):
 
             rmse = []
             for i, model in enumerate(self.models):
-                rmse.append(compute_rmse(outputs[i], self.targets[i]))
+                outputs_ = outputs[i]
+                targets_ = self.targets[i]
+
+                if model.name() == "VAE":
+                    # VAE usually returns a complex output with mus and sigmas
+                    # but we only need mus at this stage.
+                    outputs_ = [sublist[0] for sublist in outputs_]
+                rmse.append(compute_rmse(outputs_, targets_))
             rmse = np.array(rmse)
 
             _rmse = np.average(rmse)
@@ -407,7 +416,8 @@ class ModelMerger(torch.nn.Module):
                 self.inputs_chunk_vals,
             )
             return loss, outputs_
-        else:
+
+        else:  # Models are dependent on each other
 
             running_loss = torch.tensor(0, dtype=torch.float)
             accumulation = []
@@ -434,7 +444,6 @@ class ModelMerger(torch.nn.Module):
             grads = {}
             outputs_ = {}
             losses = {}
-
             for model_index, (outputs, loss, grad) in enumerate(accumulation):
                 for model_index in range(len(self.models)):
                     if model_index not in grads.keys():
@@ -466,10 +475,9 @@ class ModelMerger(torch.nn.Module):
 
         losses = []
         for model_index, model in enumerate(models):
-            # _losses = []
-            # for j, output in enumerate(outputs[i]):
 
             output = outputs[model_index]
+
             if model.name() == "PytorchPotentials":
                 loss = lossfxn[model_index](
                     output,
@@ -477,8 +485,29 @@ class ModelMerger(torch.nn.Module):
                     atoms_per_image[chunk_index],
                 )
 
-            elif model.name() == "AutoEncoder":
-                loss = lossfxn[model_index](output, targets[model_index][chunk_index])
+            elif model.name() in ModelMerger.autoencoders:
+                _args, _varargs, _keywords, _defaults = inspect.getargspec(
+                    lossfxn[model_index]
+                )
+
+                if "variant" in _args and model.variant == "multivariate":
+                    print(self.annealing)
+                    mus_decoder, logvars_decoder, mus_latent, logvars_latent = output
+                    args = {
+                        "targets": targets[model_index][chunk_index],
+                        "mus_decoder": mus_decoder,
+                        "logvars_decoder": logvars_decoder,
+                        "mus_latent": mus_latent,
+                        "logvars_latent": logvars_latent,
+                        "annealing": self.annealing,
+                        "variant": model.variant,
+                        "input_dimension": model.input_dimension,
+                    }
+                    loss = lossfxn[model_index](**args)
+                else:
+                    loss = lossfxn[model_index](
+                        output, targets[model_index][chunk_index]
+                    )
 
             batch_loss += loss * self.loss_weights[model_index]
             losses.append(loss)

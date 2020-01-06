@@ -297,10 +297,14 @@ class KernelRidge(object):
             for hash, _feature_space in feature_space.items():
                 f_map = []
                 for i_symbol, i_afp in _feature_space:
+                    i_symbol = decode(i_symbol)
                     f_map.append(1)
+
                     if purpose == "training":
+
                         for j in range(counter, reference_lenght):
                             j_symbol, j_afp = reference_features[j]
+
                             kernel = call[self.kernel](
                                 i_afp,
                                 j_afp,
@@ -312,6 +316,7 @@ class KernelRidge(object):
                         counter += 1
                     else:
                         for j_symbol, j_afp in reference_features:
+                            j_symbol = decode(j_symbol)
                             kernel = call[self.kernel](
                                 i_afp,
                                 j_afp,
@@ -324,6 +329,9 @@ class KernelRidge(object):
         else:
             for i_symbol, i_afp in feature_space:
                 for j_symbol, j_afp in reference_features:
+                    i_symbol = decode(i_symbol)
+                    j_symbol = decode(j_symbol)
+
                     kernel = call[self.kernel](
                         i_afp,
                         j_afp,
@@ -450,7 +458,7 @@ class KernelRidge(object):
 
 
 """
-Auxiliary functions to compute kernels
+Auxiliary functions 
 """
 
 
@@ -626,3 +634,22 @@ def laplacian(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.0):
         else:
             laplacian = np.exp(-(np.linalg.norm(feature_i - feature_j)) / sigma)
         return laplacian
+
+
+def decode(symbol):
+    """Decode from binary to string
+    
+    Parameters
+    ----------
+    symbol : binary
+        A string in binary form, e.g. b'hola'.
+    
+    Returns
+    -------
+    str
+        Symbol as a string.
+    """
+    try:
+        return symbol.decode()
+    except AttributeError:
+        return symbol

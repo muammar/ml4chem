@@ -50,9 +50,7 @@ def autoencode():
         save_preprocessor="latent_space_min_max.scaler",
     )
 
-    features = features.calculate(
-        images, purpose=purpose, data=data_handler, svm=True
-    )
+    features = features.calculate(images, purpose=purpose, data=data_handler, svm=True)
 
     latent_svm = []
     for e in list(features.values()):

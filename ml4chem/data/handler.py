@@ -58,10 +58,10 @@ class Data(object):
         """
         logger.info("Preparing images for {}...".format(purpose))
         self.images = OrderedDict()
+        self.atoms_per_image = []
 
         if purpose == "training":
             self.targets = []
-            self.atoms_per_image = []
 
         duplicates = 0
 
@@ -91,7 +91,9 @@ class Data(object):
 
         if purpose == "training":
             logger.info(
-                "There are {} atoms in your data set.".format(sum(self.atoms_per_image))
+                "There are {} atoms in your data set.".format(
+                    self.get_total_number_atoms()
+                )
             )
 
     def is_valid_structure(self, images):
@@ -178,3 +180,9 @@ class Data(object):
             return self.images, self.targets
         else:
             return self.images
+
+    def get_total_number_atoms(self):
+        return sum(self.atoms_per_image)
+
+    def to_pandas(self):
+        raise NotImplementedError

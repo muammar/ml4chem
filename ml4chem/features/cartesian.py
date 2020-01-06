@@ -81,8 +81,8 @@ class Cartesian(object):
         """
 
         logger.info(" ")
-        logger.info("Fingerprinting")
-        logger.info("==============")
+        logger.info("Featurization")
+        logger.info("=============")
 
         if os.path.isfile(self.filename) and self.overwrite is False:
             logger.warning("Loading features from {}.".format(self.filename))
@@ -247,7 +247,7 @@ class Cartesian(object):
         h, m, s = convert_elapsed_time(fp_time)
 
         logger.info(
-            "Fingerprinting finished in {} hours {} minutes {:.2f} "
+            "Featurization finished in {} hours {} minutes {:.2f} "
             "seconds.\n".format(h, m, s)
         )
 
