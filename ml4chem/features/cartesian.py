@@ -1,10 +1,13 @@
 import dask
+import datetime
 import logging
 import os
 import time
 import torch
 import numpy as np
+import pandas as pd
 from collections import OrderedDict
+from ml4chem.features.base import AtomisticFeatures
 from ml4chem.data.preprocessing import Preprocessing
 from ml4chem.data.serialization import dump, load
 from ml4chem.utils import convert_elapsed_time
@@ -13,7 +16,7 @@ from ml4chem.utils import convert_elapsed_time
 logger = logging.getLogger()
 
 
-class Cartesian(object):
+class Cartesian(AtomisticFeatures):
     """Cartesian Coordinates
 
     Cartesian coordinates are features, too (not very useful ones though). This
@@ -47,7 +50,7 @@ class Cartesian(object):
         self,
         scheduler="distributed",
         filename="cartesians.db",
-        preprocessor=("Normalizer",),
+        preprocessor=("Normalizer", None),
         save_preprocessor="ml4chem",
         overwrite=True,
     ):
@@ -83,6 +86,8 @@ class Cartesian(object):
         logger.info(" ")
         logger.info("Featurization")
         logger.info("=============")
+        now = datetime.datetime.now()
+        logger.info("Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S")))
 
         if os.path.isfile(self.filename) and self.overwrite is False:
             logger.warning("Loading features from {}.".format(self.filename))
@@ -257,7 +262,12 @@ class Cartesian(object):
         else:
             dump(feature_space, filename=self.filename)
 
-        return feature_space
+        self.feature_space = feature_space
+        return self.feature_space
+
+    def to_pandas(self):
+        """Convert features to pandas DataFrame"""
+        return pd.DataFrame.from_dict(self.feature_space, orient="index")
 
     @dask.delayed
     def get_atomic_features(self, atom, svm=False):

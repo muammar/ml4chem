@@ -77,6 +77,10 @@ class NeuralNetwork(torch.nn.Module):
             logger.info(" ")
             logger.info("Model")
             logger.info("=====")
+            now = datetime.datetime.now()
+            logger.info(
+                "Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S"))
+            )
             logger.info("Model name: {}.".format(self.name()))
             logger.info("Number of hidden-layers: {}".format(hl))
             logger.info(

@@ -1,4 +1,5 @@
 import dask
+import datetime
 import logging
 import time
 import numpy as np
@@ -180,8 +181,11 @@ class KernelRidge(object):
         """
         if purpose == "training":
             logger.info(" ")
-            logger.info("Model Training")
-            logger.info("==============")
+            logger.info("Model")
+            logger.info("=====")
+            logger.info(
+                "Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S"))
+            )
             logger.info("Model name: {}.".format(self.name()))
             logger.info("Kernel parameters:")
             logger.info("    - Kernel function: {}.".format(self.kernel))

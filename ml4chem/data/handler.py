@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from ml4chem.utils import get_hash
+import datetime
 import logging
 
 logger = logging.getLogger()
@@ -32,6 +33,8 @@ class Data(object):
         self.unique_element_symbols = None
         logger.info("Data")
         logger.info("====")
+        now = datetime.datetime.now()
+        logger.info("Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S")))
 
         if self.is_valid_structure(images) is False:
             logger.warning("Data structure is not compatible with ML4Chem.")

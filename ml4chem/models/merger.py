@@ -152,6 +152,8 @@ class ModelMerger(torch.nn.Module):
         logger.info(" ")
         logging.info("Model Merger")
         logging.info("============")
+        now = datetime.datetime.now()
+        logger.info("Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S")))
         logging.info("Merging the following models:")
 
         for model in self.models:

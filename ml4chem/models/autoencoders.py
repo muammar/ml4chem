@@ -122,7 +122,9 @@ class AutoEncoder(torch.nn.Module):
             )
 
         if self.name() == "VAE":
-            logger.info("Variant: {}.".format(self.variant))
+            logger.info(
+                "Variant: {}. One for all: {}.".format(self.variant, self.one_for_all)
+            )
 
         try:
             unique_element_symbols = data.unique_element_symbols[purpose]

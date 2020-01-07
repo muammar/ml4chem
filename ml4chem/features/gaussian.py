@@ -1,4 +1,5 @@
 import dask
+import datetime
 import logging
 import os
 import time
@@ -186,6 +187,8 @@ class Gaussian(AtomisticFeatures):
         logger.info(" ")
         logger.info("Featurization")
         logger.info("=============")
+        now = datetime.datetime.now()
+        logger.info("Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S")))
 
         # FIXME the block below should become a function.
         if os.path.isfile(self.filename) and self.overwrite is False:
