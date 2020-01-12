@@ -1,8 +1,9 @@
 from ase.io import Trajectory
+from io import StringIO
 import random
 
 
-def split_Data(
+def split_data(
     images,
     training_name="training_images.traj",
     test_name="test_images.traj",
@@ -64,3 +65,22 @@ def split_Data(
 
         log.write(str(test_images))
     log.close()
+
+
+def ase_to_xyz(atoms, comment="", file=True):
+    """Convert ASE to xyz
+
+    This function is useful to save xyz to DataFrame.
+    """
+    xyz = StringIO()
+    symbols = atoms.get_chemical_symbols()
+    natoms = len(symbols)
+    xyz.write("%d\n%s\n" % (natoms, comment))
+
+    for s, (x, y, z) in zip(symbols, atoms.positions):
+        xyz.write("%-2s %22.15f %22.15f %22.15f\n" % (s, x, y, z))
+
+    if file:
+        return xyz
+    else:
+        return xyz.getvalue()

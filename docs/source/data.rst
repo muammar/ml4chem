@@ -3,7 +3,7 @@
 Introduction
 ==============
 Data is central in Machine Learning and ML4Chem provides some tools to
-prepare your Datas. We support the following:
+prepare your Datas. We support the following input formats:
 
 1. `Atomic Simulation Environment (ASE) <https://wiki.fysik.dtu.dk/ase/>`_.
 
@@ -61,4 +61,8 @@ created.
 
 .. raw:: html
    :file: _static/pca_visual.html
+
+To activate plotly in Jupyter or JupyterLab follow the instructions shown in
+`https://plot.ly/python/getting-started/#jupyter-notebook-support <https://plot.ly/python/getting-started/#jupyter-notebook-support>`_
+
 
