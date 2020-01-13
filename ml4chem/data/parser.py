@@ -17,12 +17,14 @@ def cjson_to_ase(cjson):
     atomic_numbers = cjson["cjson"]["atoms"]["elements"]["number"]
     positions = cjson["cjson"]["atoms"]["coords"]["3d"]
     atoms = []
+
     for number in atomic_numbers:
         mol_positions = positions
         atom = Atom(number, position=mol_positions[coord_start:coord_end])
         atoms.append(atom)
         coord_start += 3
         coord_end += 3
+
     return Atoms(atoms), energy
 
 
@@ -77,7 +79,7 @@ class FakeCalculator(Calculator):
     def __init__(self, implemented_properties=None):
         super(FakeCalculator, self).__init__()
         if implemented_properties is None:
-            self.implemented_properties = ["energy"]
+            self.implemented_properties = ["energy", "forces"]
 
     @staticmethod
     def get_potential_energy(atoms):
@@ -94,3 +96,68 @@ class FakeCalculator(Calculator):
             The energy of the molecule.
         """
         return atoms.calc.results["energy"]
+
+    @staticmethod
+    def get_forces(atoms):
+        """Get atomic forces
+
+        Parameters
+        ----------
+        atoms : obj
+            Atoms objects
+
+        Returns
+        -------
+        forces
+            The atomic force of the molecule. 
+        """
+        return atoms.calc.results["forces"]
+
+
+def ani_to_ase(hdf5file, data_keys, trajfile=None):
+    """ANI to ASE
+    
+    Parameters
+    ----------
+    hdf5file : hdff
+        hdf5 file loaded using pyanitools.
+    data_keys : list
+        List of keys to extract data.
+    trajfile : str, optional
+        Name of trajectory file to be saved, by default None.
+
+    Returns
+    -------
+    atoms
+        A list of Atoms objects.
+    """
+
+    atoms = []
+    prop = {"energies": "energy", "energy": "energy"}
+
+    if trajfile is not None:
+        raise NotImplementedError
+
+    for data in hdf5file:
+
+        symbols = data['species']
+        conformers = data['coordinates']
+
+        for index, conformer in enumerate(conformers):
+            molecule = Atoms(positions=conformer, symbols=symbols)
+            molecule.set_calculator(FakeCalculator())
+
+            _prop = {}
+
+            for key in data_keys:
+                value = data[key][index]
+
+                # Mutate key because ANI naming is not standard.
+                key = prop[key]
+                _prop[key] = value
+
+                molecule.calc.results[key] = value
+            
+            atoms.append(molecule)
+
+    return atoms
