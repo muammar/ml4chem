@@ -54,6 +54,7 @@ class Cartesian(AtomisticFeatures):
         save_preprocessor="ml4chem",
         overwrite=True,
     ):
+        super(Cartesian, self).__init__()
 
         self.filename = filename
         self.scheduler = scheduler

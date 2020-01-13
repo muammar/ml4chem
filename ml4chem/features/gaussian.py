@@ -74,7 +74,6 @@ class Gaussian(AtomisticFeatures):
     @classmethod
     def name(cls):
         """Returns name of class"""
-
         return cls.NAME
 
     def __init__(
@@ -92,6 +91,7 @@ class Gaussian(AtomisticFeatures):
         weighted=False,
         batch_size=None,
     ):
+        super(Gaussian, self).__init__()
 
         self.cutoff = cutoff
         self.normalized = normalized

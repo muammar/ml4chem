@@ -54,7 +54,7 @@ def cjson_parser(cjsonfile, trajfile=None):
     for document in collection:
         cjson = json.loads(document)
         molecule, energy = cjson_to_ase(cjson)
-        molecule.set_calculator(FakeCalculator())
+        molecule.set_calculator(SinglePointCalculator())
         molecule.calc.results["energy"] = energy
         atoms.append(molecule)
 
@@ -64,8 +64,8 @@ def cjson_parser(cjsonfile, trajfile=None):
     return atoms
 
 
-class FakeCalculator(Calculator):
-    """A FakeCalculator class
+class SinglePointCalculator(Calculator):
+    """A SinglePointCalculator class
 
     This class creates a fake calculator that is used to populate
     calc.results dictionaries in ASE objects. 
@@ -77,7 +77,7 @@ class FakeCalculator(Calculator):
     """
 
     def __init__(self, implemented_properties=None):
-        super(FakeCalculator, self).__init__()
+        super(SinglePointCalculator, self).__init__()
         if implemented_properties is None:
             self.implemented_properties = ["energy", "forces"]
 
@@ -136,7 +136,7 @@ def ani_to_ase(hdf5file, data_keys, trajfile=None):
     prop = {"energies": "energy", "energy": "energy"}
 
     if trajfile is not None:
-        raise NotImplementedError
+        traj = Trajectory(trajfile, mode="w")
 
     for data in hdf5file:
 
@@ -145,7 +145,7 @@ def ani_to_ase(hdf5file, data_keys, trajfile=None):
 
         for index, conformer in enumerate(conformers):
             molecule = Atoms(positions=conformer, symbols=symbols)
-            molecule.set_calculator(FakeCalculator())
+            molecule.set_calculator(SinglePointCalculator())
 
             _prop = {}
 
@@ -159,5 +159,8 @@ def ani_to_ase(hdf5file, data_keys, trajfile=None):
                 molecule.calc.results[key] = value
             
             atoms.append(molecule)
+
+            if trajfile is not None:
+                traj.write(molecule, **_prop)
 
     return atoms
