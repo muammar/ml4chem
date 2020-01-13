@@ -4,6 +4,7 @@ import logging
 import os
 import time
 import torch
+import dask.array as da
 import numpy as np
 import pandas as pd
 from ase.data import atomic_numbers
@@ -307,6 +308,7 @@ class Gaussian(AtomisticFeatures):
         scheduler_time = time.time() - initial_time
 
         dask.distributed.wait(stacked_features)
+
         h, m, s = convert_elapsed_time(scheduler_time)
         logger.info(
             "... finished in {} hours {} minutes {:.2f}" " seconds.".format(h, m, s)
@@ -315,19 +317,21 @@ class Gaussian(AtomisticFeatures):
         logger.info("")
 
         if self.preprocessor is not None:
+
+            scaled_feature_space = []
+
+            # To take advantage of dask_ml we need to convert our numpy array
+            # into a dask array.
             logger.info("Converting features to dask array...")
             symbol = data.unique_element_symbols[purpose][0]
             sample = np.zeros(len(self.GP[symbol]))
-            # dim = (len(stacked_features), len(sample))
-
             stacked_features = [
-                dask.array.from_delayed(lazy, dtype=float, shape=sample.shape)
+                da.from_delayed(lazy, dtype=float, shape=sample.shape)
                 for lazy in stacked_features
             ]
-
             layout = {0: tuple(len(i) for i in atoms_index_map), 1: -1}
             # stacked_features = dask.array.stack(stacked_features, axis=0).rechunk(layout)
-            stacked_features = dask.array.stack(stacked_features, axis=0).rechunk(
+            stacked_features = da.stack(stacked_features, axis=0).rechunk(
                 layout
             )
 
@@ -336,11 +340,6 @@ class Gaussian(AtomisticFeatures):
                     stacked_features.shape, stacked_features.chunks
                 )
             )
-
-            # To take advantage of dask_ml we need to convert our numpy array
-            # into a dask array.
-
-            scaled_feature_space = []
 
             # Note that dask_ml by default convert the output of .fit
             # in a concrete value.
@@ -369,14 +368,17 @@ class Gaussian(AtomisticFeatures):
             # scaled_feature_space = client.gather(scaled_feature_space)
 
         else:
-            feature_space = []
+            scaled_feature_space = []
             atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
+            stacked_features = client.scatter(stacked_features, broadcast=True)
 
             for indices in atoms_index_map:
                 features = client.submit(
                     self.stack_features, *(indices, stacked_features)
                 )
-                feature_space.append(features)
+                scaled_feature_space.append(features)
+
+            scaled_feature_space = client.gather(scaled_feature_space)
         # Clean
         del stacked_features
 
@@ -388,9 +390,14 @@ class Gaussian(AtomisticFeatures):
             reference_space = []
 
             for i, image in enumerate(images.items()):
-                restacked = client.submit(
-                    self.restack_image, *(i, image, None, scaled_feature_space, svm)
-                )
+                if self.preprocessor is not None:
+                    restacked = client.submit(
+                        self.restack_image, *(i, image, None, scaled_feature_space, svm)
+                    )
+                else:
+                    restacked = client.submit(
+                        self.restack_image, *(i, image, scaled_feature_space, None, svm)
+                    )
                 feature_space.append(restacked)
 
                 # image = (hash, ase_image) -> tuple
@@ -529,7 +536,7 @@ class Gaussian(AtomisticFeatures):
                 features.append((symbol, scaled))
 
         elif feature_space is not None:
-            features = feature_space[index]
+            features = feature_space[index][0].compute()
 
         return hash, features
 
