@@ -293,7 +293,6 @@ class Gaussian(AtomisticFeatures):
                         symbol,
                         n_symbols,
                         neighborpositions,
-                        self.preprocessor,
                         image_molecule=image,
                         weighted=self.weighted,
                         n_indices=n_indices,
@@ -331,9 +330,7 @@ class Gaussian(AtomisticFeatures):
             ]
             layout = {0: tuple(len(i) for i in atoms_index_map), 1: -1}
             # stacked_features = dask.array.stack(stacked_features, axis=0).rechunk(layout)
-            stacked_features = da.stack(stacked_features, axis=0).rechunk(
-                layout
-            )
+            stacked_features = da.stack(stacked_features, axis=0).rechunk(layout)
 
             logger.info(
                 "Shape of array is {} and chunks {}.".format(
@@ -379,6 +376,7 @@ class Gaussian(AtomisticFeatures):
                 scaled_feature_space.append(features)
 
             scaled_feature_space = client.gather(scaled_feature_space)
+
         # Clean
         del stacked_features
 
@@ -390,15 +388,9 @@ class Gaussian(AtomisticFeatures):
             reference_space = []
 
             for i, image in enumerate(images.items()):
-                if self.preprocessor is not None:
-                    restacked = client.submit(
-                        self.restack_image, *(i, image, None, scaled_feature_space, svm)
-                    )
-                else:
-                    restacked = client.submit(
-                        self.restack_image, *(i, image, scaled_feature_space, None, svm)
-                    )
-                feature_space.append(restacked)
+                restacked = client.submit(
+                    self.restack_image, *(i, image, scaled_feature_space, svm)
+                )
 
                 # image = (hash, ase_image) -> tuple
                 for atom in image[1]:
@@ -406,12 +398,22 @@ class Gaussian(AtomisticFeatures):
                         self.restack_atom(i, atom, scaled_feature_space)
                     )
 
+                feature_space.append(restacked)
+
             reference_space = dask.compute(*reference_space, scheduler=self.scheduler)
+
+        elif svm is False and purpose == "training":
+            for i, image in enumerate(images.items()):
+                restacked = client.submit(
+                    self.restack_image, *(i, image, scaled_feature_space, svm)
+                )
+                feature_space.append(restacked)
+
         else:
             try:
                 for i, image in enumerate(images.items()):
                     restacked = client.submit(
-                        self.restack_image, *(i, image, None, scaled_feature_space, svm)
+                        self.restack_image, *(i, image, scaled_feature_space, svm)
                     )
                     feature_space.append(restacked)
 
@@ -419,7 +421,7 @@ class Gaussian(AtomisticFeatures):
                 # scaled_feature_space does not exist.
                 for i, image in enumerate(images.items()):
                     restacked = client.submit(
-                        self.restack_image, *(i, image, feature_space, None, svm)
+                        self.restack_image, *(i, image, feature_space, svm)
                     )
                     feature_space.append(restacked)
 
@@ -475,70 +477,6 @@ class Gaussian(AtomisticFeatures):
             features.append(stacked_features[index])
 
         return features
-
-    @dask.delayed
-    def restack_atom(self, image_index, atom, scaled_feature_space):
-        """Restack atoms to a raveled list to use with SVM
-
-        Parameters
-        ----------
-        image_index : int
-            Index of original hashed image.
-        atom : object
-            An atom object.
-        scaled_feature_space : np.array
-            A numpy array with the scaled features
-
-        Returns
-        -------
-        symbol, features : tuple
-            The hashed key image and its corresponding features.
-        """
-
-        symbol = atom.symbol
-        features = scaled_feature_space[image_index][atom.index]
-
-        return symbol, features
-
-    def restack_image(self, index, image, feature_space, scaled_feature_space, svm):
-        """Restack images to correct dictionary's structure to train
-
-        Parameters
-        ----------
-        index : int
-            Index of original hashed image.
-        image : obj
-            An ASE image object.
-        feature_space : np.array
-            A numpy array with raw features.
-        scaled_feature_space : np.array
-            A numpy array with scaled features.
-
-        Returns
-        -------
-        hash, features : tuple
-            Hash of image and its corresponding features.
-        """
-        hash, image = image
-
-        if scaled_feature_space is not None:
-            features = []
-            for j, atom in enumerate(image):
-                symbol = atom.symbol
-                if svm:
-                    scaled = scaled_feature_space[index][j]
-                else:
-                    scaled = torch.tensor(
-                        scaled_feature_space[index][j],
-                        requires_grad=False,
-                        dtype=torch.float,
-                    )
-                features.append((symbol, scaled))
-
-        elif feature_space is not None:
-            features = feature_space[index][0].compute()
-
-        return hash, features
 
     @dask.delayed
     def features_per_image(self, image):
@@ -601,7 +539,6 @@ class Gaussian(AtomisticFeatures):
         symbol,
         n_symbols,
         neighborpositions,
-        preprocessor,
         n_indices=None,
         image_molecule=None,
         weighted=False,
@@ -618,8 +555,6 @@ class Gaussian(AtomisticFeatures):
             Index of atom in atoms object.
         symbol : str
             Chemical symbol of atom in atoms object.
-        preprocessor : str
-            Feature preprocessor.
         n_symbols : ndarray of str
             Array of neighbors' symbols.
         neighborpositions : ndarray of float
@@ -695,13 +630,7 @@ class Gaussian(AtomisticFeatures):
                 logger.error("not implemented")
             fingerprint[count] = feature
 
-        if preprocessor is None:
-            fingerprint = torch.tensor(
-                fingerprint, requires_grad=False, dtype=torch.float
-            )
-            return symbol, fingerprint
-        else:
-            return np.array(fingerprint)
+        return np.array(fingerprint)
 
     def make_symmetry_functions(self, symbols, custom=None, angular_type="G3"):
         """Function to make symmetry functions
