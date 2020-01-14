@@ -51,6 +51,9 @@ class AtomisticFeatures(ABC):
 
                 scaled = scaled_feature_space[index][j]
 
+                if isinstance(scaled, tuple):
+                    symbol, scaled = scaled
+
                 if isinstance(scaled, np.ndarray) is False:
                     scaled = scaled.compute()
 
@@ -81,7 +84,11 @@ class AtomisticFeatures(ABC):
             The hashed key image and its corresponding features.
         """
 
-        symbol = atom.symbol
         features = scaled_feature_space[image_index][atom.index]
+
+        if isinstance(features, tuple):
+            symbol, features = features
+        else:
+            symbol = atom.symbol
 
         return symbol, features

@@ -31,6 +31,11 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
         Number of data points per batch to use for training. Default is None.
     scheduler : str
         The scheduler to be used with the dask backend.
+    overwrite : bool
+        If overwrite is set to True, ml4chem will not try to load existing
+        databases. Default is True.
+    save_preprocessor : str
+        Save preprocessor to file.
 
     Notes
     -----
@@ -46,16 +51,27 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
         """Returns name of class"""
         return cls.NAME
 
-    def __init__(self, preprocessor=None, batch_size=None, filename="features.db", scheduler="distributed", **kwargs):
+    def __init__(
+        self,
+        preprocessor=None,
+        batch_size=None,
+        filename="features.db",
+        scheduler="distributed",
+        save_preprocessor="ml4chem",
+        overwrite=True,
+        **kwargs
+    ):
         super(CoulombMatrix, self).__init__()
 
-        CoulombMatrixDscribe.__init__(self, permutation='none', flatten=False, **kwargs)
+        CoulombMatrixDscribe.__init__(self, permutation="none", flatten=False, **kwargs)
 
         self.batch_size = batch_size
         self.filename = filename
         self.preprocessor = preprocessor
         self.scheduler = scheduler
-    
+        self.overwrite = overwrite
+        self.save_preprocessor = save_preprocessor
+
     def calculate(self, images=None, purpose="training", data=None, svm=False):
         """Calculate the features per atom in an atoms objects
 
@@ -132,32 +148,29 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
             logger.info("Unique chemical elements: {}".format(unique_element_symbols))
 
         # we make the features
-        if self.preprocessor is not None:
-            preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
-            preprocessor.set(purpose=purpose)
+        preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
+        preprocessor.set(purpose=purpose)
 
         # We start populating computations to get atomic features.
         logger.info("")
         logger.info("Embarrassingly parallel computation of atomic features...")
 
         stacked_features = []
-        atoms_index_map = []  # This list is used to reconstruct images from atoms.
+        atoms_symbols_map = []  # This list is used to reconstruct images from atoms.
 
         if self.batch_size is None:
             self.batch_size = data.get_total_number_atoms()
 
         chunks = get_chunks(images, self.batch_size, svm=svm)
 
-        ini = end = 0
         for chunk in chunks:
             images_ = OrderedDict(chunk)
             intermediate = []
 
             for image in images_.items():
                 key, image = image
-                end = ini + len(image)
-                atoms_index_map.append(list(range(ini, end)))
-                ini = end
+                atoms_symbols_map.append(image.get_chemical_symbols())
+                # Use .create() class method from dscribe.
                 _features = dask.delayed(self.create)(image)
                 intermediate.append(_features)
 
@@ -177,67 +190,21 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
         logger.info("")
 
         if self.preprocessor is not None:
-            logger.info("Converting features to dask array...")
-            symbol = data.unique_element_symbols[purpose][0]
-            sample = np.zeros(len(self.GP[symbol]))
-            # dim = (len(stacked_features), len(sample))
-
-            stacked_features = [
-                dask.array.from_delayed(lazy, dtype=float, shape=sample.shape)
-                for lazy in stacked_features
-            ]
-
-            layout = {0: tuple(len(i) for i in atoms_index_map), 1: -1}
-            # stacked_features = dask.array.stack(stacked_features, axis=0).rechunk(layout)
-            stacked_features = dask.array.stack(stacked_features, axis=0).rechunk(
-                layout
-            )
-
-            logger.info(
-                "Shape of array is {} and chunks {}.".format(
-                    stacked_features.shape, stacked_features.chunks
-                )
-            )
-
-            # To take advantage of dask_ml we need to convert our numpy array
-            # into a dask array.
-
-            scaled_feature_space = []
-
-            # Note that dask_ml by default convert the output of .fit
-            # in a concrete value.
-            if purpose == "training":
-                stacked_features = preprocessor.fit(
-                    stacked_features, scheduler=self.scheduler
-                )
-            else:
-                stacked_features = preprocessor.transform(stacked_features)
-
-            atoms_index_map = [client.scatter(indices) for indices in atoms_index_map]
-            stacked_features = client.scatter(stacked_features, broadcast=True)
-
-            logger.info("Stacking features using atoms index map...")
-
-            for indices in atoms_index_map:
-                features = client.submit(
-                    self.stack_features, *(indices, stacked_features)
-                )
-
-                # features = self.stack_features(indices, stacked_features)
-
-                scaled_feature_space.append(features)
-
-            # scaled_feature_space = client.gather(scaled_feature_space)
+            raise NotImplementedError
 
         else:
-            feature_space = []
-            atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
+            scaled_feature_space = []
+            atoms_symbols_map = [client.scatter(chunk) for chunk in atoms_symbols_map]
+            stacked_features = client.scatter(stacked_features, broadcast=True)
 
-            for indices in atoms_index_map:
+            for image_index, symbols in enumerate(atoms_symbols_map):
                 features = client.submit(
-                    self.stack_features, *(indices, stacked_features)
+                    self.stack_features, *(symbols, image_index, stacked_features)
                 )
-                feature_space.append(features)
+                scaled_feature_space.append(features)
+
+            scaled_feature_space = client.gather(scaled_feature_space)
+
         # Clean
         del stacked_features
 
@@ -250,9 +217,8 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
 
             for i, image in enumerate(images.items()):
                 restacked = client.submit(
-                    self.restack_image, *(i, image, None, scaled_feature_space, svm)
+                    self.restack_image, *(i, image, scaled_feature_space, svm)
                 )
-                feature_space.append(restacked)
 
                 # image = (hash, ase_image) -> tuple
                 for atom in image[1]:
@@ -260,12 +226,22 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
                         self.restack_atom(i, atom, scaled_feature_space)
                     )
 
+                feature_space.append(restacked)
+
             reference_space = dask.compute(*reference_space, scheduler=self.scheduler)
+
+        elif svm is False and purpose == "training":
+            for i, image in enumerate(images.items()):
+                restacked = client.submit(
+                    self.restack_image, *(i, image, scaled_feature_space, svm)
+                )
+                feature_space.append(restacked)
+
         else:
             try:
                 for i, image in enumerate(images.items()):
                     restacked = client.submit(
-                        self.restack_image, *(i, image, None, scaled_feature_space, svm)
+                        self.restack_image, *(i, image, scaled_feature_space, svm)
                     )
                     feature_space.append(restacked)
 
@@ -273,7 +249,7 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
                 # scaled_feature_space does not exist.
                 for i, image in enumerate(images.items()):
                     restacked = client.submit(
-                        self.restack_image, *(i, image, feature_space, None, svm)
+                        self.restack_image, *(i, image, feature_space, svm)
                     )
                     feature_space.append(restacked)
 
@@ -316,6 +292,13 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
         else:
             self.feature_space = feature_space
             return self.feature_space
+
+    def stack_features(self, symbols, image_index, stacked_features):
+        """Stack features """
+
+        features = list(zip(symbols, stacked_features[image_index].compute()))
+
+        return features
 
     def to_pandas(self):
         """Convert features to pandas DataFrame"""
