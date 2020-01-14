@@ -174,13 +174,13 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
                 _features = dask.delayed(self.create)(image)
                 intermediate.append(_features)
 
-            intermediate = client.persist(intermediate, scheduler=self.scheduler)
+            intermediate = client.compute(intermediate, scheduler=self.scheduler)
             stacked_features += intermediate
             del intermediate
 
         scheduler_time = time.time() - initial_time
 
-        dask.distributed.wait(stacked_features)
+        # dask.distributed.wait(stacked_features)
 
         h, m, s = convert_elapsed_time(scheduler_time)
         logger.info(
@@ -296,7 +296,7 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
     def stack_features(self, symbols, image_index, stacked_features):
         """Stack features """
 
-        features = list(zip(symbols, stacked_features[image_index].compute()))
+        features = list(zip(symbols, stacked_features[image_index].result()))
 
         return features
 

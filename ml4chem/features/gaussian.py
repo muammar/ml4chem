@@ -142,6 +142,7 @@ class Gaussian(AtomisticFeatures):
             "value",
             "keys",
             "batch_size",
+            "__class__"
         ]
 
         for param in delete:
