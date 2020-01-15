@@ -180,6 +180,7 @@ class KernelRidge(object):
         to apply the atomic decomposition Ansatz.
         """
         if purpose == "training":
+            now = datetime.datetime.now()
             logger.info(" ")
             logger.info("Model")
             logger.info("=====")

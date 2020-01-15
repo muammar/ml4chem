@@ -119,8 +119,8 @@ def ani_to_ase(hdf5file, data_keys, trajfile=None):
     
     Parameters
     ----------
-    hdf5file : hdff
-        hdf5 file loaded using pyanitools.
+    hdf5file : hdf5, list
+        hdf5 file loaded using pyanitools (or list of them).
     data_keys : list
         List of keys to extract data.
     trajfile : str, optional
@@ -132,35 +132,39 @@ def ani_to_ase(hdf5file, data_keys, trajfile=None):
         A list of Atoms objects.
     """
 
+    if isinstance(hdf5file, list) is False:
+        hdf5file = [hdf5file]
+
     atoms = []
     prop = {"energies": "energy", "energy": "energy"}
 
     if trajfile is not None:
         traj = Trajectory(trajfile, mode="w")
 
-    for data in hdf5file:
+    for hdf5 in hdf5file:
+        for data in hdf5:
 
-        symbols = data['species']
-        conformers = data['coordinates']
+            symbols = data["species"]
+            conformers = data["coordinates"]
 
-        for index, conformer in enumerate(conformers):
-            molecule = Atoms(positions=conformer, symbols=symbols)
-            molecule.set_calculator(SinglePointCalculator())
+            for index, conformer in enumerate(conformers):
+                molecule = Atoms(positions=conformer, symbols=symbols)
+                molecule.set_calculator(SinglePointCalculator())
 
-            _prop = {}
+                _prop = {}
 
-            for key in data_keys:
-                value = data[key][index]
+                for key in data_keys:
+                    value = data[key][index]
 
-                # Mutate key because ANI naming is not standard.
-                key = prop[key]
-                _prop[key] = value
+                    # Mutate key because ANI naming is not standard.
+                    key = prop[key]
+                    _prop[key] = value
 
-                molecule.calc.results[key] = value
-            
-            atoms.append(molecule)
+                    molecule.calc.results[key] = value
 
-            if trajfile is not None:
-                traj.write(molecule, **_prop)
+                atoms.append(molecule)
+
+                if trajfile is not None:
+                    traj.write(molecule, **_prop)
 
     return atoms

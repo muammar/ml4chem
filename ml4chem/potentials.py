@@ -50,6 +50,7 @@ class Potentials(Calculator, object):
         "RetentionTimes": "rt",
         "KernelRidge": "kernelridge",
         "GaussianProcess": "gaussian_process",
+        "VAE": "autoencoders",
     }
 
     def __init__(
@@ -94,7 +95,7 @@ class Potentials(Calculator, object):
         kwargs["ml4chem_path"] = model
         kwargs["preprocessor"] = preprocessor
 
-        with open(params) as ml4chem_params:
+        with open(params, "rb") as ml4chem_params:
             ml4chem_params = json.load(ml4chem_params)
             model_type = ml4chem_params["model"].get("type")
 
@@ -124,6 +125,10 @@ class Potentials(Calculator, object):
 
         # Instantiation of fingerprint class
         fingerprint_params = ml4chem_params.get("features", None)
+
+        if "kwargs" in fingerprint_params.keys():
+            update_dict_with = fingerprint_params.pop("kwargs")
+            fingerprint_params.update(update_dict_with)
 
         if fingerprint_params is None:
             features = fingerprint_params

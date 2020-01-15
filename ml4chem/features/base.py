@@ -65,7 +65,6 @@ class AtomisticFeatures(ABC):
 
         return hash, features
 
-    @dask.delayed
     def restack_atom(self, image_index, atom, scaled_feature_space):
         """Restack atoms to a raveled list to use with SVM
 
