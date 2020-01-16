@@ -203,7 +203,6 @@ class KernelRidge(object):
         logger.info("Computing Kernel Matrix...")
         # We start populating computations with delayed functions to
         # operate with dask's scheduler
-        client = dask.distributed.get_client()
         kernel_matrix = self.get_kernel_matrix(
             feature_space, reference_features, purpose=purpose
         )
@@ -259,7 +258,6 @@ class KernelRidge(object):
         """
         initial_time = time.time()
 
-        client = dask.distributed.get_client()
         call = {"exponential": exponential, "laplacian": laplacian, "rbf": rbf}
 
         if self.batch_size is None:
@@ -267,7 +265,7 @@ class KernelRidge(object):
         else:
             chunks = list(get_chunks(feature_space, self.batch_size))
             logger.info(
-                "    The calculations are distributed in {} batches of {}.".format(
+                "    The calculations are distributed in {} batches of {} molecules.".format(
                     len(chunks), self.batch_size
                 )
             )
@@ -342,20 +340,33 @@ class KernelRidge(object):
         """
         # We build the LT matrix needed for ADA
         if purpose == "training":
+            self.LT = []
             logger.info("Building LT matrix")
-            intermediates = []
+            computations = []
             for index, feature_space in enumerate(feature_space.items()):
-                intermediates.append(self.get_lt(index))
-            intermediates = dask.compute(*intermediates, scheduler=self.scheduler)
+                computations.append(self.get_lt(index))
 
-            self.LT = np.array(intermediates)
-            lt_time = time.time() - initial_time
-            h, m, s = convert_elapsed_time(lt_time)
-            logger.info(
-                "LT matrix built in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
-            )
+            if self.batch_size is not None:
+                computations = list(get_chunks(computations, self.batch_size))
+                logger.info(
+                    "    The calculations are distributed in {} batches of {} molecules.".format(
+                        len(computations), self.batch_size
+                    )
+                )
+                for chunk in computations:
+                    self.LT += dask.compute(*chunk, scheduler=self.scheduler)
 
-            print(self.LT)
+                self.LT = np.array(self.LT)
+                del computations
+                del chunk
+                lt_time = time.time() - initial_time
+                h, m, s = convert_elapsed_time(lt_time)
+                logger.info(
+                    "LT matrix built in {} hours {} minutes {:.2f} seconds.".format(
+                        h, m, s
+                    )
+                )
+
         return kernel_matrix
 
     def train(self, inputs, targets, data=None):

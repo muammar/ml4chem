@@ -3,7 +3,6 @@ import datetime
 import logging
 import os
 import time
-import torch
 import dask.array as da
 import numpy as np
 import pandas as pd
@@ -142,7 +141,7 @@ class Gaussian(AtomisticFeatures):
             "value",
             "keys",
             "batch_size",
-            "__class__"
+            "__class__",
         ]
 
         for param in delete:

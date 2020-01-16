@@ -5,7 +5,6 @@ import logging
 import os
 import time
 import torch
-import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from dscribe.descriptors import CoulombMatrix as CoulombMatrixDscribe
@@ -20,7 +19,7 @@ logger = logging.getLogger()
 class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
     """Coulomb Matrix features
 
-    
+
     Parameters
     ----------
     filename : str
@@ -81,7 +80,6 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
         # This is a very general way of not forgetting to save variables
         _params = vars()
 
-
         # Delete useless variables
         delete = [
             "self",
@@ -92,7 +90,7 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
             "value",
             "keys",
             "batch_size",
-            "__class__"
+            "__class__",
         ]
 
         for param in delete:
@@ -246,18 +244,11 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
         feature_space = []
 
         if svm and purpose == "training":
-            logger.info("Building array with reference space.")
-            reference_space = []
 
             for i, image in enumerate(images.items()):
                 restacked = client.submit(
                     self.restack_image, *(i, image, scaled_feature_space, svm)
                 )
-
-                # image = (hash, ase_image) -> tuple
-                # for atom in image[1]:
-                #     restacked_atom = client.submit(self.restack_atom, *(i, atom, scaled_feature_space))
-                #     reference_space.append(restacked_atom)
 
                 feature_space.append(restacked)
 
@@ -288,9 +279,11 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
 
         if svm and purpose == "training":
             # FIXME This might need to be improved
+            logger.info("Building array with reference space.")
             hashes, reference_space = list(zip(*feature_space))
             del hashes
             reference_space = list(itertools.chain.from_iterable(reference_space))
+            logger.info("Finished reference space.")
 
         feature_space = OrderedDict(feature_space)
 
