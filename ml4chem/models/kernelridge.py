@@ -274,8 +274,10 @@ class KernelRidge(object):
         kernel_matrix = []
 
         for c, chunk in enumerate(chunks):
-            print("Chunk", c)
+            chunk_initial_time = time.time()
+            logger.info("        Computing kernel functions for chunk {}...".format(c))
             intermediates = []
+
             if isinstance(chunk, dict) is False:
                 chunk = OrderedDict(chunk)
 
@@ -323,6 +325,13 @@ class KernelRidge(object):
                         intermediates.append(kernel)
             kernel_matrix += dask.compute(intermediates, scheduler=self.scheduler)[0]
             del intermediates
+
+            chunk_final_time = time.time() - chunk_initial_time
+            h, m, s = convert_elapsed_time(chunk_final_time)
+            logger.info(
+                "          ...finished in {} hours {} minutes {:.2f} "
+                "seconds.".format(h, m, s)
+            )
             # dask.distributed.wait(kernel_matrix)
 
         del reference_features

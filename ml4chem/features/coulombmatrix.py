@@ -4,7 +4,6 @@ import itertools
 import logging
 import os
 import time
-import torch
 import pandas as pd
 from collections import OrderedDict
 from dscribe.descriptors import CoulombMatrix as CoulombMatrixDscribe
@@ -210,14 +209,9 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
             stacked_features += intermediate
             del intermediate
 
-        scheduler_time = time.time() - initial_time
+        # scheduler_time = time.time() - initial_time
 
         # dask.distributed.wait(stacked_features)
-
-        h, m, s = convert_elapsed_time(scheduler_time)
-        logger.info(
-            "... finished in {} hours {} minutes {:.2f}" " seconds.".format(h, m, s)
-        )
 
         logger.info("")
 

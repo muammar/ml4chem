@@ -304,8 +304,6 @@ def VAELoss(
 
     loss = []
 
-    dim = 1
-
     if annealing is None:
         annealing = 1.0
 

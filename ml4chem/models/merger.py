@@ -7,7 +7,7 @@ import logging
 import numpy as np
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
-from ml4chem.utils import convert_elapsed_time, dynamic_import, get_chunks, lod_to_list
+from ml4chem.utils import dynamic_import, get_chunks, lod_to_list
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 
 # Setting precision and starting logger object

@@ -249,6 +249,11 @@ class Gaussian(AtomisticFeatures):
 
         self.print_fingerprint_params(self.GP)
 
+        symbol = data.unique_element_symbols[purpose][0]
+        sample = np.zeros(len(self.GP[symbol]))
+
+        self.dimension = len(sample)
+
         preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
         preprocessor.set(purpose=purpose)
 
@@ -322,8 +327,6 @@ class Gaussian(AtomisticFeatures):
             # To take advantage of dask_ml we need to convert our numpy array
             # into a dask array.
             logger.info("Converting features to dask array...")
-            symbol = data.unique_element_symbols[purpose][0]
-            sample = np.zeros(len(self.GP[symbol]))
             stacked_features = [
                 da.from_delayed(lazy, dtype=float, shape=sample.shape)
                 for lazy in stacked_features

@@ -1,7 +1,7 @@
 import json
 from ase import Atom, Atoms
 from ase.calculators.calculator import Calculator
-from ase.io import Trajectory, write
+from ase.io import Trajectory
 
 
 # to get the total energy
@@ -68,7 +68,7 @@ class SinglePointCalculator(Calculator):
     """A SinglePointCalculator class
 
     This class creates a fake calculator that is used to populate
-    calc.results dictionaries in ASE objects. 
+    calc.results dictionaries in ASE objects.
 
     Parameters
     ----------
@@ -109,14 +109,14 @@ class SinglePointCalculator(Calculator):
         Returns
         -------
         forces
-            The atomic force of the molecule. 
+            The atomic force of the molecule.
         """
         return atoms.calc.results["forces"]
 
 
 def ani_to_ase(hdf5file, data_keys, trajfile=None):
     """ANI to ASE
-    
+
     Parameters
     ----------
     hdf5file : hdf5, list

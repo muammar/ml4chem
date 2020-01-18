@@ -1,6 +1,5 @@
 import dask
 import datetime
-import inspect
 import logging
 import time
 import torch
@@ -1214,7 +1213,7 @@ class Annealer(object):
     """Annealing class
 
     Based on on https://arxiv.org/abs/1903.10145.
-    
+
     Parameters
     ----------
     warm_up : int, optional
@@ -1236,12 +1235,12 @@ class Annealer(object):
 
     def update(self, epoch):
         """Update annealing value
-        
+
         Parameters
         ----------
         epoch : int
-            Epoch on the training process. 
-        
+            Epoch on the training process.
+
         Returns
         -------
         annealing
