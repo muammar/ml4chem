@@ -5,7 +5,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from ml4chem.data.serialization import load
-import time
 
 
 def parity(predictions, true, scores=False, filename=None, **kwargs):
@@ -30,7 +29,7 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
 
     min_val = min(true)
     max_val = max(true)
-    fig = plt.figure(figsize=(6.0, 6.0))
+    fig = plt.figure(figsize=(6, 6))
     ax = fig.add_subplot(111)
     ax.plot(true, predictions, "r.")
     ax.plot([min_val, max_val], [min_val, max_val], "k-", lw=0.3)
@@ -284,7 +283,7 @@ def plot_atomic_features(
 
         labels = {str(axis[i]): "t-SNE-{}".format(i + 1) for i in range(len(axis))}
 
-        tsne = manifold.TSNE(n_components=dimensions)
+        tsne = manifold.TSNE(n_components=dimensions, perplexity=5)
 
         tsne_result = tsne.fit_transform(full_ls)
 
@@ -324,4 +323,4 @@ def plot_atomic_features(
     except:
         pass
 
-    return plt
+    return plt, df

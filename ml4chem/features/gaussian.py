@@ -365,7 +365,6 @@ class Gaussian(AtomisticFeatures):
 
                 scaled_feature_space.append(features)
 
-            # scaled_feature_space = client.gather(scaled_feature_space)
 
         else:
             scaled_feature_space = []
@@ -397,13 +396,12 @@ class Gaussian(AtomisticFeatures):
 
                 # image = (hash, ase_image) -> tuple
                 for atom in image[1]:
-                    reference_space.append(
-                        self.restack_atom(i, atom, scaled_feature_space)
-                    )
+                    restacked_atom = client.submit(self.restack_atom, *(i, atom, scaled_feature_space))
+                    reference_space.append(restacked_atom)
 
                 feature_space.append(restacked)
 
-            reference_space = dask.compute(*reference_space, scheduler=self.scheduler)
+            reference_space = client.gather(reference_space)
 
         elif svm is False and purpose == "training":
             for i, image in enumerate(images.items()):
