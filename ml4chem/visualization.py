@@ -199,7 +199,7 @@ def plot_atomic_features(
     """
     method = method.lower()
     backend = backend.lower()
-    dot_size = kwargs["dot_size"]
+    dot_size = kwargs.get("dot_size", 2)
 
     supported_methods = ["pca", "tsne"]
 

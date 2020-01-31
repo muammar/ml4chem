@@ -44,10 +44,10 @@ ml4chem.data.utils module
     :undoc-members:
     :show-inheritance:
 
-ml4chem.data.visualization module
+ml4chem.visualization module
 ---------------------------------
 
-.. automodule:: ml4chem.data.visualization
+.. automodule:: ml4chem.visualization
     :members:
     :undoc-members:
     :show-inheritance:

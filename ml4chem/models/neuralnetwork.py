@@ -7,6 +7,7 @@ import torch
 import numpy as np
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
+from ml4chem.models.base import DeepLearningModel
 from ml4chem.models.loss import AtomicMSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 from ml4chem.utils import convert_elapsed_time, get_chunks, get_number_of_parameters
@@ -17,7 +18,7 @@ torch.set_printoptions(precision=10)
 logger = logging.getLogger()
 
 
-class NeuralNetwork(torch.nn.Module):
+class NeuralNetwork(DeepLearningModel):
     """Atom-centered Neural Network Regression with Pytorch
 
     This model is based on Ref. 1 by Behler and Parrinello.
@@ -48,7 +49,7 @@ class NeuralNetwork(torch.nn.Module):
         return cls.NAME
 
     def __init__(self, hiddenlayers=(3, 3), activation="relu", **kwargs):
-        super(NeuralNetwork, self).__init__()
+        super(DeepLearningModel, self).__init__()
         self.hiddenlayers = hiddenlayers
         self.activation = activation
 

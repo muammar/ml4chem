@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+import torch
 
 
-class DeepLearningModel(ABC):
+class DeepLearningModel(ABC, torch.nn.Module):
     @abstractmethod
     def name(cls):
         """Return name of the class"""

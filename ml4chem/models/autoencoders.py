@@ -7,6 +7,7 @@ import torch
 import numpy as np
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
+from ml4chem.models.base import DeepLearningModel
 from ml4chem.models.loss import MSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 from ml4chem.utils import convert_elapsed_time, get_chunks, lod_to_list
@@ -16,7 +17,7 @@ torch.set_printoptions(precision=10)
 logger = logging.getLogger()
 
 
-class AutoEncoder(torch.nn.Module):
+class AutoEncoder(DeepLearningModel):
     """Fully connected atomic autoencoder
 
 
@@ -67,7 +68,7 @@ class AutoEncoder(torch.nn.Module):
     def __init__(
         self, hiddenlayers=None, activation="relu", one_for_all=False, **kwargs
     ):
-        super(AutoEncoder, self).__init__()
+        super(DeepLearningModel, self).__init__()
 
         self.hiddenlayers = hiddenlayers
         self.activation = activation
@@ -956,6 +957,8 @@ class train(object):
             if self.anneal:
                 annealing = annealer.update(epoch)
                 print(annealing)
+            else: 
+                annealing = None
 
             self.optimizer.zero_grad()  # clear previous gradients
 

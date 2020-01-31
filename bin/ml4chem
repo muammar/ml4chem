@@ -5,7 +5,7 @@ import sys
 
 path = os.path.dirname(os.path.abspath(__file__)).strip("bin")
 sys.path.append(path)
-from ml4chem.data.visualization import read_log, plot_atomic_features
+from ml4chem.visualization import read_log, plot_atomic_features
 
 
 @click.command()
