@@ -6,7 +6,7 @@ class DeepLearningModel(ABC, torch.nn.Module):
     @abstractmethod
     def name(cls):
         """Return name of the class"""
-        pass
+        return cls.NAME
 
     @abstractmethod
     def __init__(self, **kwargs):
