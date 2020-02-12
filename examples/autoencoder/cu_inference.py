@@ -4,7 +4,7 @@ sys.path.append("../../")
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
 from ml4chem.data.handler import Data
-from ml4chem.features import LatentFeatures
+from ml4chem.atomistic.features import LatentFeatures
 from ml4chem.data.serialization import load
 from ml4chem.utils import logger
 import numpy as np

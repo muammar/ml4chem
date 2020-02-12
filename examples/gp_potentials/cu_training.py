@@ -4,8 +4,8 @@ from dask.distributed import Client, LocalCluster
 
 sys.path.append("../../")
 from ml4chem import Potentials
-from ml4chem.features import Gaussian
-from ml4chem.models.gaussian_process import GaussianProcess
+from ml4chem.atomistic.features import Gaussian
+from ml4chem.atomistic.models.gaussian_process import GaussianProcess
 from ml4chem.utils import logger
 
 
@@ -15,7 +15,6 @@ def train():
 
     # Arguments for fingerprinting the images
     normalized = True
-    batch_size = 160
 
     calc = Potentials(
         features=Gaussian(
@@ -32,5 +31,5 @@ def train():
 if __name__ == "__main__":
     logger()
     cluster = LocalCluster()
-    client = Client(cluster, asyncronous=True)
+    client = Client(cluster)
     train()

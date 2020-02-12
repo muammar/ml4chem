@@ -1,10 +1,10 @@
-import logging
 import sys
 
 sys.path.append("../../")
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
 from ml4chem import Potentials
+from ml4chem.utils import logger
 
 
 def main():
@@ -29,11 +29,7 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        filename="cu_inference.log",
-        level=logging.INFO,
-        format="%(filename)s:%(lineno)s %(levelname)s:%(message)s",
-    )
+    logger(filename="cu_inference.log")
     cluster = LocalCluster(n_workers=8, threads_per_worker=2)
-    client = Client(cluster, asyncronous=True)
+    client = Client(cluster)
     main()

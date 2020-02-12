@@ -7,7 +7,7 @@ import torch
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
-from ml4chem.features.base import AtomisticFeatures
+from ml4chem.atomistic.features.base import AtomisticFeatures
 from ml4chem.data.preprocessing import Preprocessing
 from ml4chem.data.serialization import dump, load
 from ml4chem.utils import convert_elapsed_time

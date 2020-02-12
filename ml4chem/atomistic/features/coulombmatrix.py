@@ -9,7 +9,7 @@ from collections import OrderedDict
 from dscribe.descriptors import CoulombMatrix as CoulombMatrixDscribe
 from ml4chem.data.preprocessing import Preprocessing
 from ml4chem.data.serialization import dump, load
-from ml4chem.features.base import AtomisticFeatures
+from ml4chem.atomistic.features.base import AtomisticFeatures
 from ml4chem.utils import get_chunks, convert_elapsed_time
 
 logger = logging.getLogger()

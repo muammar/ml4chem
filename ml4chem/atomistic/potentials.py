@@ -104,7 +104,7 @@ class Potentials(Calculator, object):
             module_name = Potentials.module_names[model_params["name"]]
 
             model_class = dynamic_import(
-                class_name, "ml4chem.models", alt_name=module_name
+                class_name, "ml4chem.atomistic.models", alt_name=module_name
             )
 
             delete = ["name", "type", "class_name"]
@@ -136,7 +136,7 @@ class Potentials(Calculator, object):
             name = fingerprint_params.get("name")
             del fingerprint_params["name"]
 
-            features = dynamic_import(name, "ml4chem.features")
+            features = dynamic_import(name, "ml4chem.atomistic.features")
             features = features(**fingerprint_params)
 
         calc = Cls(features=features, model=model, **kwargs)
@@ -307,7 +307,7 @@ class Potentials(Calculator, object):
 
             # This is something specific of pytorch.
             module = Potentials.module_names[self.model.name()]
-            train = dynamic_import("train", "ml4chem.models", alt_name=module)
+            train = dynamic_import("train", "ml4chem.atomistic.models", alt_name=module)
 
             train(
                 feature_space,
@@ -368,6 +368,8 @@ class Potentials(Calculator, object):
                     reference_space = load(self.reference_space)
                 except:
                     raise ("This is not a database...")
+
+                self.model.prepare_model(None, None, data=data_handler, purpose=purpose)
 
                 energy = self.model.get_potential_energy(
                     features, reference_space, purpose=purpose

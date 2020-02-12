@@ -2,7 +2,7 @@ import dask
 import logging
 import numpy as np
 from collections import OrderedDict
-from ml4chem.models.kernelridge import KernelRidge
+from ml4chem.atomistic.models.kernelridge import KernelRidge
 from scipy.linalg import cholesky
 
 logger = logging.getLogger()

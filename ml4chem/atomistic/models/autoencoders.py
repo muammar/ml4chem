@@ -7,8 +7,8 @@ import torch
 import numpy as np
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
-from ml4chem.models.base import DeepLearningModel
-from ml4chem.models.loss import MSELoss
+from ml4chem.atomistic.models.base import DeepLearningModel
+from ml4chem.atomistic.models.loss import MSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 from ml4chem.utils import convert_elapsed_time, get_chunks, lod_to_list
 
@@ -957,7 +957,7 @@ class train(object):
             if self.anneal:
                 annealing = annealer.update(epoch)
                 print(annealing)
-            else: 
+            else:
                 annealing = None
 
             self.optimizer.zero_grad()  # clear previous gradients

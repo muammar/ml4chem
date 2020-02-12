@@ -25,6 +25,11 @@
 
    models
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Visualization
+
+   visualization
 
 Indices and tables
 ==================

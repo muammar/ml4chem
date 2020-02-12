@@ -1,4 +1,4 @@
-from ml4chem.potentials import Potentials
+from ml4chem.atomistic.potentials import Potentials
 
 
 __all__ = ["Potentials"]

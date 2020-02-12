@@ -6,10 +6,9 @@ Subpackages
 
 .. toctree::
 
+    ml4chem.atomistic
     ml4chem.backends
     ml4chem.data
-    ml4chem.features
-    ml4chem.models
     ml4chem.optim
 
 Submodules
@@ -23,18 +22,18 @@ ml4chem.metrics module
     :undoc-members:
     :show-inheritance:
 
-ml4chem.potentials module
--------------------------
-
-.. automodule:: ml4chem.potentials
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 ml4chem.utils module
 --------------------
 
 .. automodule:: ml4chem.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+ml4chem.visualization module
+----------------------------
+
+.. automodule:: ml4chem.visualization
     :members:
     :undoc-members:
     :show-inheritance:

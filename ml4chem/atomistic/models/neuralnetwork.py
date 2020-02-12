@@ -7,8 +7,8 @@ import torch
 import numpy as np
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
-from ml4chem.models.base import DeepLearningModel
-from ml4chem.models.loss import AtomicMSELoss
+from ml4chem.atomistic.models.base import DeepLearningModel
+from ml4chem.atomistic.models.loss import AtomicMSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 from ml4chem.utils import convert_elapsed_time, get_chunks, get_number_of_parameters
 

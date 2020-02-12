@@ -115,12 +115,12 @@ predicting energy and atomic forces.
 
 ::
 
-    from ml4chem.features.gaussian import Gaussian
+    from ml4chem.atomistic.features.gaussian import Gaussian
 
     features = Gaussian(cutoff=6.5, normalized=True, save_preprocessor="features.scaler")
 
 In the code snippet above we are building Gaussian type features using the
-:class:`ml4chem.features.gaussian.Gaussian` class. We use a ``cutoff``
+:class:`ml4chem.atomistic.features.gaussian.Gaussian` class. We use a ``cutoff``
 radius of :math:`6.5` angstrom, we normalized by the squared cutoff raidous,
 and the preprocessing is saved to the file ``features.scaler`` (by default
 the preprocessing used is ``MinMaxScaler`` in a range :math:`(-1, 1)` as
@@ -153,7 +153,7 @@ In ML4Chem, a neural network can be instantiated as shown below:
 
 :: 
 
-    from ml4chem.models.neuralnetwork import NeuralNetwork
+    from ml4chem.atomistic.models.neuralnetwork import NeuralNetwork
 
     n = 10
     activation = "relu"
@@ -161,7 +161,7 @@ In ML4Chem, a neural network can be instantiated as shown below:
     nn.prepare_model()
 
 Here, we are building a NN with the
-:class:`ml4chem.models.neuralnetwork.NeuralNetwork` class with two
+:class:`ml4chem.atomistic.models.neuralnetwork.NeuralNetwork` class with two
 hidden-layers composed 10 neurons each, and a ReLu activation function.
 
 Autoencoders
@@ -178,7 +178,7 @@ reconstruct the input data.
    :align: center
 :: 
 
-    from ml4chem.models.autoencoders import AutoEncoder
+    from ml4chem.atomistic.models.autoencoders import AutoEncoder
 
     hiddenlayers = {"encoder": (20, 10, 4), "decoder": (4, 10, 20)}
     activation = "tanh"
@@ -207,7 +207,7 @@ for an AE as follows:
 
 :: 
 
-    from ml4chem.models.autoencoders import VAE
+    from ml4chem.atomistic.models.autoencoders import VAE
 
     hiddenlayers = {"encoder": (20, 10, 4), "decoder": (4, 10, 20)}
     activation = "tanh"

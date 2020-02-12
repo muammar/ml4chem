@@ -2,16 +2,16 @@ from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
 import sys
 
-sys.path.append("../ml4chem")
+sys.path.append("../../")
 from ml4chem.data.handler import Data
-from ml4chem.features import Cartesian
-from ml4chem.models.autoencoders import AutoEncoder
-from ml4chem.models.neuralnetwork import NeuralNetwork
-from ml4chem.models.merger import ModelMerger
-from ml4chem.models.loss import MSELoss
+from ml4chem.atomistic.features import Cartesian
+from ml4chem.atomistic.models.autoencoders import AutoEncoder
+from ml4chem.atomistic.models.neuralnetwork import NeuralNetwork
+from ml4chem.atomistic.models.merger import ModelMerger
+from ml4chem.atomistic.models.loss import MSELoss
 from ml4chem import Potentials
 from ml4chem.utils import logger
-from ml4chem.models.loss import AtomicMSELoss
+from ml4chem.atomistic.models.loss import AtomicMSELoss
 from ml4chem.data.serialization import dump
 
 

@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 from ase.data import atomic_numbers
 from collections import OrderedDict
-from ml4chem.features.cutoff import Cosine
-from ml4chem.features.base import AtomisticFeatures
+from ml4chem.atomistic.features.cutoff import Cosine
+from ml4chem.atomistic.features.base import AtomisticFeatures
 from ml4chem.data.serialization import dump, load
 from ml4chem.data.preprocessing import Preprocessing
 from ml4chem.utils import get_chunks, get_neighborlist, convert_elapsed_time
@@ -365,7 +365,6 @@ class Gaussian(AtomisticFeatures):
 
                 scaled_feature_space.append(features)
 
-
         else:
             scaled_feature_space = []
             atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
@@ -396,7 +395,9 @@ class Gaussian(AtomisticFeatures):
 
                 # image = (hash, ase_image) -> tuple
                 for atom in image[1]:
-                    restacked_atom = client.submit(self.restack_atom, *(i, atom, scaled_feature_space))
+                    restacked_atom = client.submit(
+                        self.restack_atom, *(i, atom, scaled_feature_space)
+                    )
                     reference_space.append(restacked_atom)
 
                 feature_space.append(restacked)

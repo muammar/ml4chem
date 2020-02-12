@@ -179,6 +179,10 @@ class KernelRidge(object):
         This method builds the atomic kernel matrices and the LT vectors needed
         to apply the atomic decomposition Ansatz.
         """
+
+        if self.batch_size == None:
+            self.batch_size = data.get_total_number_atoms()
+
         if purpose == "training":
             now = datetime.datetime.now()
             logger.info(" ")
@@ -194,48 +198,48 @@ class KernelRidge(object):
             logger.info("    - Lamda: {}.".format(self.lamda))
             logger.info(" ")
 
-        dim = len(reference_features)
+            dim = len(reference_features)
 
-        """
-        Atomic kernel matrices
-        """
+            """
+            Atomic kernel matrices
+            """
 
-        logger.info("Computing Kernel Matrix...")
-        # We start populating computations with delayed functions to
-        # operate with dask's scheduler
-        kernel_matrix = self.get_kernel_matrix(
-            feature_space, reference_features, purpose=purpose
-        )
+            logger.info("Computing Kernel Matrix...")
+            # We start populating computations with delayed functions to
+            # operate with dask's scheduler
+            kernel_matrix = self.get_kernel_matrix(
+                feature_space, reference_features, purpose=purpose
+            )
 
-        # futures = self.get_kernel_matrix(
-        #     feature_space, reference_features, purpose=purpose
-        # )
+            # futures = self.get_kernel_matrix(
+            #     feature_space, reference_features, purpose=purpose
+            # )
 
-        # if self.batch_size is not None:
-        #     futures = list(get_chunks(futures, self.batch_size))
-        #     logger.info(
-        #         "    The calculations are in batches of {}.".format(self.batch_size)
-        #     )
+            # if self.batch_size is not None:
+            #     futures = list(get_chunks(futures, self.batch_size))
+            #     logger.info(
+            #         "    The calculations are in batches of {}.".format(self.batch_size)
+            #     )
 
-        # We compute the calculations with dask and the result is converted
-        # to numpy array.
+            # We compute the calculations with dask and the result is converted
+            # to numpy array.
 
-        # if self.batch_size is None:
-        #     kernel_matrix = client.gather(futures)
-        # else:
-        #     kernel_matrix = []
-        #     for chunk in futures:
-        #         kernel_matrix += client.gather(chunk)
+            # if self.batch_size is None:
+            #     kernel_matrix = client.gather(futures)
+            # else:
+            #     kernel_matrix = []
+            #     for chunk in futures:
+            #         kernel_matrix += client.gather(chunk)
 
-        # FIXME probably not very efficient yet.
-        # Found at https://stackoverflow.com/a/36250972/1995261
+            # FIXME probably not very efficient yet.
+            # Found at https://stackoverflow.com/a/36250972/1995261
 
-        _K = np.zeros([dim, dim])
-        indices_upper = np.triu_indices(dim)
-        _K[indices_upper] = kernel_matrix
-        self.K = _K.T + _K
-        np.fill_diagonal(self.K, np.diag(_K))
-        del _K
+            _K = np.zeros([dim, dim])
+            indices_upper = np.triu_indices(dim)
+            _K[indices_upper] = kernel_matrix
+            self.K = _K.T + _K
+            np.fill_diagonal(self.K, np.diag(_K))
+            del _K
 
     def get_kernel_matrix(self, feature_space, reference_features, purpose):
         """Get kernel matrix delayed computations
@@ -243,8 +247,8 @@ class KernelRidge(object):
 
         Parameters
         ----------
-        features : dict
-            Dictionary with hash and features.
+        features : dict, list
+            Dictionary with hash and features, or a list.
         reference_space : array
             Array with reference feature space.
         purpose : str
@@ -255,20 +259,30 @@ class KernelRidge(object):
         -------
         kernel_matrix
             List with kernel matrix values.
+
+        
+        Notes
+        -----
+        This class method expects the feature_space to be an OrderedDict and
+        reference_space but it turns out that for computing variances, it
+        might be the case the feature_space is also a list.
         """
-        initial_time = time.time()
 
         call = {"exponential": exponential, "laplacian": laplacian, "rbf": rbf}
 
-        if self.batch_size is None:
-            chunks = [feature_space]
-        else:
-            chunks = list(get_chunks(feature_space, self.batch_size))
-            logger.info(
-                "    The calculations are distributed in {} batches of {} molecules.".format(
-                    len(chunks), self.batch_size
-                )
+        initial_time = time.time()
+        if isinstance(reference_features, dict):
+            # This is the case when the reference_features are a
+            # dictionary, too. If that's true we have to convert it to a list.
+            reference_features = list(reference_features.values())[0]
+
+        chunks = list(get_chunks(feature_space, self.batch_size))
+
+        logger.info(
+            "    The calculations are distributed in {} batches of {} atoms.".format(
+                len(chunks), self.batch_size
             )
+        )
 
         counter = 0
         kernel_matrix = []
@@ -278,16 +292,12 @@ class KernelRidge(object):
             logger.info("        Computing kernel functions for chunk {}...".format(c))
             intermediates = []
 
-            if isinstance(chunk, dict) is False:
-                chunk = OrderedDict(chunk)
-
-            if isinstance(chunk, dict):
-                if isinstance(reference_features, dict):
-                    # This is the case when the reference_features are a
-                    # dictionary, too.
-                    reference_features = list(reference_features.values())[0]
+            if isinstance(feature_space, dict) and isinstance(reference_features, list):
+                if isinstance(chunk, dict) is False:
+                    chunk = OrderedDict(chunk)
 
                 reference_lenght = len(reference_features)
+
                 for hash, _feature_space in chunk.items():
                     f_map = []
                     for i_symbol, i_afp in _feature_space:
@@ -313,7 +323,10 @@ class KernelRidge(object):
                                 )
                                 intermediates.append(kernel)
                     self.fingerprint_map.append(f_map)
-            else:
+
+            elif isinstance(feature_space, list) and isinstance(
+                reference_features, list
+            ):
                 for i_symbol, i_afp in chunk:
                     for j_symbol, j_afp in reference_features:
                         i_symbol = decode(i_symbol)
@@ -323,16 +336,18 @@ class KernelRidge(object):
                             i_afp, j_afp, i_symbol, j_symbol, self.sigma
                         )
                         intermediates.append(kernel)
+
+            # Compute stuff from above
             kernel_matrix += dask.compute(intermediates, scheduler=self.scheduler)[0]
             del intermediates
 
-            chunk_final_time = time.time() - chunk_initial_time
-            h, m, s = convert_elapsed_time(chunk_final_time)
-            logger.info(
-                "          ...finished in {} hours {} minutes {:.2f} "
-                "seconds.".format(h, m, s)
-            )
-            # dask.distributed.wait(kernel_matrix)
+        chunk_final_time = time.time() - chunk_initial_time
+        h, m, s = convert_elapsed_time(chunk_final_time)
+        logger.info(
+            "          ...finished in {} hours {} minutes {:.2f} "
+            "seconds.".format(h, m, s)
+        )
+        # dask.distributed.wait(kernel_matrix)
 
         del reference_features
 
@@ -355,26 +370,23 @@ class KernelRidge(object):
             for index, feature_space in enumerate(feature_space.items()):
                 computations.append(self.get_lt(index))
 
-            if self.batch_size is not None:
-                computations = list(get_chunks(computations, self.batch_size))
-                logger.info(
-                    "    The calculations are distributed in {} batches of {} molecules.".format(
-                        len(computations), self.batch_size
-                    )
+            computations = list(get_chunks(computations, self.batch_size))
+            logger.info(
+                "    The calculations are distributed in {} batches of {} molecules.".format(
+                    len(computations), self.batch_size
                 )
-                for chunk in computations:
-                    self.LT += dask.compute(*chunk, scheduler=self.scheduler)
+            )
+            for chunk in computations:
+                self.LT += dask.compute(*chunk, scheduler=self.scheduler)
 
-                self.LT = np.array(self.LT)
-                del computations
-                del chunk
-                lt_time = time.time() - initial_time
-                h, m, s = convert_elapsed_time(lt_time)
-                logger.info(
-                    "LT matrix built in {} hours {} minutes {:.2f} seconds.".format(
-                        h, m, s
-                    )
-                )
+            self.LT = np.array(self.LT)
+            del computations
+            del chunk
+            lt_time = time.time() - initial_time
+            h, m, s = convert_elapsed_time(lt_time)
+            logger.info(
+                "LT matrix built in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
+            )
 
         return kernel_matrix
 

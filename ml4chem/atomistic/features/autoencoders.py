@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 from collections import OrderedDict
 from ml4chem.data.preprocessing import Preprocessing
-from ml4chem.features.base import AtomisticFeatures
+from ml4chem.atomistic.features.base import AtomisticFeatures
 from ml4chem.utils import dynamic_import
 
 # Starting logger object
@@ -101,7 +101,7 @@ class LatentFeatures(AtomisticFeatures):
         # Now, we need to take the inputs and convert them to the right feature
         # space
         name, kwargs = self.features
-        features = dynamic_import(name, "ml4chem.features")
+        features = dynamic_import(name, "ml4chem.atomistic.features")
         features = features(**kwargs)
 
         feature_space = features.calculate(
@@ -214,7 +214,9 @@ class LatentFeatures(AtomisticFeatures):
         input_dimension = model_params.pop("input_dimension")
         output_dimension = model_params.pop("output_dimension")
 
-        autoencoder = dynamic_import(name, "ml4chem.models", alt_name="autoencoders")
+        autoencoder = dynamic_import(
+            name, "ml4chem.atomistic.models", alt_name="autoencoders"
+        )
         autoencoder = autoencoder(**model_params)
         autoencoder.prepare_model(input_dimension, output_dimension, **kwargs)
         autoencoder.load_state_dict(torch.load(model_path), strict=True)
