@@ -3,6 +3,7 @@ import codecs
 import copy
 import json
 import logging
+import os
 import torch
 from ase.calculators.calculator import Calculator
 from ml4chem.backends.available import available_backends
@@ -160,9 +161,15 @@ class Potentials(Calculator, object):
         """
 
         if path is None:
-            path = ""
+            path = "."
 
-        path += label
+        if os.path.isdir(path) is False:
+            os.makedirs(path)
+
+        if path[-1] == "/":
+            path += label
+        else:
+            path = path + "/" + label
 
         if model is not None:
             model_name = model.name()

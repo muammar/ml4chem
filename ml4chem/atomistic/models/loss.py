@@ -38,9 +38,8 @@ def AtomicMSELoss(outputs, targets, atoms_per_image, uncertainty=None):
         outputs_atom = torch.div(outputs, atoms_per_image)
         targets_atom = torch.div(targets, atoms_per_image)
         loss = (
-            criterion(outputs_atom, targets_atom) / torch.pow(uncertainty, 2)
+            criterion(outputs_atom, targets_atom) / (2 * torch.pow(uncertainty, 1))
         ).sum() * 0.5
-
     return loss
 
 
@@ -64,6 +63,7 @@ def SumSquaredDiff(outputs, targets):
     In the literature it is mentioned that for real-valued autoencoders the
     reconstruction loss function is the sum of squared differences.
     """
+
     loss = (outputs - targets).pow(2).sum() * 0.5
     return loss
 

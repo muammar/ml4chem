@@ -7,7 +7,7 @@ import torch
 import numpy as np
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
-from ml4chem.atomistic.models.base import DeepLearningModel
+from ml4chem.atomistic.models.base import DeepLearningModel, DeepLearningTrainer
 from ml4chem.atomistic.models.loss import AtomicMSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 from ml4chem.utils import convert_elapsed_time, get_chunks, get_number_of_parameters
@@ -209,7 +209,7 @@ class NeuralNetwork(DeepLearningModel):
         return outputs
 
 
-class train(object):
+class train(DeepLearningTrainer):
     """Train the model
 
     Parameters
@@ -244,6 +244,17 @@ class train(object):
 
         >>> lr_scheduler = ('ReduceLROnPlateau',
                             {'mode': 'min', 'patience': 10})
+    uncertainty : list
+        A list of uncertainties that are used to penalize during the loss
+        function evaluation.
+    checkpoint : dict
+        Set checkpoints. Dictionary with following structure:
+
+        >>> checkpoint = {"label": label, "checkpoint": 100, "path": ""}
+        
+        `label` refers to the name used to save the checkpoint, `checkpoint`
+        is a integer or -1 for saving all epochs, and the path is where the
+        checkpoint is stored. Default is None and no checkpoint is saved.
     """
 
     def __init__(
@@ -260,6 +271,8 @@ class train(object):
         device="cpu",
         batch_size=None,
         lr_scheduler=None,
+        uncertainty=None,
+        checkpoint=None,
     ):
 
         self.initial_time = time.time()
@@ -274,6 +287,13 @@ class train(object):
             chunks = list(get_chunks(inputs, batch_size, svm=False))
             targets = list(get_chunks(targets, batch_size, svm=False))
             atoms_per_image = list(get_chunks(atoms_per_image, batch_size, svm=False))
+
+            if uncertainty != None:
+                uncertainty = list(get_chunks(uncertainty, batch_size, svm=False))
+                uncertainty = [
+                    torch.tensor(u, requires_grad=False, dtype=torch.float)
+                    for u in uncertainty
+                ]
 
         logger.info(" ")
         logging.info("Batch Information")
@@ -342,11 +362,17 @@ class train(object):
         self.epochs = epochs
         self.model = model
         self.lr_scheduler = lr_scheduler
+        self.checkpoint = checkpoint
 
         # Data scattering
         client = dask.distributed.get_client()
         self.chunks = [client.scatter(chunk) for chunk in chunks]
         self.targets = [client.scatter(target) for target in targets]
+
+        if uncertainty != None:
+            self.uncertainty = [client.scatter(u) for u in uncertainty]
+        else:
+            self.uncertainty = uncertainty
 
         if lossfxn is None:
             self.lossfxn = AtomicMSELoss
@@ -373,6 +399,7 @@ class train(object):
             loss, outputs_ = train.closure(
                 self.chunks,
                 self.targets,
+                self.uncertainty,
                 self.model,
                 self.lossfxn,
                 self.atoms_per_image,
@@ -403,9 +430,13 @@ class train(object):
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
+
             logger.info(
                 "{:6d} {} {:8e} {:8f} {:8f}".format(epoch, ts, loss, rmse, rmse_atom)
             )
+
+            if self.checkpoint is not None:
+                self.checkpoint_save(epoch, self.model, **self.checkpoint)
 
             if self.convergence is None and epoch == self.epochs:
                 converged = True
@@ -420,7 +451,9 @@ class train(object):
         )
 
     @classmethod
-    def closure(Cls, chunks, targets, model, lossfxn, atoms_per_image, device):
+    def closure(
+        Cls, chunks, targets, uncertainty, model, lossfxn, atoms_per_image, device
+    ):
         """Closure
 
         This class method clears previous gradients, iterates over batches,
@@ -435,6 +468,9 @@ class train(object):
             Tensor with input data points in batch with index.
         targets : tensor or list
             The targets.
+        uncertainty : list
+            A list of uncertainties that are used to penalize during the loss
+            function evaluation.
         model : obj
             Pytorch model to perform forward() and get gradients.
         lossfxn : obj
@@ -458,7 +494,16 @@ class train(object):
             accumulation.append(
                 client.submit(
                     train.train_batches,
-                    *(index, chunk, targets, model, lossfxn, atoms_per_image, device)
+                    *(
+                        index,
+                        chunk,
+                        targets,
+                        uncertainty,
+                        model,
+                        lossfxn,
+                        atoms_per_image,
+                        device,
+                    )
                 )
             )
         dask.distributed.wait(accumulation)
@@ -482,7 +527,7 @@ class train(object):
 
     @classmethod
     def train_batches(
-        Cls, index, chunk, targets, model, lossfxn, atoms_per_image, device
+        Cls, index, chunk, targets, uncertainty, model, lossfxn, atoms_per_image, device
     ):
         """A function that allows training per batches
 
@@ -497,6 +542,9 @@ class train(object):
             The targets.
         model : obj
             Pytorch model to perform forward() and get gradients.
+        uncertainty : list
+            A list of uncertainties that are used to penalize during the loss
+            function evaluation.
         lossfxn : obj
             A loss function object.
         atoms_per_image : list
@@ -512,7 +560,12 @@ class train(object):
         inputs = OrderedDict(chunk)
         outputs = model(inputs)
 
-        loss = lossfxn(outputs, targets[index], atoms_per_image[index])
+        if uncertainty == None:
+            loss = lossfxn(outputs, targets[index], atoms_per_image[index])
+        else:
+            loss = lossfxn(
+                outputs, targets[index], atoms_per_image[index], uncertainty[index]
+            )
         loss.backward()
 
         gradients = []
