@@ -364,6 +364,8 @@ class train(object):
         _rmse = []
         epoch = 0
 
+        client = dask.distributed.get_client()
+
         while not converged:
             epoch += 1
 
@@ -384,8 +386,6 @@ class train(object):
                 self.optimizer.step(options)
 
             # RMSE per image and per/atom
-            client = dask.distributed.get_client()
-
             rmse = client.submit(compute_rmse, *(outputs_, self.targets))
             atoms_per_image = torch.cat(self.atoms_per_image)
             rmse_atom = client.submit(

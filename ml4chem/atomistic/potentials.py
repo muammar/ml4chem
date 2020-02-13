@@ -263,6 +263,7 @@ class Potentials(Calculator, object):
             feature_space, reference_features = self.features.calculate(
                 training_set, data=data_handler, purpose=purpose, svm=True
             )
+
             self.model.prepare_model(
                 feature_space, reference_features, data=data_handler
             )
