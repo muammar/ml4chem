@@ -1,0 +1,15 @@
+joblib
+seaborn
+dask_ml
+ase
+scipy
+numpy
+pip
+pandas
+plotly
+pytest
+msgpack_numpy
+matplotlib
+dscribe
+msgpack_python
+scikit_learn

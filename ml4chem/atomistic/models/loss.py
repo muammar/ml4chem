@@ -38,7 +38,7 @@ def AtomicMSELoss(outputs, targets, atoms_per_image, uncertainty=None):
         outputs_atom = torch.div(outputs, atoms_per_image)
         targets_atom = torch.div(targets, atoms_per_image)
         loss = (
-            criterion(outputs_atom, targets_atom) / (2 * torch.pow(uncertainty, 1))
+            criterion(outputs_atom, targets_atom) / (2 * torch.pow(uncertainty, 2))
         ).sum() * 0.5
     return loss
 
