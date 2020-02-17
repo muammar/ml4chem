@@ -62,7 +62,13 @@ def read_log(logfile, metric="loss", refresh=None):
     logfile : str
         Path to logfile.
     metric : str
-        Metric to plot. Supported are loss and rmse.
+        The keys,values of the dictionary are: 
+
+        - "loss": Loss function values. 
+        - "training": Training error. 
+        - "test": Test error.
+        - "combined": training + test errors in same plot. 
+
     refresh : float
         Interval in seconds before refreshing log file plot.
     """
@@ -88,7 +94,8 @@ def read_log(logfile, metric="loss", refresh=None):
     start = False
     epochs = []
     loss = []
-    rmse = []
+    training = []
+    test = []
 
     initiliazed = False
     while refresh is not None:
@@ -101,36 +108,43 @@ def read_log(logfile, metric="loss", refresh=None):
                     line = line.split()
                     epochs.append(int(line[0]))
                     loss.append(float(line[3]))
-                    rmse.append(float(line[4]))
+                    training.append(float(line[4]))
+                    test.append(float(line[6]))
                 except ValueError:
                     pass
 
         if initiliazed is False:
             if metric == "loss":
-                (fig,) = plt.plot(epochs, loss, label="loss")
+                (fig,) = plt.plot(epochs, loss, label="Loss")
 
-            elif metric == "rmse":
-                (fig,) = plt.plot(epochs, rmse, label="rmse")
+            elif metric == "training":
+                (fig,) = plt.plot(epochs, training, label="Training")
 
-            else:
-                (fig,) = plt.plot(epochs, loss, label="loss")
-                (fig,) = plt.plot(epochs, rmse, label="rmse")
+            elif metric == "test":
+                (fig,) = plt.plot(epochs, test, label="test")
+
+            elif metric == "combined":
+                (fig,) = plt.plot(epochs, training, label="Training")
+                (fig,) = plt.plot(epochs, test, label="Test")
         else:
             if metric == "loss":
                 fig.set_data(epochs, loss)
 
-            elif metric == "rmse":
-                fig.set_data(epochs, rmse)
+            elif metric == "training":
+                fig.set_data(epochs, training)
 
-            else:
-                fig.set_data(epochs, loss)
-                fig.set_data(epochs, rmse)
+            elif metric == "test":
+                fig.set_data(epochs, test)
+
+            elif metric == "combined":
+                fig.set_data(epochs, training)
+                fig.set_data(epochs, test)
 
             # Updating annotation
             if metric == "loss":
                 values = loss
-            elif metric == "rmse":
-                values = rmse
+            else:
+                values = training
 
             reported = values[-1]
             x = int(epochs[-1] * 0.9)
@@ -156,19 +170,23 @@ def read_log(logfile, metric="loss", refresh=None):
                     line = line.split()
                     epochs.append(int(line[0]))
                     loss.append(float(line[3]))
-                    rmse.append(float(line[4]))
+                    training.append(float(line[4]))
+                    test.append(float(line[6]))
                 except ValueError:
                     pass
 
         if metric == "loss":
             (fig,) = plt.plot(epochs, loss, label="loss")
 
-        elif metric == "rmse":
-            (fig,) = plt.plot(epochs, rmse, label="rmse")
+        elif metric == "training":
+            (fig,) = plt.plot(epochs, training, label="training")
 
-        else:
-            (fig,) = plt.plot(epochs, loss, label="loss")
-            (fig,) = plt.plot(epochs, rmse, label="rmse")
+        elif metric == "test":
+            (fig,) = plt.plot(epochs, test, label="training")
+
+        elif metric == "combined":
+            (fig,) = plt.plot(epochs, training, label="training")
+            (fig,) = plt.plot(epochs, test, label="test")
 
         plt.show(block=True)
 

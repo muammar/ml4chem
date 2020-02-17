@@ -9,6 +9,7 @@
 [![Downloads](https://img.shields.io/github/downloads/muammar/ml4chem/total.svg?maxAge=2592000?style=flat-square)](https://github.com/muammar/ml4chem/releases)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/ml4chem)
 [![GitHub release](https://img.shields.io/github/release/muammar/ml4chem.svg)](https://github.com/muammar/ml4chem/releases/latest)
+[![GitHub release](https://readthedocs.org/projects/ml4chem/badge/?version=latest)](https://ml4chem.dev)
 [![Slack channel](https://img.shields.io/badge/slack-ml4chem-yellow.svg?logo=slack)](https://ml4chem.slack.com/)
 
 

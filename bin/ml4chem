@@ -24,7 +24,7 @@ from ml4chem.visualization import read_log, plot_atomic_features
 )
 def main(**args):
     """ML4Chem command line tool"""
-    training_plots = ["rmse", "loss"]
+    training_plots = ["training", "loss", "test", "combined"]
     dim_visualization = ["pca", "tsne"]
 
     _file = args["file"]
@@ -40,6 +40,8 @@ def main(**args):
             backend = args["backend"]
             plot_atomic_features(_file, method=method, backend=backend)
 
+        else: 
+            raise NotImplementedError
 
 if __name__ == "__main__":
     main()
