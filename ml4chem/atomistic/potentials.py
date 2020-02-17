@@ -259,11 +259,11 @@ class Potentials(Calculator, object):
         """
 
         purpose = "training"
-        data_handler = Data(training_set, purpose=purpose)
         # Raw input and targets aka X, y
+        data_handler = Data(training_set, purpose=purpose)
         training_set, targets = data_handler.get_data(purpose=purpose)
 
-        # Now let's train
+        # Now let's featurize
         # SVM models
         if self.model.name() in Potentials.svm_models:
             # Mapping raw positions into a feature space aka X
@@ -317,6 +317,7 @@ class Potentials(Calculator, object):
             module = Potentials.module_names[self.model.name()]
             train = dynamic_import("train", "ml4chem.atomistic.models", alt_name=module)
 
+            # Let's train
             train(
                 feature_space,
                 targets,

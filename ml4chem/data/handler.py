@@ -33,7 +33,7 @@ class Data(object):
         self.images = None
         self.targets = None
         self.unique_element_symbols = None
-        logger.info("Data")
+        logger.info("\nData")
         logger.info("====")
         now = datetime.datetime.now()
         logger.info("Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S")))

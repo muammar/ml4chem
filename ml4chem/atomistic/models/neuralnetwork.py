@@ -232,6 +232,7 @@ class train(DeepLearningTrainer):
         This is the L2 regularization. It is not the same as weight decay.
     convergence : dict
         Instead of using epochs, users can set a convergence criterion.
+        Supported keys are "training" and "test".
     lossfxn : obj
         A loss function object.
     device : str
@@ -255,6 +256,18 @@ class train(DeepLearningTrainer):
         `label` refers to the name used to save the checkpoint, `checkpoint`
         is a integer or -1 for saving all epochs, and the path is where the
         checkpoint is stored. Default is None and no checkpoint is saved.
+    test : dict
+        A dictionary used to compute the error over a validation/test set
+        during training procedures.
+
+        >>>  test = {"features": test_space, "targets": test_targets, "data": data_test}
+
+        The keys,values of the dictionary are: 
+
+        - "data": a `Data` object.
+        - "targets": test set targets. 
+        - "features": a feature space obtained using `features.calculate()`.
+
     """
 
     def __init__(
@@ -273,6 +286,7 @@ class train(DeepLearningTrainer):
         lr_scheduler=None,
         uncertainty=None,
         checkpoint=None,
+        test=None,
     ):
 
         self.initial_time = time.time()
@@ -342,20 +356,6 @@ class train(DeepLearningTrainer):
         if lr_scheduler is not None:
             self.scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
 
-        logger.info(" ")
-        logger.info("Starting training...")
-        logger.info(" ")
-
-        logger.info(
-            "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
-                "Epoch", "Time Stamp", "Loss", "RMSE/img", "RMSE/atom"
-            )
-        )
-        logger.info(
-            "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
-                "------", "-------------------", "------------", "--------", "---------"
-            )
-        )
         self.atoms_per_image = atoms_per_image
         self.convergence = convergence
         self.device = device
@@ -363,6 +363,7 @@ class train(DeepLearningTrainer):
         self.model = model
         self.lr_scheduler = lr_scheduler
         self.checkpoint = checkpoint
+        self.test = test
 
         # Data scattering
         client = dask.distributed.get_client()
@@ -384,6 +385,55 @@ class train(DeepLearningTrainer):
 
     def trainer(self):
         """Run the training class"""
+
+        logger.info(" ")
+        logger.info("Starting training...\n")
+        if self.uncertainty is not None:
+            logger.info("Loss function will penalize based on uncertainties.\n")
+
+        if self.test is None:
+            logger.info(
+                "{:6s} {:19s} {:12s} {:12s} {:8s}".format(
+                    "Epoch", "Time Stamp", "Loss", "Error/img", "Error/atom"
+                )
+            )
+            logger.info(
+                "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
+                    "------",
+                    "-------------------",
+                    "------------",
+                    "------------",
+                    "------------",
+                )
+            )
+
+        else:
+            test_features = self.test.get("features", None)
+            test_targets = self.test.get("targets", None)
+            test_data = self.test.get("data", None)
+
+            logger.info(
+                "{:6s} {:19s} {:12s} {:12s} {:12s} {:12s} {:16s}".format(
+                    "Epoch",
+                    "Time Stamp",
+                    "Loss",
+                    "Error/img",
+                    "Error/atom",
+                    "Error/img (t)",
+                    "Error/atom (t)",
+                )
+            )
+            logger.info(
+                "{:6s} {:19s} {:12s} {:8s} {:8s} {:8s} {:8s}".format(
+                    "------",
+                    "-------------------",
+                    "------------",
+                    "------------",
+                    "------------",
+                    "------------",
+                    "------------",
+                )
+            )
 
         converged = False
         _loss = []
@@ -413,27 +463,60 @@ class train(DeepLearningTrainer):
                 self.optimizer.step(options)
 
             # RMSE per image and per/atom
+
             rmse = client.submit(compute_rmse, *(outputs_, self.targets))
             atoms_per_image = torch.cat(self.atoms_per_image)
+
             rmse_atom = client.submit(
                 compute_rmse, *(outputs_, self.targets, atoms_per_image)
             )
             rmse = rmse.result()
             rmse_atom = rmse_atom.result()
-
             _loss.append(loss.item())
             _rmse.append(rmse)
-
             # In the case that lr_scheduler is not None
             if self.lr_scheduler is not None:
                 self.scheduler.step(loss)
+                print("Epoch {} lr {}".format(epoch, get_lr(self.optimizer)))
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
 
-            logger.info(
-                "{:6d} {} {:8e} {:8f} {:8f}".format(epoch, ts, loss, rmse, rmse_atom)
-            )
+            if self.test is None:
+                logger.info(
+                    "{:6d} {} {:8e} {:4e} {:4e}".format(
+                        epoch, ts, loss.detach(), rmse, rmse_atom
+                    )
+                )
+            else:
+                test_model = self.model.eval()
+                test_predictions = test_model(test_features).detach()
+                rmse_test = client.submit(
+                    compute_rmse, *(test_predictions, test_targets)
+                )
+
+                atoms_per_image_test = torch.tensor(
+                    test_data.atoms_per_image, requires_grad=False
+                )
+                rmse_atom_test = client.submit(
+                    compute_rmse,
+                    *(test_predictions, test_targets, atoms_per_image_test)
+                )
+
+                rmse_test = rmse_test.result()
+                rmse_atom_test = rmse_atom_test.result()
+
+                logger.info(
+                    "{:6d} {} {:8e} {:4e} {:4e} {:4e} {:4e}".format(
+                        epoch,
+                        ts,
+                        loss.detach(),
+                        rmse,
+                        rmse_atom,
+                        rmse_test,
+                        rmse_atom_test,
+                    )
+                )
 
             if self.checkpoint is not None:
                 self.checkpoint_save(epoch, self.model, **self.checkpoint)
