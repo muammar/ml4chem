@@ -5,4 +5,4 @@ python:
     version: 3.7
     install:
       - requirements: docs/requirements.txt
-    pip_install: true
+    # This breaks readthedocs pip_install: true
