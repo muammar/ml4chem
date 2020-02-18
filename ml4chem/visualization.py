@@ -54,7 +54,7 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
         plt.savefig(filename, **kwargs)
 
 
-def read_log(logfile, metric="loss", refresh=None):
+def read_log(logfile, metric="loss", refresh=None, data_only=False):
     """Read the logfile
 
     Parameters
@@ -71,6 +71,10 @@ def read_log(logfile, metric="loss", refresh=None):
 
     refresh : float
         Interval in seconds before refreshing log file plot.
+    
+    data_only : bool
+        If set to True, this function returns only data in a tuple with the
+        following structure: (epochs, loss, training, test).
     """
 
     if refresh is not None:
@@ -121,11 +125,11 @@ def read_log(logfile, metric="loss", refresh=None):
                 (fig,) = plt.plot(epochs, training, label="Training")
 
             elif metric == "test":
-                (fig,) = plt.plot(epochs, test, label="test")
+                (fig,) = plt.plot(epochs, test, label="Test")
 
             elif metric == "combined":
                 (fig,) = plt.plot(epochs, training, label="Training")
-                (fig,) = plt.plot(epochs, test, label="Test")
+                (fig2,) = plt.plot(epochs, test, label="Test")
         else:
             if metric == "loss":
                 fig.set_data(epochs, loss)
@@ -138,7 +142,7 @@ def read_log(logfile, metric="loss", refresh=None):
 
             elif metric == "combined":
                 fig.set_data(epochs, training)
-                fig.set_data(epochs, test)
+                fig2.set_data(epochs, test)
 
             # Updating annotation
             if metric == "loss":
@@ -179,16 +183,19 @@ def read_log(logfile, metric="loss", refresh=None):
             (fig,) = plt.plot(epochs, loss, label="loss")
 
         elif metric == "training":
-            (fig,) = plt.plot(epochs, training, label="training")
+            (fig,) = plt.plot(epochs, training, label="Training")
 
         elif metric == "test":
-            (fig,) = plt.plot(epochs, test, label="training")
+            (fig,) = plt.plot(epochs, test, label="Training")
 
         elif metric == "combined":
-            (fig,) = plt.plot(epochs, training, label="training")
-            (fig,) = plt.plot(epochs, test, label="test")
+            (fig,) = plt.plot(epochs, training, label="Training")
+            (fig,) = plt.plot(epochs, test, label="Test")
 
-        plt.show(block=True)
+        if data_only:
+            return epochs, loss, training, test
+        else:
+            plt.show(block=True)
 
 
 def plot_atomic_features(
