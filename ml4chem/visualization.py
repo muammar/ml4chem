@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -5,7 +6,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from sklearn.pipeline import make_pipeline
 from ml4chem.data.serialization import load
+
+
+logger = logging.getLogger()
 
 
 def parity(predictions, true, scores=False, filename=None, **kwargs):
@@ -63,12 +68,12 @@ def read_log(logfile, metric="loss", refresh=None, data_only=False):
     logfile : str
         Path to logfile.
     metric : str
-        The keys,values of the dictionary are: 
+        The keys,values of the dictionary are:
 
-        - "loss": Loss function values. 
-        - "training": Training error. 
+        - "loss": Loss function values.
+        - "training": Training error.
         - "test": Test error.
-        - "combined": training + test errors in same plot. 
+        - "combined": training + test errors in same plot.
 
     refresh : float
         Interval in seconds before refreshing log file plot.
@@ -223,8 +228,9 @@ def plot_atomic_features(
     dimensions=2,
     backend="seaborn",
     data_only=False,
+    preprocessor=None,
     backend_kwargs=None,
-    **kwargs
+    **kwargs,
 ):
     """Plot high dimensional atomic feature vectors
 
@@ -246,15 +252,17 @@ def plot_atomic_features(
     backend : str, optional
         Select the backend to plot features. Supported are "plotly" and
         "seaborn", by default "plotly".
+    preprocessor : obj
+        One of the preprocessors supported by sklearn e.g.: StandardScaler(),
+        Normalizer().
     backend_kwargs : dict
         Dictionary with extra keyword arguments to extend functionality of
         backends that cannot be set with the defaults keyword arguments of
         the plot_atomic_features function.
 
-        For more information see: 
+        For more information see:
             - https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html
-            - https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html 
-
+            - https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html
     data_only : bool
         If set to True, this function returns only data in a dataframe with
         the following structure:
@@ -309,7 +317,15 @@ def plot_atomic_features(
         from sklearn.decomposition import PCA
 
         labels = {str(axis[i]): "PCA-{}".format(i + 1) for i in range(len(axis))}
+
         pca = PCA(n_components=dimensions, **backend_kwargs)
+
+        if preprocessor != None:
+            logger.info(
+                f"Creating pipeline with preprocessor {preprocessor.__class__.__name__}..."
+            )
+            pca = make_pipeline(preprocessor, pca)
+
         pca_result = pca.fit_transform(full_ls)
 
         to_pandas = []
@@ -349,6 +365,12 @@ def plot_atomic_features(
         labels = {str(axis[i]): "t-SNE-{}".format(i + 1) for i in range(len(axis))}
 
         tsne = manifold.TSNE(n_components=dimensions, **backend_kwargs)
+
+        if preprocessor != None:
+            logger.info(
+                f"Creating pipeline with preprocessor {preprocessor.__class__.__name__}..."
+            )
+            tsne = make_pipeline(preprocessor, tsne)
 
         tsne_result = tsne.fit_transform(full_ls)
 
