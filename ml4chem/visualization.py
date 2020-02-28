@@ -318,15 +318,15 @@ def plot_atomic_features(
 
         labels = {str(axis[i]): "PCA-{}".format(i + 1) for i in range(len(axis))}
 
-        pca = PCA(n_components=dimensions, **backend_kwargs)
+        dim_reduction = PCA(n_components=dimensions, **backend_kwargs)
 
         if preprocessor != None:
             logger.info(
                 f"Creating pipeline with preprocessor {preprocessor.__class__.__name__}..."
             )
-            pca = make_pipeline(preprocessor, pca)
+            dim_reduction = make_pipeline(preprocessor, dim_reduction)
 
-        pca_result = pca.fit_transform(full_ls)
+        pca_result = dim_reduction.fit_transform(full_ls)
 
         to_pandas = []
 
@@ -364,13 +364,13 @@ def plot_atomic_features(
 
         labels = {str(axis[i]): "t-SNE-{}".format(i + 1) for i in range(len(axis))}
 
-        tsne = manifold.TSNE(n_components=dimensions, **backend_kwargs)
+        dim_reduction = manifold.TSNE(n_components=dimensions, **backend_kwargs)
 
         if preprocessor != None:
             logger.info(
                 f"Creating pipeline with preprocessor {preprocessor.__class__.__name__}..."
             )
-            tsne = make_pipeline(preprocessor, tsne)
+            dim_reduction = make_pipeline(preprocessor, dim_reduction)
 
         tsne_result = tsne.fit_transform(full_ls)
 
@@ -406,7 +406,7 @@ def plot_atomic_features(
             sns.scatterplot(**labels, data=df, hue="Symbol")
 
     if data_only:
-        return df
+        return df, dim_reduction
 
     else:
         try:
@@ -414,4 +414,4 @@ def plot_atomic_features(
         except:
             pass
 
-        return plt, df
+        return plt, df, dim_reduction

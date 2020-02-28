@@ -127,18 +127,21 @@ class Potentials(Calculator, object):
         # Instantiation of fingerprint class
         fingerprint_params = ml4chem_params.get("features", None)
 
-        if "kwargs" in fingerprint_params.keys():
-            update_dict_with = fingerprint_params.pop("kwargs")
-            fingerprint_params.update(update_dict_with)
-
-        if fingerprint_params is None:
-            features = fingerprint_params
+        if fingerprint_params == None:
+            features = None
         else:
-            name = fingerprint_params.get("name")
-            del fingerprint_params["name"]
+            if "kwargs" in fingerprint_params.keys():
+                update_dict_with = fingerprint_params.pop("kwargs")
+                fingerprint_params.update(update_dict_with)
 
-            features = dynamic_import(name, "ml4chem.atomistic.features")
-            features = features(**fingerprint_params)
+            if fingerprint_params is None:
+                features = fingerprint_params
+            else:
+                name = fingerprint_params.get("name")
+                del fingerprint_params["name"]
+
+                features = dynamic_import(name, "ml4chem.atomistic.features")
+                features = features(**fingerprint_params)
 
         calc = Cls(features=features, model=model, **kwargs)
 
