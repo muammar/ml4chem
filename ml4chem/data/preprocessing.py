@@ -97,10 +97,10 @@ class Preprocessing(object):
         if purpose == "training" and preprocessor_name is not None:
             logger.info("\nData preprocessing")
             logger.info("------------------")
-            logger.info("Preprocessor: {}.".format(preprocessor_name))
+            logger.info(f"Preprocessor: {preprocessor_name}.")
             logger.info("Options:")
             for k, v in self.kwargs.items():
-                logger.info("    - {}: {}.".format(k, v))
+                logger.info(f"    - {k}: {v}.")
 
         logger.info(" ")
 

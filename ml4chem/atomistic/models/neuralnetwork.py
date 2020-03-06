@@ -5,12 +5,14 @@ import time
 import torch
 
 import numpy as np
+import pandas as pd
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
 from ml4chem.atomistic.models.base import DeepLearningModel, DeepLearningTrainer
 from ml4chem.atomistic.models.loss import AtomicMSELoss
-from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
+from ml4chem.optim.handler import get_optimizer, get_lr_scheduler, get_lr
 from ml4chem.utils import convert_elapsed_time, get_chunks, get_number_of_parameters
+from pprint import pformat
 
 
 # Setting precision and starting logger object
@@ -208,6 +210,81 @@ class NeuralNetwork(DeepLearningModel):
         outputs = torch.stack(outputs)
         return outputs
 
+    def get_activations(self, images, model=None, numpy=True):
+        """Get activations of each hidden-layer
+
+        This function allows to extract activations of each hidden-layer of
+        the neural network. 
+
+        Parameters
+        ----------
+        image : dict
+           Image with structure hash, features. 
+        model : object
+            A ML4Chem model object.
+        numpy : bool
+            Whether we want numpy arrays or tensors. 
+
+
+        Returns
+        -------
+        activations : DataFrame
+            A DataFrame with activations for each layer.  
+        """
+
+        activations = []
+        columns = ["Hash", "atom.index", "atom.symbol"]
+
+        if model is None:
+            model = self
+
+        model.eval()
+
+        for hash, data in images.items():
+            for index, (symbol, features) in enumerate(data):
+
+                counter = 0
+                layer_counter = 0
+                for l, layer in enumerate(model.linears[symbol].modules()):
+                    if isinstance(layer, torch.nn.Linear) and counter == 0:
+                        x = layer(features)
+
+                        if numpy:
+                            data_ = [hash, index, symbol, x.detach().numpy()]
+                        else:
+                            data_ = [hash, index, symbol, x]
+
+                        layer_column_name = f"layer{layer_counter}"
+
+                        if layer_column_name not in columns:
+                            columns.append(layer_column_name)
+
+                        counter += 1
+                        layer_counter += 1
+
+                    elif isinstance(layer, torch.nn.Linear) and counter > 0:
+                        x = layer(x)
+
+                        if numpy:
+                            data_.append(x.detach().numpy())
+                        else:
+                            data_.append(x)
+
+                        layer_column_name = f"layer{layer_counter}"
+                        if layer_column_name not in columns:
+                            columns.append(layer_column_name)
+
+                        counter += 1
+                        layer_counter += 1
+
+                activations.append(data_)
+                del data_
+
+        # Create DataFrame from lists
+        df = pd.DataFrame(activations, columns=columns)
+
+        return df
+
 
 class train(DeepLearningTrainer):
     """Train the model
@@ -291,6 +368,19 @@ class train(DeepLearningTrainer):
 
         self.initial_time = time.time()
 
+        if lossfxn is None:
+            lossfxn = AtomicMSELoss
+
+        logger.info("")
+        logger.info("Training")
+        logger.info("========")
+        logger.info(f"Convergence criteria: {convergence}")
+        logger.info(f"Loss function: {lossfxn.__name__}")
+        if uncertainty is not None:
+            logger.info("Options:")
+            logger.info(f"    - Uncertainty penalization: {pformat(uncertainty)}")
+        logger.info("")
+
         atoms_per_image = data.atoms_per_image
 
         if batch_size is None:
@@ -309,7 +399,7 @@ class train(DeepLearningTrainer):
                     for u in uncertainty
                 ]
 
-        logger.info(" ")
+        logger.info("")
         logging.info("Batch Information")
         logging.info("-----------------")
         logging.info("Number of batches: {}.".format(len(chunks)))
@@ -362,6 +452,7 @@ class train(DeepLearningTrainer):
         self.epochs = epochs
         self.model = model
         self.lr_scheduler = lr_scheduler
+        self.lossfxn = lossfxn
         self.checkpoint = checkpoint
         self.test = test
 
@@ -375,11 +466,6 @@ class train(DeepLearningTrainer):
         else:
             self.uncertainty = uncertainty
 
-        if lossfxn is None:
-            self.lossfxn = AtomicMSELoss
-        else:
-            self.lossfxn = lossfxn
-
         # Let the hunger games begin...
         self.trainer()
 
@@ -388,8 +474,6 @@ class train(DeepLearningTrainer):
 
         logger.info(" ")
         logger.info("Starting training...\n")
-        if self.uncertainty is not None:
-            logger.info("Loss function will penalize based on uncertainties.\n")
 
         if self.test is None:
             logger.info(
@@ -500,7 +584,7 @@ class train(DeepLearningTrainer):
                 )
                 rmse_atom_test = client.submit(
                     compute_rmse,
-                    *(test_predictions, test_targets, atoms_per_image_test)
+                    *(test_predictions, test_targets, atoms_per_image_test),
                 )
 
                 rmse_test = rmse_test.result()
@@ -586,7 +670,7 @@ class train(DeepLearningTrainer):
                         lossfxn,
                         atoms_per_image,
                         device,
-                    )
+                    ),
                 )
             )
         dask.distributed.wait(accumulation)

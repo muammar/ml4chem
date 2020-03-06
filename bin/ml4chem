@@ -41,7 +41,7 @@ def main(**args):
             plot_atomic_features(_file, method=method, backend=backend)
 
         else: 
-            raise NotImplementedError
+            raise NotImplementedError(f"Supported values are {training_plots}")
 
 if __name__ == "__main__":
     main()

@@ -41,7 +41,7 @@ for ML4chem.
 2. Install the requirements::
 
     cd ml4chem
-    pip install -r requirements.txt
+    python3 -m pip install -r requirements.txt
 
 3. After requirements are installed, you can proceed to add ``ml4chem`` to
    your ``PYTHONPATH`` and ``PATH`` (to use the ``ml4chem`` command line

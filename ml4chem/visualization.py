@@ -128,6 +128,10 @@ def read_log(logfile, metric="loss", refresh=None, data_only=False):
                     loss.append(float(line[3]))
                     training.append(float(line[4]))
                     test.append(float(line[6]))
+                except IndexError:
+                    epochs.append(int(line[0]))
+                    loss.append(float(line[3]))
+                    training.append(float(line[4]))
                 except ValueError:
                     pass
 
@@ -280,7 +284,8 @@ def plot_atomic_features(
         raise NotImplementedError
 
     if backend == "seaborn":
-        # This hack is needed because it seems plotly import overwrite everything.
+        # This hack is needed because it seems plotly import overwrite
+        # everything.
         import matplotlib.pyplot as plt
 
     axis = ["x", "y", "z"]
@@ -372,7 +377,7 @@ def plot_atomic_features(
             )
             dim_reduction = make_pipeline(preprocessor, dim_reduction)
 
-        tsne_result = tsne.fit_transform(full_ls)
+        tsne_result = dim_reduction.fit_transform(full_ls)
 
         to_pandas = []
 
