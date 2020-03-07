@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import torch
 
 
-class DeepLearningModel(ABC, torch.nn.Module):
+class DeepLearningModel(ABC, metaclass=torch.nn.Module):
     @abstractmethod
     def name(cls):
         """Return name of the class"""
@@ -29,14 +29,14 @@ class DeepLearningTrainer(ABC, object):
     def checkpoint_save(self, epoch, model, label=None, checkpoint=None, path=""):
         """Checkpoint saver
 
-        A method that saves the checkpoint of a model during training. 
-        
+        A method that saves the checkpoint of a model during training.
+
         Parameters
         ----------
         epoch : int
-            Epoch number. 
+            Epoch number.
         model : object
-            A DeepLearning object. 
+            A DeepLearning object.
         label : str, optional
             String with checkpoint label, by default None.
         checkpoint : int, optional

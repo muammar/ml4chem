@@ -65,30 +65,30 @@ class KernelRidge(object):
 
     Notes
     -----
-        In the case of training total energies, we need to apply either an
-        atomic decomposition Ansatz (ADA) during training or an energy
-        partition scheme to the training set. ADA can be achieved based on
-        Ref. 1.
-        For an explanation of what they do, see the Master thesis by Sonja
-        Mathias.
+    In the case of training total energies, we need to apply either an
+    atomic decomposition Ansatz (ADA) during training or an energy
+    partition scheme to the training set. ADA can be achieved based on
+    Ref. 1.
+    For an explanation of what they do, see the Master thesis by Sonja
+    Mathias.
 
-        http://wissrech.ins.uni-bonn.de/teaching/master/masterthesis_mathias_revised.pdf
+    http://wissrech.ins.uni-bonn.de/teaching/master/masterthesis_mathias_revised.pdf
 
-        ADA is the default way of training total energies in this KernelRidge
-        class.
+    ADA is the default way of training total energies in this KernelRidge
+    class.
 
-        An energy partition scheme for  total energies can be obtained from an
-        artificial neural network or methods such as the interacting quantum
-        atoms theory (IQA). I implemented the nnpartition mode for which users
-        can provide the path to a NN calculator and we take the energies
-        per-atom from the function .calculate_atomic_energy(). The strategy
-        would be to use train the NN with a very tight convergence criterion
-        (1e-6 RSME).  Then, calling .calculate_atomic_energy() would give you
-        the atomic energies for such set.
+    An energy partition scheme for  total energies can be obtained from an
+    artificial neural network or methods such as the interacting quantum
+    atoms theory (IQA). I implemented the nnpartition mode for which users
+    can provide the path to a NN calculator and we take the energies
+    per-atom from the function .calculate_atomic_energy(). The strategy
+    would be to use train the NN with a very tight convergence criterion
+    (1e-6 RSME).  Then, calling .calculate_atomic_energy() would give you
+    the atomic energies for such set.
 
-        For forces is a different history because we do know the derivative of
-        the energy with respect to atom positions (a per-atom quantity).  So we
-        rely on the method in the algorithm shown by Rupp in Ref. 2.
+    For forces is a different history because we do know the derivative of
+    the energy with respect to atom positions (a per-atom quantity).  So we
+    rely on the method in the algorithm shown by Rupp in Ref. 2.
 
     References
     ----------
@@ -260,7 +260,7 @@ class KernelRidge(object):
         kernel_matrix
             List with kernel matrix values.
 
-        
+
         Notes
         -----
         This class method expects the feature_space to be an OrderedDict and

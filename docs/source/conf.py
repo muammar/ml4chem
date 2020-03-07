@@ -12,27 +12,29 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
-from unittest.mock import MagicMock
 
-sys.path.insert(0, os.path.abspath("../../"))
+try:
+    import torch
+except ModuleNotFoundError:
+    import os
+    import sys
+    from unittest.mock import MagicMock
 
-# class Mock(MagicMock):
-#    @classmethod
-#    def __getattr__(cls, name):
-#        return MagicMock()
-#
-# MOCK_MODULES = ['ase', 'ase.calculators', 'ase.calculators.calculator',
-#                'ase.neighborlist' 'torch']
-#
-# sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+    sys.path.insert(0, os.path.abspath("../../"))
 
+    class Mock(MagicMock):
+       @classmethod
+       def __getattr__(cls, name):
+           return MagicMock()
+
+    MOCK_MODULES = ['torch', "torch.optim"]
+
+    sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- Project information -----------------------------------------------------
 
 project = "ML4Chem"
-copyright = "2019, Muammar El Khatib"
+copyright = "2020, Muammar El Khatib"
 author = "Muammar El Khatib"
 
 # The short X.Y version
