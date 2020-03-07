@@ -17,7 +17,7 @@ torch.set_printoptions(precision=10)
 logger = logging.getLogger()
 
 
-class AutoEncoder(DeepLearningModel):
+class AutoEncoder(DeepLearningModel, torch.nn.Module):
     """Fully connected atomic autoencoder
 
 

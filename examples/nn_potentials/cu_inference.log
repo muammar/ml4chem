@@ -1,4 +1,4 @@
-potentials.py:78 INFO:
+potentials.py:79 INFO:
 ===============================================================================
 
                            _   ___      _
@@ -24,9 +24,10 @@ Contributors (in alphabetic order):
 
 ===============================================================================
 
-handler.py:36 INFO:Data
+handler.py:36 INFO:
+Data
 handler.py:37 INFO:====
-handler.py:39 INFO:Module accessed on 2020-02-11 10:22:31.
+handler.py:39 INFO:Module accessed on 2020-03-07 12:55:48.
 handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
 handler.py:57 INFO:Preparing images for inference...
 handler.py:88 INFO:Images hashed and processed...
@@ -34,40 +35,44 @@ handler.py:88 INFO:Images hashed and processed...
 gaussian.py:188 INFO: 
 gaussian.py:189 INFO:Featurization
 gaussian.py:190 INFO:=============
-gaussian.py:192 INFO:Module accessed on 2020-02-11 10:22:31.
+gaussian.py:192 INFO:Module accessed on 2020-03-07 12:55:48.
 gaussian.py:223 INFO:Getting unique element symbols for inference
 gaussian.py:231 INFO:Unique chemical elements: ['Cu']
 gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
 
-gaussian.py:762 INFO:Number of features per chemical element:
-gaussian.py:764 INFO:    - Cu: 8.
-gaussian.py:768 INFO: 
-gaussian.py:769 INFO:Symmetry function parameters for Cu atom:
-gaussian.py:775 INFO:-----------------------------------------
-gaussian.py:777 INFO:  #      Symbol    Type Parameters
-gaussian.py:801 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:801 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:801 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:801 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:801 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:801 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:763 INFO:Number of features per chemical element:
+gaussian.py:765 INFO:    - Cu: 8.
+gaussian.py:769 INFO: 
+gaussian.py:770 INFO:Symmetry function parameters for Cu atom:
+gaussian.py:776 INFO:-----------------------------------------
+gaussian.py:778 INFO:  #      Symbol    Type Parameters
+gaussian.py:802 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:802 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:802 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:802 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:802 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:802 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 preprocessing.py:59 INFO:
-utils.py:129 INFO:Note: NumExpr detected 16 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
-utils.py:141 INFO:NumExpr defaulting to 8 threads.
+preprocessing.py:86 INFO:
+Data preprocessing
+preprocessing.py:87 INFO:------------------
+preprocessing.py:88 INFO:Preprocessor loaded from file : model.scaler.
+preprocessing.py:105 INFO: 
 gaussian.py:261 INFO:
 gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
-gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.28 seconds.
+gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.23 seconds.
 gaussian.py:321 INFO:
 gaussian.py:329 INFO:Converting features to dask array...
 gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
 gaussian.py:357 INFO:Stacking features using atoms index map...
-gaussian.py:438 INFO:Featurization finished in 0 hours 0 minutes 1.89 seconds.
-potentials.py:364 INFO:Computing energy...
-handler.py:36 INFO:Data
+gaussian.py:439 INFO:Featurization finished in 0 hours 0 minutes 1.37 seconds.
+potentials.py:380 INFO:Computing energy...
+handler.py:36 INFO:
+Data
 handler.py:37 INFO:====
-handler.py:39 INFO:Module accessed on 2020-02-11 10:22:33.
+handler.py:39 INFO:Module accessed on 2020-03-07 12:55:50.
 handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
 handler.py:57 INFO:Preparing images for inference...
 handler.py:88 INFO:Images hashed and processed...
@@ -75,38 +80,44 @@ handler.py:88 INFO:Images hashed and processed...
 gaussian.py:188 INFO: 
 gaussian.py:189 INFO:Featurization
 gaussian.py:190 INFO:=============
-gaussian.py:192 INFO:Module accessed on 2020-02-11 10:22:33.
+gaussian.py:192 INFO:Module accessed on 2020-03-07 12:55:50.
 gaussian.py:223 INFO:Getting unique element symbols for inference
 gaussian.py:231 INFO:Unique chemical elements: ['Cu']
 gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
 
-gaussian.py:762 INFO:Number of features per chemical element:
-gaussian.py:764 INFO:    - Cu: 8.
-gaussian.py:768 INFO: 
-gaussian.py:769 INFO:Symmetry function parameters for Cu atom:
-gaussian.py:775 INFO:-----------------------------------------
-gaussian.py:777 INFO:  #      Symbol    Type Parameters
-gaussian.py:801 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:801 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:801 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:801 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:801 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:801 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:763 INFO:Number of features per chemical element:
+gaussian.py:765 INFO:    - Cu: 8.
+gaussian.py:769 INFO: 
+gaussian.py:770 INFO:Symmetry function parameters for Cu atom:
+gaussian.py:776 INFO:-----------------------------------------
+gaussian.py:778 INFO:  #      Symbol    Type Parameters
+gaussian.py:802 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:802 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:802 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:802 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:802 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:802 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 preprocessing.py:59 INFO:
+preprocessing.py:86 INFO:
+Data preprocessing
+preprocessing.py:87 INFO:------------------
+preprocessing.py:88 INFO:Preprocessor loaded from file : model.scaler.
+preprocessing.py:105 INFO: 
 gaussian.py:261 INFO:
 gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
-gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.09 seconds.
+gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.14 seconds.
 gaussian.py:321 INFO:
 gaussian.py:329 INFO:Converting features to dask array...
 gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
 gaussian.py:357 INFO:Stacking features using atoms index map...
-gaussian.py:438 INFO:Featurization finished in 0 hours 0 minutes 1.47 seconds.
-potentials.py:364 INFO:Computing energy...
-handler.py:36 INFO:Data
+gaussian.py:439 INFO:Featurization finished in 0 hours 0 minutes 0.87 seconds.
+potentials.py:380 INFO:Computing energy...
+handler.py:36 INFO:
+Data
 handler.py:37 INFO:====
-handler.py:39 INFO:Module accessed on 2020-02-11 10:22:35.
+handler.py:39 INFO:Module accessed on 2020-03-07 12:55:50.
 handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
 handler.py:57 INFO:Preparing images for inference...
 handler.py:88 INFO:Images hashed and processed...
@@ -114,26 +125,76 @@ handler.py:88 INFO:Images hashed and processed...
 gaussian.py:188 INFO: 
 gaussian.py:189 INFO:Featurization
 gaussian.py:190 INFO:=============
-gaussian.py:192 INFO:Module accessed on 2020-02-11 10:22:35.
+gaussian.py:192 INFO:Module accessed on 2020-03-07 12:55:50.
 gaussian.py:223 INFO:Getting unique element symbols for inference
 gaussian.py:231 INFO:Unique chemical elements: ['Cu']
 gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
 
-gaussian.py:762 INFO:Number of features per chemical element:
-gaussian.py:764 INFO:    - Cu: 8.
-gaussian.py:768 INFO: 
-gaussian.py:769 INFO:Symmetry function parameters for Cu atom:
-gaussian.py:775 INFO:-----------------------------------------
-gaussian.py:777 INFO:  #      Symbol    Type Parameters
-gaussian.py:801 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:801 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:801 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:801 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:801 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:801 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:763 INFO:Number of features per chemical element:
+gaussian.py:765 INFO:    - Cu: 8.
+gaussian.py:769 INFO: 
+gaussian.py:770 INFO:Symmetry function parameters for Cu atom:
+gaussian.py:776 INFO:-----------------------------------------
+gaussian.py:778 INFO:  #      Symbol    Type Parameters
+gaussian.py:802 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:802 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:802 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:802 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:802 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:802 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 preprocessing.py:59 INFO:
+preprocessing.py:86 INFO:
+Data preprocessing
+preprocessing.py:87 INFO:------------------
+preprocessing.py:88 INFO:Preprocessor loaded from file : model.scaler.
+preprocessing.py:105 INFO: 
+gaussian.py:261 INFO:
+gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
+gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.10 seconds.
+gaussian.py:321 INFO:
+gaussian.py:329 INFO:Converting features to dask array...
+gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
+gaussian.py:357 INFO:Stacking features using atoms index map...
+gaussian.py:439 INFO:Featurization finished in 0 hours 0 minutes 1.12 seconds.
+potentials.py:380 INFO:Computing energy...
+handler.py:36 INFO:
+Data
+handler.py:37 INFO:====
+handler.py:39 INFO:Module accessed on 2020-03-07 12:55:52.
+handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
+handler.py:57 INFO:Preparing images for inference...
+handler.py:88 INFO:Images hashed and processed...
+
+gaussian.py:188 INFO: 
+gaussian.py:189 INFO:Featurization
+gaussian.py:190 INFO:=============
+gaussian.py:192 INFO:Module accessed on 2020-03-07 12:55:52.
+gaussian.py:223 INFO:Getting unique element symbols for inference
+gaussian.py:231 INFO:Unique chemical elements: ['Cu']
+gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
+
+gaussian.py:763 INFO:Number of features per chemical element:
+gaussian.py:765 INFO:    - Cu: 8.
+gaussian.py:769 INFO: 
+gaussian.py:770 INFO:Symmetry function parameters for Cu atom:
+gaussian.py:776 INFO:-----------------------------------------
+gaussian.py:778 INFO:  #      Symbol    Type Parameters
+gaussian.py:802 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:802 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:802 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:802 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:802 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:802 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+preprocessing.py:59 INFO:
+preprocessing.py:86 INFO:
+Data preprocessing
+preprocessing.py:87 INFO:------------------
+preprocessing.py:88 INFO:Preprocessor loaded from file : model.scaler.
+preprocessing.py:105 INFO: 
 gaussian.py:261 INFO:
 gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
 gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.15 seconds.
@@ -141,11 +202,12 @@ gaussian.py:321 INFO:
 gaussian.py:329 INFO:Converting features to dask array...
 gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
 gaussian.py:357 INFO:Stacking features using atoms index map...
-gaussian.py:438 INFO:Featurization finished in 0 hours 0 minutes 1.92 seconds.
-potentials.py:364 INFO:Computing energy...
-handler.py:36 INFO:Data
+gaussian.py:439 INFO:Featurization finished in 0 hours 0 minutes 0.87 seconds.
+potentials.py:380 INFO:Computing energy...
+handler.py:36 INFO:
+Data
 handler.py:37 INFO:====
-handler.py:39 INFO:Module accessed on 2020-02-11 10:22:37.
+handler.py:39 INFO:Module accessed on 2020-03-07 12:55:52.
 handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
 handler.py:57 INFO:Preparing images for inference...
 handler.py:88 INFO:Images hashed and processed...
@@ -153,26 +215,31 @@ handler.py:88 INFO:Images hashed and processed...
 gaussian.py:188 INFO: 
 gaussian.py:189 INFO:Featurization
 gaussian.py:190 INFO:=============
-gaussian.py:192 INFO:Module accessed on 2020-02-11 10:22:37.
+gaussian.py:192 INFO:Module accessed on 2020-03-07 12:55:52.
 gaussian.py:223 INFO:Getting unique element symbols for inference
 gaussian.py:231 INFO:Unique chemical elements: ['Cu']
 gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
 
-gaussian.py:762 INFO:Number of features per chemical element:
-gaussian.py:764 INFO:    - Cu: 8.
-gaussian.py:768 INFO: 
-gaussian.py:769 INFO:Symmetry function parameters for Cu atom:
-gaussian.py:775 INFO:-----------------------------------------
-gaussian.py:777 INFO:  #      Symbol    Type Parameters
-gaussian.py:801 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:801 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:801 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:801 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:801 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:801 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:763 INFO:Number of features per chemical element:
+gaussian.py:765 INFO:    - Cu: 8.
+gaussian.py:769 INFO: 
+gaussian.py:770 INFO:Symmetry function parameters for Cu atom:
+gaussian.py:776 INFO:-----------------------------------------
+gaussian.py:778 INFO:  #      Symbol    Type Parameters
+gaussian.py:802 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:802 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:802 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:802 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:802 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:802 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 preprocessing.py:59 INFO:
+preprocessing.py:86 INFO:
+Data preprocessing
+preprocessing.py:87 INFO:------------------
+preprocessing.py:88 INFO:Preprocessor loaded from file : model.scaler.
+preprocessing.py:105 INFO: 
 gaussian.py:261 INFO:
 gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
 gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.13 seconds.
@@ -180,11 +247,12 @@ gaussian.py:321 INFO:
 gaussian.py:329 INFO:Converting features to dask array...
 gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
 gaussian.py:357 INFO:Stacking features using atoms index map...
-gaussian.py:438 INFO:Featurization finished in 0 hours 0 minutes 1.39 seconds.
-potentials.py:364 INFO:Computing energy...
-handler.py:36 INFO:Data
+gaussian.py:439 INFO:Featurization finished in 0 hours 0 minutes 0.85 seconds.
+potentials.py:380 INFO:Computing energy...
+handler.py:36 INFO:
+Data
 handler.py:37 INFO:====
-handler.py:39 INFO:Module accessed on 2020-02-11 10:22:38.
+handler.py:39 INFO:Module accessed on 2020-03-07 12:55:53.
 handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
 handler.py:57 INFO:Preparing images for inference...
 handler.py:88 INFO:Images hashed and processed...
@@ -192,38 +260,44 @@ handler.py:88 INFO:Images hashed and processed...
 gaussian.py:188 INFO: 
 gaussian.py:189 INFO:Featurization
 gaussian.py:190 INFO:=============
-gaussian.py:192 INFO:Module accessed on 2020-02-11 10:22:38.
+gaussian.py:192 INFO:Module accessed on 2020-03-07 12:55:53.
 gaussian.py:223 INFO:Getting unique element symbols for inference
 gaussian.py:231 INFO:Unique chemical elements: ['Cu']
 gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
 
-gaussian.py:762 INFO:Number of features per chemical element:
-gaussian.py:764 INFO:    - Cu: 8.
-gaussian.py:768 INFO: 
-gaussian.py:769 INFO:Symmetry function parameters for Cu atom:
-gaussian.py:775 INFO:-----------------------------------------
-gaussian.py:777 INFO:  #      Symbol    Type Parameters
-gaussian.py:801 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:801 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:801 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:801 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:801 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:801 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:763 INFO:Number of features per chemical element:
+gaussian.py:765 INFO:    - Cu: 8.
+gaussian.py:769 INFO: 
+gaussian.py:770 INFO:Symmetry function parameters for Cu atom:
+gaussian.py:776 INFO:-----------------------------------------
+gaussian.py:778 INFO:  #      Symbol    Type Parameters
+gaussian.py:802 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:802 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:802 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:802 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:802 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:802 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 preprocessing.py:59 INFO:
+preprocessing.py:86 INFO:
+Data preprocessing
+preprocessing.py:87 INFO:------------------
+preprocessing.py:88 INFO:Preprocessor loaded from file : model.scaler.
+preprocessing.py:105 INFO: 
 gaussian.py:261 INFO:
 gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
-gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.09 seconds.
+gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.15 seconds.
 gaussian.py:321 INFO:
 gaussian.py:329 INFO:Converting features to dask array...
 gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
 gaussian.py:357 INFO:Stacking features using atoms index map...
-gaussian.py:438 INFO:Featurization finished in 0 hours 0 minutes 1.42 seconds.
-potentials.py:364 INFO:Computing energy...
-handler.py:36 INFO:Data
+gaussian.py:439 INFO:Featurization finished in 0 hours 0 minutes 1.16 seconds.
+potentials.py:380 INFO:Computing energy...
+handler.py:36 INFO:
+Data
 handler.py:37 INFO:====
-handler.py:39 INFO:Module accessed on 2020-02-11 10:22:40.
+handler.py:39 INFO:Module accessed on 2020-03-07 12:55:55.
 handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
 handler.py:57 INFO:Preparing images for inference...
 handler.py:88 INFO:Images hashed and processed...
@@ -231,38 +305,44 @@ handler.py:88 INFO:Images hashed and processed...
 gaussian.py:188 INFO: 
 gaussian.py:189 INFO:Featurization
 gaussian.py:190 INFO:=============
-gaussian.py:192 INFO:Module accessed on 2020-02-11 10:22:40.
+gaussian.py:192 INFO:Module accessed on 2020-03-07 12:55:55.
 gaussian.py:223 INFO:Getting unique element symbols for inference
 gaussian.py:231 INFO:Unique chemical elements: ['Cu']
 gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
 
-gaussian.py:762 INFO:Number of features per chemical element:
-gaussian.py:764 INFO:    - Cu: 8.
-gaussian.py:768 INFO: 
-gaussian.py:769 INFO:Symmetry function parameters for Cu atom:
-gaussian.py:775 INFO:-----------------------------------------
-gaussian.py:777 INFO:  #      Symbol    Type Parameters
-gaussian.py:801 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:801 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:801 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:801 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:801 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:801 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:763 INFO:Number of features per chemical element:
+gaussian.py:765 INFO:    - Cu: 8.
+gaussian.py:769 INFO: 
+gaussian.py:770 INFO:Symmetry function parameters for Cu atom:
+gaussian.py:776 INFO:-----------------------------------------
+gaussian.py:778 INFO:  #      Symbol    Type Parameters
+gaussian.py:802 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:802 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:802 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:802 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:802 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:802 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 preprocessing.py:59 INFO:
+preprocessing.py:86 INFO:
+Data preprocessing
+preprocessing.py:87 INFO:------------------
+preprocessing.py:88 INFO:Preprocessor loaded from file : model.scaler.
+preprocessing.py:105 INFO: 
 gaussian.py:261 INFO:
 gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
-gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.08 seconds.
+gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.12 seconds.
 gaussian.py:321 INFO:
 gaussian.py:329 INFO:Converting features to dask array...
 gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
 gaussian.py:357 INFO:Stacking features using atoms index map...
-gaussian.py:438 INFO:Featurization finished in 0 hours 0 minutes 1.51 seconds.
-potentials.py:364 INFO:Computing energy...
-handler.py:36 INFO:Data
+gaussian.py:439 INFO:Featurization finished in 0 hours 0 minutes 0.84 seconds.
+potentials.py:380 INFO:Computing energy...
+handler.py:36 INFO:
+Data
 handler.py:37 INFO:====
-handler.py:39 INFO:Module accessed on 2020-02-11 10:22:41.
+handler.py:39 INFO:Module accessed on 2020-03-07 12:55:55.
 handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
 handler.py:57 INFO:Preparing images for inference...
 handler.py:88 INFO:Images hashed and processed...
@@ -270,38 +350,44 @@ handler.py:88 INFO:Images hashed and processed...
 gaussian.py:188 INFO: 
 gaussian.py:189 INFO:Featurization
 gaussian.py:190 INFO:=============
-gaussian.py:192 INFO:Module accessed on 2020-02-11 10:22:41.
+gaussian.py:192 INFO:Module accessed on 2020-03-07 12:55:55.
 gaussian.py:223 INFO:Getting unique element symbols for inference
 gaussian.py:231 INFO:Unique chemical elements: ['Cu']
 gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
 
-gaussian.py:762 INFO:Number of features per chemical element:
-gaussian.py:764 INFO:    - Cu: 8.
-gaussian.py:768 INFO: 
-gaussian.py:769 INFO:Symmetry function parameters for Cu atom:
-gaussian.py:775 INFO:-----------------------------------------
-gaussian.py:777 INFO:  #      Symbol    Type Parameters
-gaussian.py:801 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:801 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:801 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:801 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:801 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:801 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:763 INFO:Number of features per chemical element:
+gaussian.py:765 INFO:    - Cu: 8.
+gaussian.py:769 INFO: 
+gaussian.py:770 INFO:Symmetry function parameters for Cu atom:
+gaussian.py:776 INFO:-----------------------------------------
+gaussian.py:778 INFO:  #      Symbol    Type Parameters
+gaussian.py:802 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:802 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:802 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:802 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:802 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:802 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 preprocessing.py:59 INFO:
+preprocessing.py:86 INFO:
+Data preprocessing
+preprocessing.py:87 INFO:------------------
+preprocessing.py:88 INFO:Preprocessor loaded from file : model.scaler.
+preprocessing.py:105 INFO: 
 gaussian.py:261 INFO:
 gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
-gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.06 seconds.
+gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.13 seconds.
 gaussian.py:321 INFO:
 gaussian.py:329 INFO:Converting features to dask array...
 gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
 gaussian.py:357 INFO:Stacking features using atoms index map...
-gaussian.py:438 INFO:Featurization finished in 0 hours 0 minutes 1.27 seconds.
-potentials.py:364 INFO:Computing energy...
-handler.py:36 INFO:Data
+gaussian.py:439 INFO:Featurization finished in 0 hours 0 minutes 0.86 seconds.
+potentials.py:380 INFO:Computing energy...
+handler.py:36 INFO:
+Data
 handler.py:37 INFO:====
-handler.py:39 INFO:Module accessed on 2020-02-11 10:22:42.
+handler.py:39 INFO:Module accessed on 2020-03-07 12:55:56.
 handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
 handler.py:57 INFO:Preparing images for inference...
 handler.py:88 INFO:Images hashed and processed...
@@ -309,38 +395,44 @@ handler.py:88 INFO:Images hashed and processed...
 gaussian.py:188 INFO: 
 gaussian.py:189 INFO:Featurization
 gaussian.py:190 INFO:=============
-gaussian.py:192 INFO:Module accessed on 2020-02-11 10:22:42.
+gaussian.py:192 INFO:Module accessed on 2020-03-07 12:55:56.
 gaussian.py:223 INFO:Getting unique element symbols for inference
 gaussian.py:231 INFO:Unique chemical elements: ['Cu']
 gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
 
-gaussian.py:762 INFO:Number of features per chemical element:
-gaussian.py:764 INFO:    - Cu: 8.
-gaussian.py:768 INFO: 
-gaussian.py:769 INFO:Symmetry function parameters for Cu atom:
-gaussian.py:775 INFO:-----------------------------------------
-gaussian.py:777 INFO:  #      Symbol    Type Parameters
-gaussian.py:801 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:801 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:801 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:801 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:801 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:801 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:763 INFO:Number of features per chemical element:
+gaussian.py:765 INFO:    - Cu: 8.
+gaussian.py:769 INFO: 
+gaussian.py:770 INFO:Symmetry function parameters for Cu atom:
+gaussian.py:776 INFO:-----------------------------------------
+gaussian.py:778 INFO:  #      Symbol    Type Parameters
+gaussian.py:802 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:802 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:802 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:802 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:802 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:802 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 preprocessing.py:59 INFO:
+preprocessing.py:86 INFO:
+Data preprocessing
+preprocessing.py:87 INFO:------------------
+preprocessing.py:88 INFO:Preprocessor loaded from file : model.scaler.
+preprocessing.py:105 INFO: 
 gaussian.py:261 INFO:
 gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
-gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.09 seconds.
+gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.13 seconds.
 gaussian.py:321 INFO:
 gaussian.py:329 INFO:Converting features to dask array...
 gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
 gaussian.py:357 INFO:Stacking features using atoms index map...
-gaussian.py:438 INFO:Featurization finished in 0 hours 0 minutes 1.44 seconds.
-potentials.py:364 INFO:Computing energy...
-handler.py:36 INFO:Data
+gaussian.py:439 INFO:Featurization finished in 0 hours 0 minutes 0.82 seconds.
+potentials.py:380 INFO:Computing energy...
+handler.py:36 INFO:
+Data
 handler.py:37 INFO:====
-handler.py:39 INFO:Module accessed on 2020-02-11 10:22:44.
+handler.py:39 INFO:Module accessed on 2020-03-07 12:55:57.
 handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
 handler.py:57 INFO:Preparing images for inference...
 handler.py:88 INFO:Images hashed and processed...
@@ -348,71 +440,37 @@ handler.py:88 INFO:Images hashed and processed...
 gaussian.py:188 INFO: 
 gaussian.py:189 INFO:Featurization
 gaussian.py:190 INFO:=============
-gaussian.py:192 INFO:Module accessed on 2020-02-11 10:22:44.
+gaussian.py:192 INFO:Module accessed on 2020-03-07 12:55:57.
 gaussian.py:223 INFO:Getting unique element symbols for inference
 gaussian.py:231 INFO:Unique chemical elements: ['Cu']
 gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
 
-gaussian.py:762 INFO:Number of features per chemical element:
-gaussian.py:764 INFO:    - Cu: 8.
-gaussian.py:768 INFO: 
-gaussian.py:769 INFO:Symmetry function parameters for Cu atom:
-gaussian.py:775 INFO:-----------------------------------------
-gaussian.py:777 INFO:  #      Symbol    Type Parameters
-gaussian.py:801 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:801 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:801 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:801 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:801 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:801 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+gaussian.py:763 INFO:Number of features per chemical element:
+gaussian.py:765 INFO:    - Cu: 8.
+gaussian.py:769 INFO: 
+gaussian.py:770 INFO:Symmetry function parameters for Cu atom:
+gaussian.py:776 INFO:-----------------------------------------
+gaussian.py:778 INFO:  #      Symbol    Type Parameters
+gaussian.py:802 INFO:  0   Cu            G2  eta: 0.0500
+gaussian.py:802 INFO:  1   Cu            G2  eta: 0.2321
+gaussian.py:802 INFO:  2   Cu            G2  eta: 1.0772
+gaussian.py:802 INFO:  3   Cu            G2  eta: 5.0000
+gaussian.py:802 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+gaussian.py:802 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+gaussian.py:802 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 preprocessing.py:59 INFO:
+preprocessing.py:86 INFO:
+Data preprocessing
+preprocessing.py:87 INFO:------------------
+preprocessing.py:88 INFO:Preprocessor loaded from file : model.scaler.
+preprocessing.py:105 INFO: 
 gaussian.py:261 INFO:
 gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
-gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.09 seconds.
+gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.14 seconds.
 gaussian.py:321 INFO:
 gaussian.py:329 INFO:Converting features to dask array...
 gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
 gaussian.py:357 INFO:Stacking features using atoms index map...
-gaussian.py:438 INFO:Featurization finished in 0 hours 0 minutes 1.37 seconds.
-potentials.py:364 INFO:Computing energy...
-handler.py:36 INFO:Data
-handler.py:37 INFO:====
-handler.py:39 INFO:Module accessed on 2020-02-11 10:22:45.
-handler.py:42 WARNING:Data structure is not compatible with ML4Chem.
-handler.py:57 INFO:Preparing images for inference...
-handler.py:88 INFO:Images hashed and processed...
-
-gaussian.py:188 INFO: 
-gaussian.py:189 INFO:Featurization
-gaussian.py:190 INFO:=============
-gaussian.py:192 INFO:Module accessed on 2020-02-11 10:22:45.
-gaussian.py:223 INFO:Getting unique element symbols for inference
-gaussian.py:231 INFO:Unique chemical elements: ['Cu']
-gaussian.py:248 INFO:Using parameters from file to create symmetry functions...
-
-gaussian.py:762 INFO:Number of features per chemical element:
-gaussian.py:764 INFO:    - Cu: 8.
-gaussian.py:768 INFO: 
-gaussian.py:769 INFO:Symmetry function parameters for Cu atom:
-gaussian.py:775 INFO:-----------------------------------------
-gaussian.py:777 INFO:  #      Symbol    Type Parameters
-gaussian.py:801 INFO:  0   Cu            G2  eta: 0.0500
-gaussian.py:801 INFO:  1   Cu            G2  eta: 0.2321
-gaussian.py:801 INFO:  2   Cu            G2  eta: 1.0772
-gaussian.py:801 INFO:  3   Cu            G2  eta: 5.0000
-gaussian.py:801 INFO:  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-gaussian.py:801 INFO:  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-gaussian.py:801 INFO:  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-preprocessing.py:59 INFO:
-gaussian.py:261 INFO:
-gaussian.py:262 INFO:Embarrassingly parallel computation of atomic features...
-gaussian.py:318 INFO:... finished in 0 hours 0 minutes 0.07 seconds.
-gaussian.py:321 INFO:
-gaussian.py:329 INFO:Converting features to dask array...
-gaussian.py:340 INFO:Shape of array is (4, 8) and chunks ((4,), (8,)).
-gaussian.py:357 INFO:Stacking features using atoms index map...
-gaussian.py:438 INFO:Featurization finished in 0 hours 0 minutes 1.55 seconds.
-potentials.py:364 INFO:Computing energy...
+gaussian.py:439 INFO:Featurization finished in 0 hours 0 minutes 1.15 seconds.
+potentials.py:380 INFO:Computing energy...

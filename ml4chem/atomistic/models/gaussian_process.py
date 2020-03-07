@@ -142,7 +142,10 @@ class GaussianProcess(KernelRidge):
         energy, variance
             Energy of a molecule and its respective variance.
         """
-        reference_space = reference_space[b"reference_space"]
+        try:
+            reference_space = reference_space[b"reference_space"]
+        except KeyError:
+            reference_space = reference_space["reference_space"]
         computations = self.get_kernel_matrix(features, reference_space, purpose)
         kernel = np.array(dask.compute(*computations, scheduler=self.scheduler))
         weights = np.array(self.weights["energy"])

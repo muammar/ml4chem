@@ -13,21 +13,22 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 
+import os
+import sys
+sys.path.insert(0, os.path.abspath("../../"))
+
 try:
     import torch
 except ModuleNotFoundError:
-    import os
-    import sys
     from unittest.mock import MagicMock
 
-    sys.path.insert(0, os.path.abspath("../../"))
 
     class Mock(MagicMock):
        @classmethod
        def __getattr__(cls, name):
            return MagicMock()
 
-    MOCK_MODULES = ['torch', "torch.optim"]
+    MOCK_MODULES = ['torch', "torch.optim", "torch.nn.Module"]
 
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 

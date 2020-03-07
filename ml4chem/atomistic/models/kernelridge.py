@@ -444,7 +444,11 @@ class KernelRidge(object):
             Energy of a molecule.
         """
         client = dask.distributed.get_client()
-        reference_space = reference_space[b"reference_space"]
+        try:
+            reference_space = reference_space[b"reference_space"]
+        except KeyError:
+            reference_space = reference_space["reference_space"]
+
         futures = self.get_kernel_matrix(features, reference_space, purpose=purpose)
         kernel = np.array(client.gather(futures))
         weights = np.array(self.weights["energy"])

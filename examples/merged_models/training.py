@@ -9,7 +9,7 @@ from ml4chem.atomistic.models.autoencoders import AutoEncoder
 from ml4chem.atomistic.models.neuralnetwork import NeuralNetwork
 from ml4chem.atomistic.models.merger import ModelMerger
 from ml4chem.atomistic.models.loss import MSELoss
-from ml4chem import Potentials
+from ml4chem.atomistic import Potentials
 from ml4chem.utils import logger
 from ml4chem.atomistic.models.loss import AtomicMSELoss
 from ml4chem.data.serialization import dump

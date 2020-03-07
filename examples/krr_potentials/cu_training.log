@@ -24,9 +24,10 @@ Contributors (in alphabetic order):
 
 ===============================================================================
 
+
 Data
 ====
-Module accessed on 2020-02-12 11:33:30.
+Module accessed on 2020-03-07 12:31:25.
 Data structure is not compatible with ML4Chem.
 Preparing images for training...
 Images hashed and processed...
@@ -35,7 +36,7 @@ There are 40 atoms in your data set.
  
 Featurization
 =============
-Module accessed on 2020-02-12 11:33:30.
+Module accessed on 2020-03-07 12:31:25.
 Getting unique element symbols for training
 Unique chemical elements: ['Cu']
 Making default symmetry functions...
@@ -54,8 +55,7 @@ Symmetry function parameters for Cu atom:
   6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
   7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 
-Note: NumExpr detected 16 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
-NumExpr defaulting to 8 threads.
+
 Data preprocessing
 ------------------
 Preprocessor: MinMaxScaler.
@@ -64,19 +64,19 @@ Options:
  
 
 Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.79 seconds.
+... finished in 0 hours 0 minutes 1.17 seconds.
 
 Converting features to dask array...
 Shape of array is (40, 8) and chunks ((4, 4, 4, 4, 4, 4, 4, 4, 4, 4), (8,)).
 Calling feature preprocessor...
 Stacking features using atoms index map...
 Building array with reference space.
-Featurization finished in 0 hours 0 minutes 14.16 seconds.
+Featurization finished in 0 hours 0 minutes 7.37 seconds.
 features saved to features.db.
  
 Model
 =====
-Module accessed on 2020-02-12 11:33:45.
+Module accessed on 2020-03-07 12:31:34.
 Model name: KernelRidge.
 Kernel parameters:
     - Kernel function: rbf.
@@ -86,11 +86,11 @@ Kernel parameters:
 Computing Kernel Matrix...
     The calculations are distributed in 1 batches of 40 atoms.
         Computing kernel functions for chunk 0...
-          ...finished in 0 hours 0 minutes 0.44 seconds.
-Kernel matrix built in 0 hours 0 minutes 0.45 seconds.
+          ...finished in 0 hours 0 minutes 0.54 seconds.
+Kernel matrix built in 0 hours 0 minutes 0.54 seconds.
 Building LT matrix
     The calculations are distributed in 1 batches of 40 molecules.
-LT matrix built in 0 hours 0 minutes 0.50 seconds.
+LT matrix built in 0 hours 0 minutes 0.58 seconds.
 Size of the Kernel matrix is (10, 10).
 Starting Cholesky Factorization...
 Cholesky Factorization finished...

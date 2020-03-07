@@ -3,7 +3,7 @@ from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
 
 sys.path.append("../../")
-from ml4chem import Potentials
+from ml4chem.atomistic import Potentials
 from ml4chem.atomistic.features import Gaussian
 from ml4chem.atomistic.models.neuralnetwork import NeuralNetwork
 from ml4chem.utils import logger

@@ -20,7 +20,7 @@ torch.set_printoptions(precision=10)
 logger = logging.getLogger()
 
 
-class NeuralNetwork(DeepLearningModel):
+class NeuralNetwork(DeepLearningModel, torch.nn.Module):
     """Atom-centered Neural Network Regression with Pytorch
 
     This model is based on Ref. 1 by Behler and Parrinello.

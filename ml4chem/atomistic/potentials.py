@@ -117,7 +117,11 @@ class Potentials(Calculator, object):
 
                 weights = load(model)
                 # TODO remove after de/serialization is fixed.
-                weights = {key.decode("utf-8"): value for key, value in weights.items()}
+                try:
+                    weights = {key.decode("utf-8"): value for key, value in weights.items()}
+                except AttributeError:
+                    weights = {key: value for key, value in weights.items()}
+
                 model_params.update({"weights": weights})
                 model = model_class(**model_params)
             else:
@@ -408,3 +412,4 @@ class Potentials(Calculator, object):
 
             # Populate ASE's self.results dict
             self.results["energy"] = energy
+

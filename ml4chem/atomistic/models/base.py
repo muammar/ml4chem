@@ -1,9 +1,8 @@
 from ml4chem.atomistic import Potentials
 from abc import ABC, abstractmethod
-import torch
 
 
-class DeepLearningModel(ABC, metaclass=torch.nn.Module):
+class DeepLearningModel(ABC):
     @abstractmethod
     def name(cls):
         """Return name of the class"""

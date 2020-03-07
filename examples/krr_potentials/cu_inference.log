@@ -24,9 +24,10 @@ Contributors (in alphabetic order):
 
 ===============================================================================
 
+
 Data
 ====
-Module accessed on 2020-02-12 11:34:13.
+Module accessed on 2020-03-07 12:33:03.
 Data structure is not compatible with ML4Chem.
 Preparing images for inference...
 Images hashed and processed...
@@ -34,7 +35,7 @@ Images hashed and processed...
  
 Featurization
 =============
-Module accessed on 2020-02-12 11:34:13.
+Module accessed on 2020-03-07 12:33:03.
 Getting unique element symbols for inference
 Unique chemical elements: ['Cu']
 Using parameters from file to create symmetry functions...
@@ -54,24 +55,28 @@ Symmetry function parameters for Cu atom:
   6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
   7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 
-Note: NumExpr detected 16 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
-NumExpr defaulting to 8 threads.
+
+Data preprocessing
+------------------
+Preprocessor loaded from file : cu_training.scaler.
+ 
 
 Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.20 seconds.
+... finished in 0 hours 0 minutes 0.22 seconds.
 
 Converting features to dask array...
 Shape of array is (4, 8) and chunks ((4,), (8,)).
 Stacking features using atoms index map...
-Featurization finished in 0 hours 0 minutes 1.50 seconds.
+Featurization finished in 0 hours 0 minutes 1.25 seconds.
 Computing energy...
     The calculations are distributed in 1 batches of 0 atoms.
         Computing kernel functions for chunk 0...
-          ...finished in 0 hours 0 minutes 0.21 seconds.
-Kernel matrix built in 0 hours 0 minutes 0.21 seconds.
+          ...finished in 0 hours 0 minutes 0.13 seconds.
+Kernel matrix built in 0 hours 0 minutes 0.13 seconds.
+
 Data
 ====
-Module accessed on 2020-02-12 11:34:15.
+Module accessed on 2020-03-07 12:33:04.
 Data structure is not compatible with ML4Chem.
 Preparing images for inference...
 Images hashed and processed...
@@ -79,7 +84,7 @@ Images hashed and processed...
  
 Featurization
 =============
-Module accessed on 2020-02-12 11:34:15.
+Module accessed on 2020-03-07 12:33:04.
 Getting unique element symbols for inference
 Unique chemical elements: ['Cu']
 Using parameters from file to create symmetry functions...
@@ -100,236 +105,27 @@ Symmetry function parameters for Cu atom:
   7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 
 
+Data preprocessing
+------------------
+Preprocessor loaded from file : cu_training.scaler.
+ 
+
 Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.08 seconds.
+... finished in 0 hours 0 minutes 0.17 seconds.
 
 Converting features to dask array...
 Shape of array is (4, 8) and chunks ((4,), (8,)).
 Stacking features using atoms index map...
-Featurization finished in 0 hours 0 minutes 1.05 seconds.
-Computing energy...
-    The calculations are distributed in 1 batches of 0 atoms.
-        Computing kernel functions for chunk 0...
-          ...finished in 0 hours 0 minutes 0.10 seconds.
-Kernel matrix built in 0 hours 0 minutes 0.10 seconds.
-Data
-====
-Module accessed on 2020-02-12 11:34:16.
-Data structure is not compatible with ML4Chem.
-Preparing images for inference...
-Images hashed and processed...
-
- 
-Featurization
-=============
-Module accessed on 2020-02-12 11:34:16.
-Getting unique element symbols for inference
-Unique chemical elements: ['Cu']
-Using parameters from file to create symmetry functions...
-
-Number of features per chemical element:
-    - Cu: 8.
- 
-Symmetry function parameters for Cu atom:
------------------------------------------
-  #      Symbol    Type Parameters
-  0   Cu            G2  eta: 0.0500
-  1   Cu            G2  eta: 0.2321
-  2   Cu            G2  eta: 1.0772
-  3   Cu            G2  eta: 5.0000
-  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-
-
-Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.07 seconds.
-
-Converting features to dask array...
-Shape of array is (4, 8) and chunks ((4,), (8,)).
-Stacking features using atoms index map...
-Featurization finished in 0 hours 0 minutes 1.32 seconds.
-Computing energy...
-    The calculations are distributed in 1 batches of 0 atoms.
-        Computing kernel functions for chunk 0...
-          ...finished in 0 hours 0 minutes 0.09 seconds.
-Kernel matrix built in 0 hours 0 minutes 0.09 seconds.
-Data
-====
-Module accessed on 2020-02-12 11:34:18.
-Data structure is not compatible with ML4Chem.
-Preparing images for inference...
-Images hashed and processed...
-
- 
-Featurization
-=============
-Module accessed on 2020-02-12 11:34:18.
-Getting unique element symbols for inference
-Unique chemical elements: ['Cu']
-Using parameters from file to create symmetry functions...
-
-Number of features per chemical element:
-    - Cu: 8.
- 
-Symmetry function parameters for Cu atom:
------------------------------------------
-  #      Symbol    Type Parameters
-  0   Cu            G2  eta: 0.0500
-  1   Cu            G2  eta: 0.2321
-  2   Cu            G2  eta: 1.0772
-  3   Cu            G2  eta: 5.0000
-  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-
-
-Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.08 seconds.
-
-Converting features to dask array...
-Shape of array is (4, 8) and chunks ((4,), (8,)).
-Stacking features using atoms index map...
-Featurization finished in 0 hours 0 minutes 1.07 seconds.
-Computing energy...
-    The calculations are distributed in 1 batches of 0 atoms.
-        Computing kernel functions for chunk 0...
-          ...finished in 0 hours 0 minutes 0.10 seconds.
-Kernel matrix built in 0 hours 0 minutes 0.10 seconds.
-Data
-====
-Module accessed on 2020-02-12 11:34:19.
-Data structure is not compatible with ML4Chem.
-Preparing images for inference...
-Images hashed and processed...
-
- 
-Featurization
-=============
-Module accessed on 2020-02-12 11:34:19.
-Getting unique element symbols for inference
-Unique chemical elements: ['Cu']
-Using parameters from file to create symmetry functions...
-
-Number of features per chemical element:
-    - Cu: 8.
- 
-Symmetry function parameters for Cu atom:
------------------------------------------
-  #      Symbol    Type Parameters
-  0   Cu            G2  eta: 0.0500
-  1   Cu            G2  eta: 0.2321
-  2   Cu            G2  eta: 1.0772
-  3   Cu            G2  eta: 5.0000
-  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-
-
-Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.09 seconds.
-
-Converting features to dask array...
-Shape of array is (4, 8) and chunks ((4,), (8,)).
-Stacking features using atoms index map...
-Featurization finished in 0 hours 0 minutes 1.07 seconds.
-Computing energy...
-    The calculations are distributed in 1 batches of 0 atoms.
-        Computing kernel functions for chunk 0...
-          ...finished in 0 hours 0 minutes 0.10 seconds.
-Kernel matrix built in 0 hours 0 minutes 0.10 seconds.
-Data
-====
-Module accessed on 2020-02-12 11:34:20.
-Data structure is not compatible with ML4Chem.
-Preparing images for inference...
-Images hashed and processed...
-
- 
-Featurization
-=============
-Module accessed on 2020-02-12 11:34:20.
-Getting unique element symbols for inference
-Unique chemical elements: ['Cu']
-Using parameters from file to create symmetry functions...
-
-Number of features per chemical element:
-    - Cu: 8.
- 
-Symmetry function parameters for Cu atom:
------------------------------------------
-  #      Symbol    Type Parameters
-  0   Cu            G2  eta: 0.0500
-  1   Cu            G2  eta: 0.2321
-  2   Cu            G2  eta: 1.0772
-  3   Cu            G2  eta: 5.0000
-  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-
-
-Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.06 seconds.
-
-Converting features to dask array...
-Shape of array is (4, 8) and chunks ((4,), (8,)).
-Stacking features using atoms index map...
-Featurization finished in 0 hours 0 minutes 1.29 seconds.
-Computing energy...
-    The calculations are distributed in 1 batches of 0 atoms.
-        Computing kernel functions for chunk 0...
-          ...finished in 0 hours 0 minutes 0.10 seconds.
-Kernel matrix built in 0 hours 0 minutes 0.10 seconds.
-Data
-====
-Module accessed on 2020-02-12 11:34:22.
-Data structure is not compatible with ML4Chem.
-Preparing images for inference...
-Images hashed and processed...
-
- 
-Featurization
-=============
-Module accessed on 2020-02-12 11:34:22.
-Getting unique element symbols for inference
-Unique chemical elements: ['Cu']
-Using parameters from file to create symmetry functions...
-
-Number of features per chemical element:
-    - Cu: 8.
- 
-Symmetry function parameters for Cu atom:
------------------------------------------
-  #      Symbol    Type Parameters
-  0   Cu            G2  eta: 0.0500
-  1   Cu            G2  eta: 0.2321
-  2   Cu            G2  eta: 1.0772
-  3   Cu            G2  eta: 5.0000
-  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
-  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
-  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
-  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
-
-
-Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.10 seconds.
-
-Converting features to dask array...
-Shape of array is (4, 8) and chunks ((4,), (8,)).
-Stacking features using atoms index map...
-Featurization finished in 0 hours 0 minutes 1.09 seconds.
+Featurization finished in 0 hours 0 minutes 0.91 seconds.
 Computing energy...
     The calculations are distributed in 1 batches of 0 atoms.
         Computing kernel functions for chunk 0...
           ...finished in 0 hours 0 minutes 0.11 seconds.
 Kernel matrix built in 0 hours 0 minutes 0.11 seconds.
+
 Data
 ====
-Module accessed on 2020-02-12 11:34:23.
+Module accessed on 2020-03-07 12:33:05.
 Data structure is not compatible with ML4Chem.
 Preparing images for inference...
 Images hashed and processed...
@@ -337,7 +133,7 @@ Images hashed and processed...
  
 Featurization
 =============
-Module accessed on 2020-02-12 11:34:23.
+Module accessed on 2020-03-07 12:33:05.
 Getting unique element symbols for inference
 Unique chemical elements: ['Cu']
 Using parameters from file to create symmetry functions...
@@ -358,21 +154,27 @@ Symmetry function parameters for Cu atom:
   7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 
 
+Data preprocessing
+------------------
+Preprocessor loaded from file : cu_training.scaler.
+ 
+
 Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.08 seconds.
+... finished in 0 hours 0 minutes 0.17 seconds.
 
 Converting features to dask array...
 Shape of array is (4, 8) and chunks ((4,), (8,)).
 Stacking features using atoms index map...
-Featurization finished in 0 hours 0 minutes 1.12 seconds.
+Featurization finished in 0 hours 0 minutes 1.24 seconds.
 Computing energy...
     The calculations are distributed in 1 batches of 0 atoms.
         Computing kernel functions for chunk 0...
-          ...finished in 0 hours 0 minutes 0.09 seconds.
-Kernel matrix built in 0 hours 0 minutes 0.09 seconds.
+          ...finished in 0 hours 0 minutes 0.13 seconds.
+Kernel matrix built in 0 hours 0 minutes 0.13 seconds.
+
 Data
 ====
-Module accessed on 2020-02-12 11:34:24.
+Module accessed on 2020-03-07 12:33:06.
 Data structure is not compatible with ML4Chem.
 Preparing images for inference...
 Images hashed and processed...
@@ -380,7 +182,7 @@ Images hashed and processed...
  
 Featurization
 =============
-Module accessed on 2020-02-12 11:34:24.
+Module accessed on 2020-03-07 12:33:06.
 Getting unique element symbols for inference
 Unique chemical elements: ['Cu']
 Using parameters from file to create symmetry functions...
@@ -401,21 +203,27 @@ Symmetry function parameters for Cu atom:
   7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 
 
+Data preprocessing
+------------------
+Preprocessor loaded from file : cu_training.scaler.
+ 
+
 Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.07 seconds.
+... finished in 0 hours 0 minutes 0.14 seconds.
 
 Converting features to dask array...
 Shape of array is (4, 8) and chunks ((4,), (8,)).
 Stacking features using atoms index map...
-Featurization finished in 0 hours 0 minutes 1.01 seconds.
+Featurization finished in 0 hours 0 minutes 0.82 seconds.
 Computing energy...
     The calculations are distributed in 1 batches of 0 atoms.
         Computing kernel functions for chunk 0...
-          ...finished in 0 hours 0 minutes 0.10 seconds.
-Kernel matrix built in 0 hours 0 minutes 0.10 seconds.
+          ...finished in 0 hours 0 minutes 0.14 seconds.
+Kernel matrix built in 0 hours 0 minutes 0.14 seconds.
+
 Data
 ====
-Module accessed on 2020-02-12 11:34:25.
+Module accessed on 2020-03-07 12:33:07.
 Data structure is not compatible with ML4Chem.
 Preparing images for inference...
 Images hashed and processed...
@@ -423,7 +231,7 @@ Images hashed and processed...
  
 Featurization
 =============
-Module accessed on 2020-02-12 11:34:25.
+Module accessed on 2020-03-07 12:33:07.
 Getting unique element symbols for inference
 Unique chemical elements: ['Cu']
 Using parameters from file to create symmetry functions...
@@ -444,15 +252,265 @@ Symmetry function parameters for Cu atom:
   7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
 
 
+Data preprocessing
+------------------
+Preprocessor loaded from file : cu_training.scaler.
+ 
+
 Embarrassingly parallel computation of atomic features...
-... finished in 0 hours 0 minutes 0.07 seconds.
+... finished in 0 hours 0 minutes 0.13 seconds.
 
 Converting features to dask array...
 Shape of array is (4, 8) and chunks ((4,), (8,)).
 Stacking features using atoms index map...
-Featurization finished in 0 hours 0 minutes 1.35 seconds.
+Featurization finished in 0 hours 0 minutes 0.84 seconds.
 Computing energy...
     The calculations are distributed in 1 batches of 0 atoms.
         Computing kernel functions for chunk 0...
-          ...finished in 0 hours 0 minutes 0.19 seconds.
-Kernel matrix built in 0 hours 0 minutes 0.19 seconds.
+          ...finished in 0 hours 0 minutes 0.13 seconds.
+Kernel matrix built in 0 hours 0 minutes 0.13 seconds.
+
+Data
+====
+Module accessed on 2020-03-07 12:33:08.
+Data structure is not compatible with ML4Chem.
+Preparing images for inference...
+Images hashed and processed...
+
+ 
+Featurization
+=============
+Module accessed on 2020-03-07 12:33:08.
+Getting unique element symbols for inference
+Unique chemical elements: ['Cu']
+Using parameters from file to create symmetry functions...
+
+Number of features per chemical element:
+    - Cu: 8.
+ 
+Symmetry function parameters for Cu atom:
+-----------------------------------------
+  #      Symbol    Type Parameters
+  0   Cu            G2  eta: 0.0500
+  1   Cu            G2  eta: 0.2321
+  2   Cu            G2  eta: 1.0772
+  3   Cu            G2  eta: 5.0000
+  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+
+
+Data preprocessing
+------------------
+Preprocessor loaded from file : cu_training.scaler.
+ 
+
+Embarrassingly parallel computation of atomic features...
+... finished in 0 hours 0 minutes 0.12 seconds.
+
+Converting features to dask array...
+Shape of array is (4, 8) and chunks ((4,), (8,)).
+Stacking features using atoms index map...
+Featurization finished in 0 hours 0 minutes 1.15 seconds.
+Computing energy...
+    The calculations are distributed in 1 batches of 0 atoms.
+        Computing kernel functions for chunk 0...
+          ...finished in 0 hours 0 minutes 0.13 seconds.
+Kernel matrix built in 0 hours 0 minutes 0.14 seconds.
+
+Data
+====
+Module accessed on 2020-03-07 12:33:10.
+Data structure is not compatible with ML4Chem.
+Preparing images for inference...
+Images hashed and processed...
+
+ 
+Featurization
+=============
+Module accessed on 2020-03-07 12:33:10.
+Getting unique element symbols for inference
+Unique chemical elements: ['Cu']
+Using parameters from file to create symmetry functions...
+
+Number of features per chemical element:
+    - Cu: 8.
+ 
+Symmetry function parameters for Cu atom:
+-----------------------------------------
+  #      Symbol    Type Parameters
+  0   Cu            G2  eta: 0.0500
+  1   Cu            G2  eta: 0.2321
+  2   Cu            G2  eta: 1.0772
+  3   Cu            G2  eta: 5.0000
+  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+
+
+Data preprocessing
+------------------
+Preprocessor loaded from file : cu_training.scaler.
+ 
+
+Embarrassingly parallel computation of atomic features...
+... finished in 0 hours 0 minutes 0.14 seconds.
+
+Converting features to dask array...
+Shape of array is (4, 8) and chunks ((4,), (8,)).
+Stacking features using atoms index map...
+Featurization finished in 0 hours 0 minutes 0.85 seconds.
+Computing energy...
+    The calculations are distributed in 1 batches of 0 atoms.
+        Computing kernel functions for chunk 0...
+          ...finished in 0 hours 0 minutes 0.11 seconds.
+Kernel matrix built in 0 hours 0 minutes 0.11 seconds.
+
+Data
+====
+Module accessed on 2020-03-07 12:33:11.
+Data structure is not compatible with ML4Chem.
+Preparing images for inference...
+Images hashed and processed...
+
+ 
+Featurization
+=============
+Module accessed on 2020-03-07 12:33:11.
+Getting unique element symbols for inference
+Unique chemical elements: ['Cu']
+Using parameters from file to create symmetry functions...
+
+Number of features per chemical element:
+    - Cu: 8.
+ 
+Symmetry function parameters for Cu atom:
+-----------------------------------------
+  #      Symbol    Type Parameters
+  0   Cu            G2  eta: 0.0500
+  1   Cu            G2  eta: 0.2321
+  2   Cu            G2  eta: 1.0772
+  3   Cu            G2  eta: 5.0000
+  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+
+
+Data preprocessing
+------------------
+Preprocessor loaded from file : cu_training.scaler.
+ 
+
+Embarrassingly parallel computation of atomic features...
+... finished in 0 hours 0 minutes 0.15 seconds.
+
+Converting features to dask array...
+Shape of array is (4, 8) and chunks ((4,), (8,)).
+Stacking features using atoms index map...
+Featurization finished in 0 hours 0 minutes 0.81 seconds.
+Computing energy...
+    The calculations are distributed in 1 batches of 0 atoms.
+        Computing kernel functions for chunk 0...
+          ...finished in 0 hours 0 minutes 0.11 seconds.
+Kernel matrix built in 0 hours 0 minutes 0.12 seconds.
+
+Data
+====
+Module accessed on 2020-03-07 12:33:12.
+Data structure is not compatible with ML4Chem.
+Preparing images for inference...
+Images hashed and processed...
+
+ 
+Featurization
+=============
+Module accessed on 2020-03-07 12:33:12.
+Getting unique element symbols for inference
+Unique chemical elements: ['Cu']
+Using parameters from file to create symmetry functions...
+
+Number of features per chemical element:
+    - Cu: 8.
+ 
+Symmetry function parameters for Cu atom:
+-----------------------------------------
+  #      Symbol    Type Parameters
+  0   Cu            G2  eta: 0.0500
+  1   Cu            G2  eta: 0.2321
+  2   Cu            G2  eta: 1.0772
+  3   Cu            G2  eta: 5.0000
+  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+
+
+Data preprocessing
+------------------
+Preprocessor loaded from file : cu_training.scaler.
+ 
+
+Embarrassingly parallel computation of atomic features...
+... finished in 0 hours 0 minutes 0.16 seconds.
+
+Converting features to dask array...
+Shape of array is (4, 8) and chunks ((4,), (8,)).
+Stacking features using atoms index map...
+Featurization finished in 0 hours 0 minutes 0.83 seconds.
+Computing energy...
+    The calculations are distributed in 1 batches of 0 atoms.
+        Computing kernel functions for chunk 0...
+          ...finished in 0 hours 0 minutes 0.11 seconds.
+Kernel matrix built in 0 hours 0 minutes 0.11 seconds.
+
+Data
+====
+Module accessed on 2020-03-07 12:33:13.
+Data structure is not compatible with ML4Chem.
+Preparing images for inference...
+Images hashed and processed...
+
+ 
+Featurization
+=============
+Module accessed on 2020-03-07 12:33:13.
+Getting unique element symbols for inference
+Unique chemical elements: ['Cu']
+Using parameters from file to create symmetry functions...
+
+Number of features per chemical element:
+    - Cu: 8.
+ 
+Symmetry function parameters for Cu atom:
+-----------------------------------------
+  #      Symbol    Type Parameters
+  0   Cu            G2  eta: 0.0500
+  1   Cu            G2  eta: 0.2321
+  2   Cu            G2  eta: 1.0772
+  3   Cu            G2  eta: 5.0000
+  4   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 1.0000
+  5   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 1.0000
+  6   Cu, Cu        G3  eta: 0.0050 gamma:  1.0000 zeta: 4.0000
+  7   Cu, Cu        G3  eta: 0.0050 gamma: -1.0000 zeta: 4.0000
+
+
+Data preprocessing
+------------------
+Preprocessor loaded from file : cu_training.scaler.
+ 
+
+Embarrassingly parallel computation of atomic features...
+... finished in 0 hours 0 minutes 0.16 seconds.
+
+Converting features to dask array...
+Shape of array is (4, 8) and chunks ((4,), (8,)).
+Stacking features using atoms index map...
+Featurization finished in 0 hours 0 minutes 1.20 seconds.
+Computing energy...
+    The calculations are distributed in 1 batches of 0 atoms.
+        Computing kernel functions for chunk 0...
+          ...finished in 0 hours 0 minutes 0.12 seconds.
+Kernel matrix built in 0 hours 0 minutes 0.12 seconds.
