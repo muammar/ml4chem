@@ -36,6 +36,7 @@ A list of features and ML algorithms are shown below.
 
 If you find this software useful, please use this bibtex to cite it:
 
+```
 @article{El_Khatib2020,
 author = "Muammar El Khatib and Wibe de Jong",
 title = "{ML4Chem: A Machine Learning Package for Chemistry and Materials Science}",
@@ -44,6 +45,7 @@ month = "3",
 url = "https://chemrxiv.org/articles/ML4Chem_A_Machine_Learning_Package_for_Chemistry_and_Materials_Science/11952516",
 doi = "10.26434/chemrxiv.11952516.v1"
 }
+```
 
 ## Documentation
 
