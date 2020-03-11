@@ -60,6 +60,14 @@ ml4chem.atomistic.models.neuralnetwork module
    :undoc-members:
    :show-inheritance:
 
+ml4chem.atomistic.models.rt module
+----------------------------------
+
+.. automodule:: ml4chem.atomistic.models.rt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ml4chem.atomistic.models.se3net module
 --------------------------------------
 
