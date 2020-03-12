@@ -16,3 +16,5 @@ dependencies:
         - m2r
         - joblib
         - msgpack
+        - msgpack_numpy
+        

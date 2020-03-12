@@ -28,7 +28,7 @@ except ModuleNotFoundError:
        def __getattr__(cls, name):
            return MagicMock()
 
-    MOCK_MODULES = ['torch', "torch.optim", "torch.nn.Module"]
+    MOCK_MODULES = ['torch', "torch.optim", "torch.nn.Module", "plotly"]
 
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
