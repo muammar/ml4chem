@@ -10,9 +10,9 @@ In this part of the documentation, we will cover how ML4Chem can be run on a
 laptop or workstation and how we can scale up to running on HPC clusters.
 Dask has a  modern and interesting structure:
 
-
-#. A scheduler is in charge of taking tasks.
-#. Tasks can be registered in a delayed way or simply submitted as futures. 
+#. A scheduler is in charge of registering tasks.
+#. Tasks can be registered in a delayed way (registered but not computed) or
+   simply submitted as futures (submitted and computed).
 #. When the scheduler receives a task, it sends it to workers that carry out
    the computations and keep them in memory. 
 #. Results from computations can be subsequently used for more calculations or
@@ -130,10 +130,10 @@ snipped above as follows::
         train()
 
 We removed the :code:`LocalCluster` and instead used the :code:`SLURMCluster`
-class to submit our computations to a SLURM batch system. As you see, the
-:code:`cluster` is now a :code:`SLURMCluster` requesting a job with 24 cores
-and 24 processes, 100GB of RAM, a wall time of 1 day, and the queue in this
-case is `dirac1`. Then, we scale this by requesting to the HPC cluster 4 jobs
-with these requirements for a total of 96 processes. This :code:`cluster` is
-passed to the :code:`client` and now our training is scaled up. No more input
-is needed :).
+class to submit our computations to a SLURM batch system. As it can be seen,
+the :code:`cluster` is now a :code:`SLURMCluster` requesting a job with 24
+cores and 24 processes, 100GB of RAM, a wall time of 1 day, and the queue in
+this case is `dirac1`. Then, we scaled this up by requesting to the HPC
+cluster 4 jobs with these requirements for a total of 96 processes. This
+:code:`cluster` is passed to the :code:`client` and the training is
+effectively scaled up.
