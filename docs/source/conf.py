@@ -15,6 +15,7 @@
 
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath("../../"))
 
 try:
@@ -22,13 +23,34 @@ try:
 except ModuleNotFoundError:
     from unittest.mock import MagicMock
 
-
     class Mock(MagicMock):
-       @classmethod
-       def __getattr__(cls, name):
-           return MagicMock()
+        @classmethod
+        def __getattr__(cls, name):
+            return MagicMock()
 
-    MOCK_MODULES = ['torch', "torch.optim", "torch.nn.Module", "plotly"]
+    MOCK_MODULES = [
+        "torch",
+        "torch.optim",
+        "torch.nn.Module",
+        "plotly",
+        "joblib",
+        "msgpack",
+        "msgpack_numpy",
+        "seaborn",
+        "dask_ml",
+        "ase",
+        "scipy",
+        "numpy",
+        "pip",
+        "pandas",
+        "plotly",
+        "pytest",
+        "matplotlib",
+        "dscribe",
+        "msgpack_python",
+        "scikit_learn",
+        "dask"
+    ]
 
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 

@@ -29,7 +29,7 @@ carry out computations. This is useful when prototyping and building your
 pipeline withouth wasting time waiting for HPC resources in a crowded cluster
 facility.
 
-ML4Chem can run with:code:`LocalCluster` objects, for which the scripts have
+ML4Chem can run with :code:`LocalCluster` objects, for which the scripts have
 to contain the following::
 
    from dask.distributed import Client, LocalCluster

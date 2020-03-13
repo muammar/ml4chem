@@ -14,7 +14,4 @@ dependencies:
         - sphinxcontrib-inlinesyntaxhighlight
         - ase
         - m2r
-        - joblib
-        - msgpack
-        - msgpack_numpy
         
