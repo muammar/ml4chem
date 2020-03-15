@@ -93,6 +93,7 @@ class Gaussian(AtomisticFeatures):
         batch_size=None,
     ):
         super().__init__()
+        # super(Gaussian, self).__init__()
 
         self.cutoff = cutoff
         self.normalized = normalized

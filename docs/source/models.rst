@@ -43,7 +43,7 @@ physics-constrained e.g. rotational and translational invariance.
 ML4Chem supports by default Gaussian symmetry functions, and atomic latent
 features.
 
-Gaussian symmetry functions 
+Gaussian Symmetry Functions 
 ---------------------------
 In 2007, Behler and Parrinello [Behler2007]_ introduced a fixed-length
 feature vector, referred also as "symmetry functions" (SF), to generalize the
@@ -131,10 +131,23 @@ you need to pass ``angular_type`` keyword argument::
     features = Gaussian(cutoff=6.5, normalized=True,
                         save_preprocessor="features.scaler", angular_type="G4")
 
-Atomic latent features 
+
+Atomic Enviroment Vector
 ---------------------------
-These features are decided by the neural network and can be obtained with the
-`Autoencoder` class. 
+The Gaussian feature vectors were modified by Smith et al [Smith2017]_ in the following way: 
+
+.. math::
+    \mathbf{G_i^2} = \sum_{j = 1}^{N_{atom}} e^{-\eta(\mathbf{R_{ij}}-R_{s})^2} f_c(R_{ij}),
+
+The radial functions are not normalized by the squared of the cutoff radious,
+and instead of several `eta` values they use a single value to produce thin
+Gaussian peaks, and different `R_s` parameters are used to probe outward from
+the atomic center. 
+
+Atomic Latent Features 
+---------------------------
+Atomic latent features are those extracted using unsupervised learning. 
+
 
 ==========================
 Models
@@ -240,5 +253,6 @@ uncertainty of each prediction.
 
 .. [Behler2007] Behler, J. & Parrinello, M. Generalized Neural-Network Representation of High-Dimensional Potential-Energy Surfaces. Phys. Rev. Lett. 98, 146401 (2007).
 .. [Behler2015] Behler, J. Constructing high-dimensional neural network potentials: A tutorial review. Int. J. Quantum Chem. 115, 1032–1050 (2015).
+.. [Smith2017] 1. Smith, J. S., Isayev, O. & Roitberg, A. E. ANI-1: an extensible neural network potential with DFT accuracy at force field computational cost. Chem. Sci. 8, 3192–3203 (2017).
 .. [Kingma2013] Kingma, D. P. & Welling, M. Auto-Encoding Variational Bayes. arXiv Prepr. arXiv1312.6114 (2013).
 .. [Rupp2015] Rupp, M. Machine learning for quantum mechanics in a nutshell. Int. J. Quantum Chem. 115, 1058–1073 (2015).
