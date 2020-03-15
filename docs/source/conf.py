@@ -45,15 +45,11 @@ except ModuleNotFoundError:
         "pandas",
         "plotly",
         "pytest",
-        "matplotlib",
         "dscribe",
         "msgpack_python",
         "scikit_learn",
         "dask", 
-        "ase.neighborlist", 
         "plotly.express", 
-        "ase.calculators", 
-        "ase.io"
     ]
 
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
