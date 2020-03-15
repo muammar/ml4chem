@@ -19,6 +19,7 @@ logger = logging.getLogger()
 
 class Gaussian(AtomisticFeatures):
     """Behler-Parrinello symmetry functions
+
     This class builds local chemical environments for atoms based on the
     Behler-Parrinello Gaussian type symmetry functions. It is modular enough
     that can be used just for creating feature spaces.
@@ -91,7 +92,7 @@ class Gaussian(AtomisticFeatures):
         weighted=False,
         batch_size=None,
     ):
-        super(Gaussian, self).__init__()
+        super().__init__()
 
         self.cutoff = cutoff
         self.normalized = normalized
@@ -190,10 +191,11 @@ class Gaussian(AtomisticFeatures):
         logger.info("=============")
         now = datetime.datetime.now()
         logger.info("Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S")))
+        logger.info(f"Module name: {self.name()}.")
 
         # FIXME the block below should become a function.
         if os.path.isfile(self.filename) and self.overwrite is False:
-            logger.warning("Loading features from {}.".format(self.filename))
+            logger.warning(f"Loading features from {self.filename}.")
             logger.info(" ")
             svm_keys = [b"feature_space", b"reference_space"]
             data = load(self.filename)
@@ -220,7 +222,7 @@ class Gaussian(AtomisticFeatures):
 
         # Verify that we know the unique element symbols
         if data.unique_element_symbols is None:
-            logger.info("Getting unique element symbols for {}".format(purpose))
+            logger.info(f"Getting unique element symbols for {purpose}")
 
             unique_element_symbols = data.get_unique_element_symbols(
                 images, purpose=purpose
@@ -228,12 +230,12 @@ class Gaussian(AtomisticFeatures):
 
             unique_element_symbols = unique_element_symbols[purpose]
 
-            logger.info("Unique chemical elements: {}".format(unique_element_symbols))
+            logger.info(f"Unique chemical elements: {unique_element_symbols}")
 
         elif isinstance(data.unique_element_symbols, dict):
             unique_element_symbols = data.unique_element_symbols[purpose]
 
-            logger.info("Unique chemical elements: {}".format(unique_element_symbols))
+            logger.info(f"Unique chemical elements: {unique_element_symbols}")
 
         # we make the features
         self.GP = self.custom.get("GP", None)
@@ -247,7 +249,7 @@ class Gaussian(AtomisticFeatures):
         else:
             logger.info("Using parameters from file to create symmetry functions...\n")
 
-        self.print_fingerprint_params(self.GP)
+        self.print_features_params(self.GP)
 
         symbol = data.unique_element_symbols[purpose][0]
         sample = np.zeros(len(self.GP[symbol]))
@@ -292,7 +294,7 @@ class Gaussian(AtomisticFeatures):
                         n_offsets, image.get_cell()
                     )
 
-                    afp = self.get_atomic_fingerprint(
+                    afp = self.get_atomic_features(
                         atom,
                         index,
                         symbol,
@@ -444,7 +446,7 @@ class Gaussian(AtomisticFeatures):
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             if self.filename is not None:
-                logger.info("features saved to {}.".format(self.filename))
+                logger.info(f"features saved to {self.filename}.")
                 data = {"feature_space": feature_space}
                 data.update({"reference_space": reference_space})
                 dump(data, filename=self.filename)
@@ -458,7 +460,7 @@ class Gaussian(AtomisticFeatures):
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             if self.filename is not None:
-                logger.info("features saved to {}.".format(self.filename))
+                logger.info(f"features saved to {self.filename}.")
                 dump(feature_space, filename=self.filename)
                 self.feature_space = feature_space
 
@@ -511,7 +513,7 @@ class Gaussian(AtomisticFeatures):
                 for (neighbor, offset) in zip(n_indices, n_offsets)
             ]
 
-            feature_vector = self.get_atomic_fingerprint(
+            feature_vector = self.get_atomic_features(
                 atom,
                 index,
                 symbol,
@@ -534,7 +536,7 @@ class Gaussian(AtomisticFeatures):
             return key, feature_space
 
     @dask.delayed
-    def get_atomic_fingerprint(
+    def get_atomic_features(
         self,
         atom,
         index,
@@ -570,7 +572,7 @@ class Gaussian(AtomisticFeatures):
 
         num_symmetries = len(self.GP[symbol])
         Ri = atom.position
-        fingerprint = [None] * num_symmetries
+        features = [None] * num_symmetries
 
         # See https://listserv.brown.edu/cgi-bin/wa?A2=ind1904&L=AMP-USERS&P=19048
         # n_numbers = [atomic_numbers[symbol] for symbol in n_symbols]
@@ -630,9 +632,9 @@ class Gaussian(AtomisticFeatures):
                 )
             else:
                 logger.error("not implemented")
-            fingerprint[count] = feature
+            features[count] = feature
 
-        return np.array(fingerprint)
+        return np.array(features)
 
     def make_symmetry_functions(self, symbols, custom=None, angular_type="G3"):
         """Function to make symmetry functions
@@ -690,18 +692,22 @@ class Gaussian(AtomisticFeatures):
 
             for symbol in symbols:
                 _GP = []
-                for type in types:
-                    if type.upper() == "G2":
+                for type_ in types:
+                    if type_.upper() == "G2":
+                        kwargs = {"Rs": custom[type_].get("Rs", None)}
                         _GP += self.get_symmetry_functions(
-                            type=type, etas=custom[type]["etas"], symbols=symbols
+                            type=type_,
+                            etas=custom[type_]["etas"],
+                            symbols=symbols,
+                            **kwargs,
                         )
                     else:
                         _GP += self.get_symmetry_functions(
-                            type=type,
+                            type=type_,
                             symbols=symbols,
-                            etas=custom[type]["etas"],
-                            zetas=custom[type]["zetas"],
-                            gammas=custom[type]["gammas"],
+                            etas=custom[type_]["etas"],
+                            zetas=custom[type_]["zetas"],
+                            gammas=custom[type_]["gammas"],
                         )
                 GP[symbol] = _GP
 
@@ -753,12 +759,12 @@ class Gaussian(AtomisticFeatures):
                                 )
             return GP
         else:
-            error = "The requested type of symmetry function is not supported."
-            logger.error(error)
-            raise (error)
+            raise RuntimeError(
+                "The requested type of symmetry function is not supported."
+            )
 
-    def print_fingerprint_params(self, GP):
-        """Print fingerprint parameters"""
+    def print_features_params(self, GP):
+        """Print features parameters"""
 
         logger.info("Number of features per chemical element:")
         for symbol, v in GP.items():
@@ -767,7 +773,7 @@ class Gaussian(AtomisticFeatures):
         _symbols = []
         for symbol, value in GP.items():
             logger.info(" ")
-            logger.info("Symmetry function parameters for {} atom:".format(symbol))
+            logger.info(f"Symmetry function parameters for {symbol} atom:")
             underline = "---------------------------------------"
 
             for char in range(len(symbol)):

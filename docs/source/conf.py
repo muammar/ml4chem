@@ -49,7 +49,11 @@ except ModuleNotFoundError:
         "dscribe",
         "msgpack_python",
         "scikit_learn",
-        "dask"
+        "dask", 
+        "ase.neighborlist", 
+        "plotly.express", 
+        "ase.calculators", 
+        "ase.io"
     ]
 
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
@@ -152,7 +156,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "ML4Chemdoc"
+htmlhelp_basename = "ML4Chem"
 
 
 # -- Options for LaTeX output ------------------------------------------------

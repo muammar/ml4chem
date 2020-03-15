@@ -233,7 +233,7 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
         """
 
         activations = []
-        columns = ["Hash", "atom.index", "atom.symbol"]
+        columns = ["hash", "atom.index", "atom.symbol"]
 
         if model is None:
             model = self
@@ -250,9 +250,9 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
                         x = layer(features)
 
                         if numpy:
-                            data_ = [hash, index, symbol, x.detach().numpy()]
+                            data_ = [hash, index, symbol, x.detach_().numpy()]
                         else:
-                            data_ = [hash, index, symbol, x]
+                            data_ = [hash, index, symbol, x.detach_()]
 
                         layer_column_name = f"layer{layer_counter}"
 
@@ -266,9 +266,9 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
                         x = layer(x)
 
                         if numpy:
-                            data_.append(x.detach().numpy())
+                            data_.append(x.detach_().numpy())
                         else:
-                            data_.append(x)
+                            data_.append(x.detach_())
 
                         layer_column_name = f"layer{layer_counter}"
                         if layer_column_name not in columns:
