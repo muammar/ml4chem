@@ -4,6 +4,14 @@ ml4chem.atomistic.features package
 Submodules
 ----------
 
+ml4chem.atomistic.features.aev module
+-------------------------------------
+
+.. automodule:: ml4chem.atomistic.features.aev
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ml4chem.atomistic.features.autoencoders module
 ----------------------------------------------
 

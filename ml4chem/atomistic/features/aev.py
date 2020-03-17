@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from ase.data import atomic_numbers
 from collections import OrderedDict
-from ml4chem.atomistic.features import Gaussian
+from ml4chem.atomistic.features.gaussian import Gaussian, weighted_h
 from ml4chem.atomistic.features.cutoff import Cosine
 
 logger = logging.getLogger()
@@ -12,7 +12,8 @@ logger = logging.getLogger()
 class AEV(Gaussian):
     """Atomic environment vector
 
-    This class build atomic environment vectors as shown in the ANI-1 potentials.
+    This class build atomic environment vectors as shown in the ANI-1
+    potentials.
 
     Parameters
     ----------
@@ -30,7 +31,7 @@ class AEV(Gaussian):
         None. The structure of the dictionary is as follows:
 
         >>> custom = {'G2': {'etas': etas, 'Rs': rs},
-                      'G3': {'etas': a_etas, 'zetas': zetas, 'gammas': gammas}}
+                      'G3': {'etas': a_etas, 'zetas': zetas, 'thetas': thetas, 'Rs': rs}}
 
     save_preprocessor : str
         Save preprocessor to file.
@@ -152,7 +153,7 @@ class AEV(Gaussian):
             self.cutofffxn = cutofffxn
 
     def get_symmetry_functions(
-        self, type, symbols, etas=None, zetas=None, gammas=None, Rs=None
+        self, type, symbols, etas=None, zetas=None, Rs=None, Rs_a=None, thetas=None
     ):
         """Get requested symmetry functions
 
@@ -166,10 +167,13 @@ class AEV(Gaussian):
             List of etas to build the Gaussian function.
         zetas : list
             List of zetas to build the Gaussian function.
-        gammas : list
-            List of gammas to build the Gaussian function.
         Rs : list
             List to shift the center of the gaussian distributions. 
+        Rs_a : list
+            List to shift the center of the gaussian distributions of angular
+            symmetry functions.
+        thetas : list
+            Number of shifts in the angular environment.
         """
 
         supported_angular_symmetry_functions = ["G3", "G4"]
@@ -188,19 +192,21 @@ class AEV(Gaussian):
             GP = []
             for eta in etas:
                 for zeta in zetas:
-                    for gamma in gammas:
-                        for idx1, sym1 in enumerate(symbols):
-                            for sym2 in symbols[idx1:]:
-                                pairs = sorted([sym1, sym2])
-                                GP.append(
-                                    {
-                                        "type": type,
-                                        "symbols": pairs,
-                                        "eta": eta,
-                                        "gamma": gamma,
-                                        "zeta": zeta,
-                                    }
-                                )
+                    for rs_ in Rs_a:
+                        for theta in thetas:
+                            for idx1, sym1 in enumerate(symbols):
+                                for sym2 in symbols[idx1:]:
+                                    pairs = sorted([sym1, sym2])
+                                    GP.append(
+                                        {
+                                            "type": type,
+                                            "symbols": pairs,
+                                            "eta": eta,
+                                            "Rs": rs_,
+                                            "zeta": zeta,
+                                            "theta": theta,
+                                        }
+                                    )
             return GP
         else:
             raise RuntimeError(
@@ -241,12 +247,12 @@ class AEV(Gaussian):
                         )
                     else:
                         symbol = str(v["symbols"])[1:-1].replace("'", "")
-                        gamma = v["gamma"]
+                        theta = v["theta"]
                         zeta = v["zeta"]
                         params = (
                             "{:^5} {:12} {:^4.5} eta: {:.4f} "
-                            "gamma: {:7.4f} zeta: {:.4f}".format(
-                                i, symbol, type_, eta, gamma, zeta
+                            "Rs: {:.4f} zeta: {:.4f} theta: {:.4f}".format(
+                                i, symbol, type_, eta, rs, zeta, theta
                             )
                         )
 
@@ -320,7 +326,7 @@ class AEV(Gaussian):
                     n_symbols,
                     neighborpositions,
                     GP["symbols"],
-                    GP["gamma"],
+                    GP["theta"],
                     GP["zeta"],
                     GP["eta"],
                     self.cutoff,
@@ -337,9 +343,10 @@ class AEV(Gaussian):
                     n_symbols,
                     neighborpositions,
                     GP["symbols"],
-                    GP["gamma"],
+                    GP["theta"],
                     GP["zeta"],
                     GP["eta"],
+                    GP["Rs"],
                     self.cutoff,
                     self.cutofffxn,
                     Ri,
@@ -412,11 +419,6 @@ def calculate_G2(
     feature = 0.0
     num_neighbors = len(neighborpositions)
 
-    # Are we normalizing the feature?
-    if normalized:
-        Rc = cutoff
-    else:
-        Rc = 1.0
     for count in range(num_neighbors):
         symbol = neighborsymbols[count]
         Rj = neighborpositions[count]
@@ -430,4 +432,100 @@ def calculate_G2(
                 weighted_atom = image_molecule[n_indices[count]].number
                 feature *= weighted_atom
 
+    return feature
+
+
+def calculate_G4(
+    n_numbers,
+    neighborsymbols,
+    neighborpositions,
+    G_elements,
+    theta,
+    zeta,
+    eta,
+    Rs,
+    cutoff,
+    cutofffxn,
+    Ri,
+    normalized=True,
+    image_molecule=None,
+    n_indices=None,
+    weighted=False,
+):
+    """Calculate G4 symmetry function.
+
+    These are 3 body or angular interactions.
+
+    Parameters
+    ----------
+    n_symbols : list of int
+        List of neighbors' chemical numbers.
+    neighborsymbols : list of str
+        List of symbols of neighboring atoms.
+    neighborpositions : list of list of floats
+        List of Cartesian atomic positions of neighboring atoms.
+    G_elements : list of str
+        A list of two members, each member is the chemical species of one of
+        the neighboring atoms forming the triangle with the center atom.
+    theta : float
+        Parameter of Gaussian symmetry functions.
+    zeta : float
+        Parameter of Gaussian symmetry functions.
+    eta : float
+        Parameter of Gaussian symmetry functions.
+    Rs : float
+        Parameter to shift the center of the peak.
+    cutoff : float
+        Cutoff radius.
+    cutofffxn : object
+        Cutoff function.
+    Ri : list
+        Position of the center atom. Should be fed as a list of three floats.
+    normalized : bool
+        Whether or not the symmetry function is normalized.
+    image_molecule : ase object, list
+        List of atoms in an image.
+    n_indices : list
+        List of indices of neighboring atoms from the image object.
+    weighted : bool
+        True if applying weighted feature of Gaussian function. See Ref. 2.
+
+    Returns
+    -------
+    feature : float
+        G4 feature value.
+
+    Notes
+    -----
+    The difference between the calculate_G3 and the calculate_G4 function is
+    that calculate_G4 accounts for bond angles of 180 degrees.
+    """
+    feature = 0.0
+    counts = range(len(neighborpositions))
+
+    for j in counts:
+        for k in counts[(j + 1) :]:
+            els = sorted([neighborsymbols[j], neighborsymbols[k]])
+            if els != G_elements:
+                continue
+
+            Rij_vector = neighborpositions[j] - Ri
+            Rij = np.linalg.norm(Rij_vector)
+            Rik_vector = neighborpositions[k] - Ri
+            Rik = np.linalg.norm(Rik_vector)
+            cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
+            theta_ijk = np.arccos(
+                np.clip(cos_theta_ijk, -1.0, 1.0)
+            )  # Avoids rounding issues
+            cos_theta = np.cos(theta_ijk - theta)
+            term = (1.0 + cos_theta) ** zeta
+            term *= np.exp(-eta * ((Rij + Rik) / 2.0 - Rs) ** 2.0)
+
+            if weighted:
+                term *= weighted_h(image_molecule, n_indices)
+
+            term *= cutofffxn(Rij)
+            term *= cutofffxn(Rik)
+            feature += term
+    feature *= 2.0 ** (1.0 - zeta)
     return feature

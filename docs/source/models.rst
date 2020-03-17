@@ -134,15 +134,26 @@ you need to pass ``angular_type`` keyword argument::
 
 Atomic Enviroment Vector
 ---------------------------
-The Gaussian feature vectors were modified by Smith et al [Smith2017]_ in the following way: 
+The Gaussian feature vectors were modified by Smith et al [Smith2017]_ in the
+following way:
+
+The radial symmetry functions are not normalized by the squared of the cutoff
+radius, and instead of several `eta` values they use a single value to
+produce thin Gaussian peaks, and different `R_s` parameters are used to probe
+outward from the atomic center.
 
 .. math::
-    \mathbf{G_i^2} = \sum_{j = 1}^{N_{atom}} e^{-\eta(\mathbf{R_{ij}}-R_{s})^2} f_c(R_{ij}),
+    \mathbf{G_i^2} = \sum_{j \neq j}^{N_{atom}} e^{-\eta(\mathbf{R_{ij}}-R_{s})^2} f_c(R_{ij}),
 
-The radial functions are not normalized by the squared of the cutoff radious,
-and instead of several `eta` values they use a single value to produce thin
-Gaussian peaks, and different `R_s` parameters are used to probe outward from
-the atomic center. 
+The angular part adds an arbitrary number of shifts in the angular
+environment and an exponential factor that allows the angular environment to
+be considered within radial shells based on the average of the distance from
+the neighboring atoms.
+
+.. math::
+    \mathbf{G_i^4} = 2^{1-\zeta} \sum_{j, k \neq i} (1 + cos(\theta_{ijk} - \theta_s))^{\zeta} e^{-\eta
+        [((\mathbf{R_{ij}} + \mathbf{R_{ik}} / 2) - R_s)^2]} f_c(R_{ij}) f_c(R_{ik}).
+
 
 Atomic Latent Features 
 ---------------------------

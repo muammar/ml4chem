@@ -38,7 +38,6 @@ except ModuleNotFoundError:
         "msgpack_numpy",
         "seaborn",
         "dask_ml",
-        "ase",
         "scipy",
         "numpy",
         "pip",
@@ -48,8 +47,8 @@ except ModuleNotFoundError:
         "dscribe",
         "msgpack_python",
         "scikit_learn",
-        "dask", 
-        "plotly.express", 
+        "dask",
+        "plotly.express",
     ]
 
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)

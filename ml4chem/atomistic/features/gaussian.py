@@ -278,7 +278,7 @@ class Gaussian(AtomisticFeatures):
             intermediate = []
 
             for image in images_.items():
-                key, image = image
+                _, image = image
                 end = ini + len(image)
                 atoms_index_map.append(list(range(ini, end)))
                 ini = end
@@ -695,7 +695,14 @@ class Gaussian(AtomisticFeatures):
                 _GP = []
                 for type_ in types:
                     if type_.upper() == "G2":
-                        kwargs = {"Rs": custom[type_].get("Rs", None)}
+                        keys = ["Rs"]
+
+                        kwargs = {}
+                        for key in keys:
+                            val = custom[type_].get(key, None)
+                            if val is not None:
+                                kwargs[key] = val
+
                         _GP += self.get_symmetry_functions(
                             type=type_,
                             etas=custom[type_]["etas"],
@@ -703,12 +710,20 @@ class Gaussian(AtomisticFeatures):
                             **kwargs,
                         )
                     else:
+                        keys = ["gammas", "Rs_a", "thetas"]
+
+                        kwargs = {}
+                        for key in keys:
+                            val = custom[type_].get(key, None)
+                            if val is not None:
+                                kwargs[key] = val
+
                         _GP += self.get_symmetry_functions(
                             type=type_,
                             symbols=symbols,
                             etas=custom[type_]["etas"],
                             zetas=custom[type_]["zetas"],
-                            gammas=custom[type_]["gammas"],
+                            **kwargs,
                         )
                 GP[symbol] = _GP
 
@@ -1031,6 +1046,7 @@ def calculate_G4(
     -------
     feature : float
         G4 feature value.
+
     Notes
     -----
     The difference between the calculate_G3 and the calculate_G4 function is
@@ -1070,6 +1086,7 @@ def calculate_G4(
 def weighted_h(image_molecule, n_indices):
     """ Calculate the atomic numbers of neighboring atoms for a molecule,
     then multiplies each neighor atomic number by each other.
+
     Parameters
     ----------
     image_molecule : ase object, list
