@@ -12,5 +12,3 @@ dependencies:
         - sphinxcontrib-bibtex
         - sphinxcontrib-inlinesyntaxhighlight
         - m2r
-        - ase
-        - matplotlib

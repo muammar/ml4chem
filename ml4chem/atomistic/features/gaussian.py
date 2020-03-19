@@ -92,10 +92,12 @@ class Gaussian(AtomisticFeatures):
         weighted=False,
         batch_size=None,
     ):
-        super().__init__()
-        # super(Gaussian, self).__init__()
+        super(Gaussian, self).__init__()
 
-        self.cutoff = cutoff
+        cutoff_keys = ["radial", "angular"]
+        if isinstance(cutoff, (int, float)):
+            cutoff = {cutoff_key: cutoff for cutoff_key in cutoff_keys}
+
         self.normalized = normalized
         self.filename = filename
         self.scheduler = scheduler
@@ -144,6 +146,7 @@ class Gaussian(AtomisticFeatures):
             "keys",
             "batch_size",
             "__class__",
+            "cutoff_keys",
         ]
 
         for param in delete:
@@ -157,10 +160,14 @@ class Gaussian(AtomisticFeatures):
             if v is not None:
                 self.params[k] = v
 
+        self.cutoff = cutoff
+        self.cutofffxn = {}
+
         if cutofffxn is None:
-            self.cutofffxn = Cosine(cutoff=cutoff)
+            for cutoff_key in cutoff_keys:
+                self.cutofffxn[cutoff_key] = Cosine(cutoff=self.cutoff[cutoff_key])
         else:
-            self.cutofffxn = cutofffxn
+            raise RuntimeError("This case is not implemented yet...")
 
     def calculate(self, images=None, purpose="training", data=None, svm=False):
         """Calculate the features per atom in an atoms objects
@@ -285,15 +292,42 @@ class Gaussian(AtomisticFeatures):
                 for atom in image:
                     index = atom.index
                     symbol = atom.symbol
-                    nl = get_neighborlist(image, cutoff=self.cutoff)
-                    # n_indices: neighbor indices for central atom_i.
-                    # n_offsets: neighbor offsets for central atom_i.
-                    n_indices, n_offsets = nl[atom.index]
 
-                    n_symbols = np.array(image.get_chemical_symbols())[n_indices]
-                    neighborpositions = image.positions[n_indices] + np.dot(
-                        n_offsets, image.get_cell()
-                    )
+                    cutoff_keys = ["radial", "angular"]
+                    n_symbols, neighborpositions = {}, {}
+
+                    if isinstance(self.cutoff, dict):
+                        for cutoff_key in cutoff_keys:
+                            nl = get_neighborlist(image, cutoff=self.cutoff[cutoff_key])
+                            # n_indices: neighbor indices for central atom_i.
+                            # n_offsets: neighbor offsets for central atom_i.
+                            n_indices, n_offsets = nl[atom.index]
+
+                            n_symbols_ = np.array(image.get_chemical_symbols())[
+                                n_indices
+                            ]
+                            n_symbols[cutoff_key] = n_symbols_
+
+                            neighborpositions_ = image.positions[n_indices] + np.dot(
+                                n_offsets, image.get_cell()
+                            )
+                            neighborpositions[cutoff_key] = neighborpositions_
+                    else:
+                        for cutoff_key in cutoff_keys:
+                            nl = get_neighborlist(image, cutoff=self.cutoff)
+                            # n_indices: neighbor indices for central atom_i.
+                            # n_offsets: neighbor offsets for central atom_i.
+                            n_indices, n_offsets = nl[atom.index]
+
+                            n_symbols_ = np.array(image.get_chemical_symbols())[
+                                n_indices
+                            ]
+                            n_symbols[cutoff_key] = n_symbols_
+
+                            neighborpositions_ = image.positions[n_indices] + np.dot(
+                                n_offsets, image.get_cell()
+                            )
+                            neighborpositions[cutoff_key] = neighborpositions_
 
                     afp = self.get_atomic_features(
                         atom,
@@ -484,59 +518,6 @@ class Gaussian(AtomisticFeatures):
         return features
 
     @dask.delayed
-    def features_per_image(self, image):
-        """A delayed function to parallelize features per image
-
-        Parameters
-        ----------
-        image : obj
-            An ASE image object.
-
-        Notes
-        -----
-            This function is not being currently used.
-        """
-
-        key, image = image
-        image_positions = image.positions
-
-        feature_space = []
-
-        for atom in image:
-            index = atom.index
-            symbol = atom.symbol
-            nl = get_neighborlist(image, cutoff=self.cutoff)
-            n_indices, n_offsets = nl[atom.index]
-
-            n_symbols = [image[i].symbol for i in n_indices]
-            neighborpositions = [
-                image_positions[neighbor] + np.dot(offset, image.cell)
-                for (neighbor, offset) in zip(n_indices, n_offsets)
-            ]
-
-            feature_vector = self.get_atomic_features(
-                atom,
-                index,
-                symbol,
-                n_symbols,
-                neighborpositions,
-                self.preprocessor,
-                n_indices=n_indices,
-                image_molecule=image,
-                weighted=self.weighted,
-            )
-
-            if self.preprocessor is not None:
-                feature_space.append(feature_vector[1])
-            else:
-                feature_space.append(feature_vector)
-
-        if self.preprocessor is not None:
-            return feature_space
-        else:
-            return key, feature_space
-
-    @dask.delayed
     def get_atomic_features(
         self,
         atom,
@@ -570,14 +551,18 @@ class Gaussian(AtomisticFeatures):
             True if applying weighted feature of Gaussian function. See Ref.
             2.
         """
-
+        cutoff_keys = ["radial", "angular"]
         num_symmetries = len(self.GP[symbol])
         Ri = atom.position
         features = [None] * num_symmetries
 
         # See https://listserv.brown.edu/cgi-bin/wa?A2=ind1904&L=AMP-USERS&P=19048
         # n_numbers = [atomic_numbers[symbol] for symbol in n_symbols]
-        n_numbers = [atomic_numbers[item] for item in n_symbols]
+        n_numbers = [
+            atomic_numbers[item]
+            for cutoff_key in cutoff_keys
+            for item in n_symbols[cutoff_key]
+        ]
 
         for count in range(num_symmetries):
             GP = self.GP[symbol][count]
@@ -585,12 +570,12 @@ class Gaussian(AtomisticFeatures):
             if GP["type"] == "G2":
                 feature = calculate_G2(
                     n_numbers,
-                    n_symbols,
-                    neighborpositions,
+                    n_symbols["radial"],
+                    neighborpositions["radial"],
                     GP["symbol"],
                     GP["eta"],
-                    self.cutoff,
-                    self.cutofffxn,
+                    self.cutoff["radial"],
+                    self.cutofffxn["radial"],
                     Ri,
                     image_molecule=image_molecule,
                     n_indices=n_indices,
@@ -600,14 +585,14 @@ class Gaussian(AtomisticFeatures):
             elif GP["type"] == "G3":
                 feature = calculate_G3(
                     n_numbers,
-                    n_symbols,
-                    neighborpositions,
+                    n_symbols["angular"],
+                    neighborpositions["angular"],
                     GP["symbols"],
                     GP["gamma"],
                     GP["zeta"],
                     GP["eta"],
-                    self.cutoff,
-                    self.cutofffxn,
+                    self.cutoff["angular"],
+                    self.cutofffxn["angular"],
                     Ri,
                     normalized=self.normalized,
                     image_molecule=image_molecule,
@@ -623,8 +608,8 @@ class Gaussian(AtomisticFeatures):
                     GP["gamma"],
                     GP["zeta"],
                     GP["eta"],
-                    self.cutoff,
-                    self.cutofffxn,
+                    self.cutoff["angular"],
+                    self.cutofffxn["angular"],
                     Ri,
                     normalized=self.normalized,
                     image_molecule=image_molecule,
@@ -632,7 +617,9 @@ class Gaussian(AtomisticFeatures):
                     weighted=weighted,
                 )
             else:
-                logger.error("not implemented")
+                raise NotImplementedError(
+                    "The requested symmetry function is not implemented yet..."
+                )
             features[count] = feature
 
         return np.array(features)
