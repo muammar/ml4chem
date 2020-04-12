@@ -1,5 +1,8 @@
+import types
+import torch
 from ml4chem.atomistic import Potentials
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 
 
 class DeepLearningModel(ABC):
@@ -56,3 +59,64 @@ class DeepLearningTrainer(ABC, object):
             Potentials.save(model=model, label=label, path=path)
         elif epoch % checkpoint == 0:
             Potentials.save(model=model, label=label, path=path)
+
+    def feature_preparation(self, features, data):
+        """Feature preparation
+
+        This function takes features and rearrange the data to operate with a
+        DeepLearning class.
+
+        Parameters
+        ----------
+
+        """
+        purpose = "training"
+        data.get_largest_number_atoms(purpose)
+
+        rearrengements = []
+        conditions = []
+        if isinstance(features, (list, types.GeneratorType)):
+            for chunk in features:
+                chunk = OrderedDict(chunk)
+                rearrange = {
+                    symbol: [] for symbol in data.unique_element_symbols[purpose]
+                }
+
+                for _, values in chunk.items():
+                    image = {}
+                    for symbol, features_ in values:
+                        if symbol not in image.keys():
+                            image[symbol] = []
+                        image[symbol].append(features_)
+
+                    for symbol in data.unique_element_symbols[purpose]:
+                        tensors = image.get(symbol)
+
+                        if tensors == None:
+                            tensors = [torch.zeros(self.input_dimension)]
+
+                        tensors = torch.stack(tensors)
+
+                        tensor_size = tensors.size()[0]
+                        if tensor_size < data.largest_number_atoms[symbol]:
+
+                            diff = data.largest_number_atoms[symbol] - tensor_size
+                            expand = torch.zeros(diff, self.input_dimension)
+                            tensors = torch.cat([tensors, expand])
+
+                        rearrange[symbol].append(tensors)
+
+                rearrange = {
+                    symbol: torch.stack(tensors)
+                    for symbol, tensors in rearrange.items()
+                }
+
+                condition = {}
+
+                for symbol, tensors in rearrange.items():
+                    condition[symbol] = (tensors.sum(dim=2) != 0).float()
+
+                rearrengements.append(rearrange)
+                conditions.append(condition)
+
+        return rearrengements, conditions

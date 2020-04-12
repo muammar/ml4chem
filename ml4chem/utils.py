@@ -59,7 +59,7 @@ def convert_elapsed_time(seconds):
     return int(hours), int(minutes), seconds
 
 
-def get_chunks(sequence, chunk_size, svm=True):
+def get_chunks(sequence, chunk_size, **kwargs):
     """A function that yields a list in chunks
 
     Parameters
@@ -68,12 +68,9 @@ def get_chunks(sequence, chunk_size, svm=True):
         A list or a dictionary to be split.
     chunk_size : int
         Number of elements in each group.
-    svm : bool
-        Whether or not these chunks are going to be used for kernel methods.
     """
     res = []
 
-    # if svm is False and isinstance(sequence, dict):
     if isinstance(sequence, dict):
         sequence = sequence.items()
 

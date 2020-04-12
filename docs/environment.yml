@@ -12,3 +12,4 @@ dependencies:
         - sphinxcontrib-bibtex
         - sphinxcontrib-inlinesyntaxhighlight
         - m2r
+    - pip_install: True

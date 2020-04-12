@@ -13,7 +13,7 @@ def AtomicMSELoss(outputs, targets, atoms_per_image, uncertainty=None):
     outputs : tensor
         Outputs of the model.
     targets : tensor
-        Expected value of outputs.
+        Dictionary of tensors.
     atoms_per_image : tensor
         A tensor with the number of atoms per image. 
     uncertainty : tensor, optional

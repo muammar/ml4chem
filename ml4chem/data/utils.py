@@ -1,6 +1,6 @@
+import random
 from ase.io import Trajectory
 from io import StringIO
-import random
 
 
 def split_data(

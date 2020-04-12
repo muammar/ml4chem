@@ -80,17 +80,13 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
             logger.info(" ")
             logger.info("Model")
             logger.info("=====")
-            now = datetime.datetime.now()
-            logger.info(
-                "Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S"))
-            )
-            logger.info("Model name: {}.".format(self.name()))
-            logger.info("Number of hidden-layers: {}".format(hl))
-            logger.info(
-                "Structure of Neural Net: {}".format(
-                    "(input, " + str(self.hiddenlayers)[1:-1] + ", output)"
-                )
-            )
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            logger.info(f"Module accessed on {now}.")
+            logger.info(f"Model name: {self.name()}.")
+            logger.info(f"Number of hidden-layers: {hl}")
+
+            nn_structure = f"(input, {str(self.hiddenlayers)[1:-1]}, output)"
+            logger.info(f"Structure of Neural Net: {nn_structure}")
 
         layers = range(len(self.hiddenlayers) + 1)
 
@@ -153,8 +149,8 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
 
         if purpose == "training":
             total_params, train_params = get_number_of_parameters(self)
-            logger.info("Total number of parameters: {}.".format(total_params))
-            logger.info("Number of training parameters: {}.".format(train_params))
+            logger.info(f"Total number of parameters: {total_params}.")
+            logger.info(f"Number of training parameters: {train_params}.")
             logger.info(" ")
             logger.info(self.linears)
             # Iterate over all modules and just intialize those that are
@@ -167,69 +163,67 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
                     # nn.init.normal_(m.weight)   # , mean=0, std=0.01)
                     torch.nn.init.xavier_uniform_(m.weight)
 
-    def forward(self, X):
+    def forward(self, X, conditions):
         """Forward propagation
 
         This is forward propagation and it returns the atomic energy.
 
         Parameters
         ----------
-        X : list
-            List of inputs in the feature space.
+        X : dict
+            Dictionary of inputs in the feature space.
+        condition : dict
+            A dict of tensors per atom type with conditions. 
 
         Returns
         -------
-        outputs : tensor
-            A list of tensors with energies per image.
+        outputs 
+            A dict of tensors with energies per atom.
         """
+        outputs = {}
 
-        outputs = []
+        for symbol, tensors in X.items():
+            if isinstance(symbol, bytes):
+                symbol = symbol.decode("utf-8")
+            x = self.linears[symbol](tensors)
+            intercept_name = "intercept_" + symbol
+            slope_name = "slope_" + symbol
+            slope = getattr(self, slope_name)
+            intercept = getattr(self, intercept_name)
+            x = (slope * x) + intercept
+            x = (x.squeeze() * conditions[symbol]).sum(dim=1)
+            outputs[symbol] = x
 
-        for hash in X:
-            image = X[hash]
-            atomic_energies = []
-
-            for symbol, x in image:
-                # FIXME this conditional can be removed after de/serialization
-                # is fixed.
-                if isinstance(symbol, bytes):
-                    symbol = symbol.decode("utf-8")
-                x = self.linears[symbol](x)
-
-                intercept_name = "intercept_" + symbol
-                slope_name = "slope_" + symbol
-                slope = getattr(self, slope_name)
-                intercept = getattr(self, intercept_name)
-
-                x = (slope * x) + intercept
-                atomic_energies.append(x)
-
-            atomic_energies = torch.cat(atomic_energies)
-            image_energy = torch.sum(atomic_energies)
-            outputs.append(image_energy)
-        outputs = torch.stack(outputs)
         return outputs
+
+    def get_forces(self, energies, coordinates):
+        for index, energy in enumerate(energies):
+            forces = torch.autograd.grad(
+                energy, coordinates[index], retain_graph=True, create_graph=True
+            )
+            print(energy)
+        raise NotImplementedError
 
     def get_activations(self, images, model=None, numpy=True):
         """Get activations of each hidden-layer
 
         This function allows to extract activations of each hidden-layer of
-        the neural network. 
+        the neural network.
 
         Parameters
         ----------
         image : dict
-           Image with structure hash, features. 
+           Image with structure hash, features.
         model : object
             A ML4Chem model object.
         numpy : bool
-            Whether we want numpy arrays or tensors. 
+            Whether we want numpy arrays or tensors.
 
 
         Returns
         -------
         activations : DataFrame
-            A DataFrame with activations for each layer.  
+            A DataFrame with activations for each layer.
         """
 
         activations = []
@@ -245,7 +239,7 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
 
                 counter = 0
                 layer_counter = 0
-                for l, layer in enumerate(model.linears[symbol].modules()):
+                for _, layer in enumerate(model.linears[symbol].modules()):
                     if isinstance(layer, torch.nn.Linear) and counter == 0:
                         x = layer(features)
 
@@ -329,7 +323,7 @@ class train(DeepLearningTrainer):
         Set checkpoints. Dictionary with following structure:
 
         >>> checkpoint = {"label": label, "checkpoint": 100, "path": ""}
-        
+
         `label` refers to the name used to save the checkpoint, `checkpoint`
         is a integer or -1 for saving all epochs, and the path is where the
         checkpoint is stored. Default is None and no checkpoint is saved.
@@ -339,11 +333,13 @@ class train(DeepLearningTrainer):
 
         >>>  test = {"features": test_space, "targets": test_targets, "data": data_test}
 
-        The keys,values of the dictionary are: 
+        The keys,values of the dictionary are:
 
         - "data": a `Data` object.
-        - "targets": test set targets. 
+        - "targets": test set targets.
         - "features": a feature space obtained using `features.calculate()`.
+    forcetraining : bool, optional
+        Activate force training. Default is False.
 
     """
 
@@ -364,6 +360,7 @@ class train(DeepLearningTrainer):
         uncertainty=None,
         checkpoint=None,
         test=None,
+        forcetraining=False,
     ):
 
         self.initial_time = time.time()
@@ -388,9 +385,18 @@ class train(DeepLearningTrainer):
 
         if isinstance(batch_size, int):
             # Data batches
-            chunks = list(get_chunks(inputs, batch_size, svm=False))
-            targets = list(get_chunks(targets, batch_size, svm=False))
+            chunks = get_chunks(inputs, batch_size, svm=False)
             atoms_per_image = list(get_chunks(atoms_per_image, batch_size, svm=False))
+
+            for key, values in targets.items():
+                targets[key] = list(get_chunks(values, batch_size, svm=False))
+
+            if forcetraining:
+                coordinates = list(get_chunks(data.coordinates, batch_size, svm=False))
+                coordinates = [
+                    torch.tensor(c, requires_grad=True, dtype=torch.float)
+                    for c in coordinates
+                ]
 
             if uncertainty != None:
                 uncertainty = list(get_chunks(uncertainty, batch_size, svm=False))
@@ -399,11 +405,14 @@ class train(DeepLearningTrainer):
                     for u in uncertainty
                 ]
 
+        # vectorization
+        chunks, conditions = self.feature_preparation(chunks, data)
+
         logger.info("")
         logging.info("Batch Information")
         logging.info("-----------------")
-        logging.info("Number of batches: {}.".format(len(chunks)))
-        logging.info("Batch size: {} elements per batch.".format(batch_size))
+        logging.info(f"Number of batches: {len(chunks)}.")
+        logging.info(f"Batch size: {batch_size} elements per batch.")
         logger.info(" ")
 
         atoms_per_image = [
@@ -411,7 +420,8 @@ class train(DeepLearningTrainer):
             for n_atoms in atoms_per_image
         ]
 
-        targets = [torch.tensor(t, requires_grad=False) for t in targets]
+        for key, targets_ in targets.items():
+            targets[key] = [torch.tensor(t, requires_grad=False) for t in targets_]
 
         if device == "cuda":
             logger.info("Moving data to CUDA...")
@@ -431,10 +441,8 @@ class train(DeepLearningTrainer):
             move_time = time.time() - self.initial_time
             h, m, s = convert_elapsed_time(move_time)
             logger.info(
-                "Data moved to GPU in {} hours {} minutes {:.2f} \
-                         seconds.".format(
-                    h, m, s
-                )
+                f"Data moved to GPU in {h} hours {m} minutes {s:.2f} \
+                         seconds."
             )
             logger.info(" ")
 
@@ -450,6 +458,7 @@ class train(DeepLearningTrainer):
         self.convergence = convergence
         self.device = device
         self.epochs = epochs
+        self.forcetraining = forcetraining
         self.model = model
         self.lr_scheduler = lr_scheduler
         self.lossfxn = lossfxn
@@ -457,9 +466,19 @@ class train(DeepLearningTrainer):
         self.test = test
 
         # Data scattering
+        logger.info(f"Scattering data to workers...")
         client = dask.distributed.get_client()
-        self.chunks = [client.scatter(chunk) for chunk in chunks]
-        self.targets = [client.scatter(target) for target in targets]
+        # self.chunks = [client.scatter(chunk) for chunk in chunks]
+        self.chunks = client.scatter(chunks, broadcast=True)
+        self.conditions = client.scatter(conditions, broadcast=True)
+        # self.conditions = [client.scatter(condition) for condition in conditions]
+        # self.targets = [client.scatter(target) for target in targets]
+        self.targets = OrderedDict()
+        for key, targets_ in targets.items():
+            self.targets[key] = [client.scatter(target) for target in targets_]
+
+        if forcetraining:
+            self.coordinates = [client.scatter(c) for c in coordinates]
 
         if uncertainty != None:
             self.uncertainty = [client.scatter(u) for u in uncertainty]
@@ -530,15 +549,25 @@ class train(DeepLearningTrainer):
             epoch += 1
 
             self.optimizer.zero_grad()  # clear previous gradients
-            loss, outputs_ = train.closure(
+            args = [
                 self.chunks,
+                self.conditions,
                 self.targets,
                 self.uncertainty,
                 self.model,
                 self.lossfxn,
                 self.atoms_per_image,
                 self.device,
-            )
+                self.forcetraining,
+            ]
+
+            # if self.forcetraining:
+            #     args.append(self.coordinates)
+            # else:
+            #     args.append(None)
+
+            loss, outputs = train.closure(*args)
+
             # We step the optimizer
             if self.optimizer_name != "LBFGS":
                 self.optimizer.step()
@@ -548,14 +577,21 @@ class train(DeepLearningTrainer):
 
             # RMSE per image and per/atom
 
-            rmse = client.submit(compute_rmse, *(outputs_, self.targets))
+            rmse = OrderedDict()
+            for key, out in outputs.items():
+                rmse_ = client.submit(compute_rmse, *(out, self.targets[key]))
+                rmse[key] = rmse_.result()
+
             atoms_per_image = torch.cat(self.atoms_per_image)
 
-            rmse_atom = client.submit(
-                compute_rmse, *(outputs_, self.targets, atoms_per_image)
-            )
-            rmse = rmse.result()
-            rmse_atom = rmse_atom.result()
+            rmse_atom = OrderedDict()
+            for key, out in outputs.items():
+                rmse_atom_ = client.submit(
+                    compute_rmse, *(out, self.targets[key], atoms_per_image)
+                )
+                rmse_atom[key] = rmse_atom_.result()
+            # rmse = rmse.result()
+            # rmse_atom = rmse_atom.result()
             _loss.append(loss.item())
             _rmse.append(rmse)
             # In the case that lr_scheduler is not None
@@ -567,11 +603,12 @@ class train(DeepLearningTrainer):
             ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
 
             if self.test is None:
-                logger.info(
-                    "{:6d} {} {:8e} {:4e} {:4e}".format(
-                        epoch, ts, loss.detach(), rmse, rmse_atom
-                    )
-                )
+                info = f"{epoch:6d} {ts} {loss.detach():8e}"
+
+                for key in rmse.keys():
+                    info += f" {rmse[key]:4e} {rmse_atom[key]:4e}"
+
+                logger.info(info)
             else:
                 test_model = self.model.eval()
                 test_predictions = test_model(test_features).detach()
@@ -591,15 +628,7 @@ class train(DeepLearningTrainer):
                 rmse_atom_test = rmse_atom_test.result()
 
                 logger.info(
-                    "{:6d} {} {:8e} {:4e} {:4e} {:4e} {:4e}".format(
-                        epoch,
-                        ts,
-                        loss.detach(),
-                        rmse,
-                        rmse_atom,
-                        rmse_test,
-                        rmse_atom_test,
-                    )
+                    f"{epoch:6d} {ts} {loss.detach():8e} {rmse:4e} {rmse_atom:4e} {rmse_test:4e} {rmse_atom_test:4e}"
                 )
 
             if self.checkpoint is not None:
@@ -607,25 +636,43 @@ class train(DeepLearningTrainer):
 
             if self.convergence is None and epoch == self.epochs:
                 converged = True
-            elif self.convergence is not None and rmse < self.convergence["energy"]:
+            elif (
+                self.convergence is not None
+                and rmse["energies"] < self.convergence["energy"]
+                and self.epochs is None
+            ):
+                converged = True
+            elif (
+                self.convergence is not None
+                and rmse["energies"] < self.convergence["energy"]
+                or epoch == self.epochs
+            ):
                 converged = True
 
         training_time = time.time() - self.initial_time
 
         h, m, s = convert_elapsed_time(training_time)
-        logger.info(
-            "Training finished in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
-        )
+        logger.info(f"Training finished in {h} hours {m} minutes {s:.2f} seconds.")
 
     @classmethod
     def closure(
-        Cls, chunks, targets, uncertainty, model, lossfxn, atoms_per_image, device
+        Cls,
+        chunks,
+        conditions,
+        targets,
+        uncertainty,
+        model,
+        lossfxn,
+        atoms_per_image,
+        device,
+        forcetraining,
+        # coordinates,
     ):
         """Closure
 
         This class method clears previous gradients, iterates over batches,
         accumulates the gradients, reduces the gradients, update model
-        params, and finally returns loss and outputs_.
+        params, and finally returns loss and outputs.
 
         Parameters
         ----------
@@ -633,7 +680,7 @@ class train(DeepLearningTrainer):
             Class object.
         chunks : tensor or list
             Tensor with input data points in batch with index.
-        targets : tensor or list
+        targets : tensor or list.
             The targets.
         uncertainty : list
             A list of uncertainties that are used to penalize during the loss
@@ -646,9 +693,12 @@ class train(DeepLearningTrainer):
             Atoms per image because we are doing atom-centered methods.
         device : str
             Are we running cuda or cpu?
+        forcetraining : bool, optional
+            Activate force training. Default is False.
+        coordinates : list
+            List of coordinates of atoms. Useful for force training.
         """
 
-        outputs_ = []
         # Get client to send futures to the scheduler
         client = dask.distributed.get_client()
 
@@ -664,23 +714,31 @@ class train(DeepLearningTrainer):
                     *(
                         index,
                         chunk,
+                        conditions,
                         targets,
                         uncertainty,
                         model,
                         lossfxn,
                         atoms_per_image,
                         device,
+                        forcetraining,
                     ),
                 )
             )
         dask.distributed.wait(accumulation)
         accumulation = client.gather(accumulation)
 
-        for outputs, loss, grad in accumulation:
+        outputs = OrderedDict()
+
+        for outputs_, loss, grad in accumulation:
             grad = np.array(grad)
-            running_loss += loss
-            outputs_.append(outputs)
             grads.append(grad)
+            running_loss += loss
+
+            for key, out in outputs_.items():
+                if key not in outputs.keys():
+                    outputs[key] = []
+                outputs[key].append(out)
 
         grads = sum(grads)
 
@@ -690,11 +748,22 @@ class train(DeepLearningTrainer):
         del accumulation
         del grads
 
-        return running_loss, outputs_
+        return running_loss, outputs
 
     @classmethod
     def train_batches(
-        Cls, index, chunk, targets, uncertainty, model, lossfxn, atoms_per_image, device
+        Cls,
+        index,
+        chunk,
+        conditions,
+        targets,
+        uncertainty,
+        model,
+        lossfxn,
+        atoms_per_image,
+        device,
+        forcetraining,
+        # coordinates,
     ):
         """A function that allows training per batches
 
@@ -718,21 +787,33 @@ class train(DeepLearningTrainer):
             Atoms per image because we are doing atom-centered methods.
         device : str
             Are we running cuda or cpu?
+        forcetraining : bool, optional
+            Activate force training. Default is False.
+        coordinates : list
+            List of coordinates of atoms. Useful for force training.
 
         Returns
         -------
         loss : tensor
             The loss function of the batch.
         """
-        inputs = OrderedDict(chunk)
-        outputs = model(inputs)
+        outputs_ = model(chunk, conditions[index])
+        outputs_ = torch.stack(list(outputs_.values())).sum(0)
 
+        outputs = {list(targets.keys())[0]: outputs_}
+
+        if forcetraining:
+            forces = model.get_forces(outputs["energies"], coordinates[index])
+
+        loss = 0.0
         if uncertainty == None:
-            loss = lossfxn(outputs, targets[index], atoms_per_image[index])
+            for key, targets_ in targets.items():
+                loss += lossfxn(
+                    outputs[key], targets_[index].result(), atoms_per_image[index]
+                )
         else:
-            loss = lossfxn(
-                outputs, targets[index], atoms_per_image[index], uncertainty[index]
-            )
+            loss = lossfxn(outputs, targets, atoms_per_image[index], uncertainty[index])
+
         loss.backward()
 
         gradients = []
@@ -742,11 +823,12 @@ class train(DeepLearningTrainer):
                 gradient = param.grad.detach().numpy()
             except AttributeError:
                 # This exception catches  the case where an image does not
-                # contain variable that is following the gradient of certain
+                # contain a variable that is following the gradient of certain
                 # atom. For example, suppose two batches with 2 molecules each.
-                # In the first batch we have only C, H, O but it turns out that
-                # N is also available only in the second batch. The
-                # contribution of the total gradient from the first batch for N is 0.
+                # In the first batch we have only C, H, O atoms but it turns
+                # out that N is also available only in the second batch. The
+                # contribution of the total gradient from the first batch for N
+                # is 0.
                 gradient = 0.0
             gradients.append(gradient)
 

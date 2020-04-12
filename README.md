@@ -46,13 +46,13 @@ very nice.
 If you find this software useful, please use this bibtex to cite it:
 
 ```
-@article{El_Khatib2020,
-author = "Muammar El Khatib and Wibe de Jong",
-title = "{ML4Chem: A Machine Learning Package for Chemistry and Materials Science}",
-year = "2020",
-month = "3",
-url = "https://chemrxiv.org/articles/ML4Chem_A_Machine_Learning_Package_for_Chemistry_and_Materials_Science/11952516",
-doi = "10.26434/chemrxiv.11952516.v1"
+@article{Elkhatib2020ml4chem,
+    title={ML4Chem: A Machine Learning Package for Chemistry and Materials Science},
+    author={Muammar El Khatib and Wibe A de Jong},
+    year={2020},
+    eprint={2003.13388},
+    archivePrefix={arXiv},
+    primaryClass={physics.chem-ph}
 }
 ```
 
