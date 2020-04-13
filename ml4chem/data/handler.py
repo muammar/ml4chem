@@ -113,9 +113,9 @@ class Data(object):
         logger.info("Images hashed and processed...\n")
 
         self.total_number_atoms = self.get_total_number_atoms()
+        self.total_number_molecules = len(self.atoms_per_image)
 
-        if purpose == "training":
-            logger.info(f"There are {self.total_number_atoms} atoms in your data set.")
+        logger.info(f"There are {self.total_number_atoms} atoms in your data set.")
 
     def is_valid_structure(self, images):
         """Check if the data has a valid structure

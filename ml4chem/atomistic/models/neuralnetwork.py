@@ -406,7 +406,7 @@ class train(DeepLearningTrainer):
                 ]
 
         # vectorization
-        chunks, conditions = self.feature_preparation(chunks, data)
+        chunks, conditions = model.feature_preparation(chunks, data)
 
         logger.info("")
         logging.info("Batch Information")

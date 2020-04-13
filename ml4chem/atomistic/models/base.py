@@ -26,58 +26,36 @@ class DeepLearningModel(ABC):
         """Forward propagation pass"""
         pass
 
-
-class DeepLearningTrainer(ABC, object):
-    def checkpoint_save(self, epoch, model, label=None, checkpoint=None, path=""):
-        """Checkpoint saver
-
-        A method that saves the checkpoint of a model during training.
-
+    def feature_preparation(self, features, data, purpose="training"):
+        """Vectorized data structure
+        
         Parameters
         ----------
-        epoch : int
-            Epoch number.
-        model : object
-            A DeepLearning object.
-        label : str, optional
-            String with checkpoint label, by default None.
-        checkpoint : int, optional
-            Set checkpoints. If set to 100, at each 100 epoch the model will be
-            saved. Use -1 to save each epoch. Default is None.
-        path : str, optional
-            Path to save the checkpoint, by default "".
+        features : dict, iter
+            An iterator or dictionary. 
+        data : obj
+            An ML4Chem data object. 
+        purpose : str, optional
+            Purpose of the features, by default "training"
+        
+        Returns
+        -------
+        rearrengements, conditions
+            Rearranged features and conditions. 
         """
 
-        if label is None:
-            label = f"checkpoint-{epoch}"
-        else:
-            label = f"{label}-checkpoint-{epoch}"
-
-        if checkpoint is None:
-            pass
-        elif checkpoint == -1:
-            Potentials.save(model=model, label=label, path=path)
-        elif epoch % checkpoint == 0:
-            Potentials.save(model=model, label=label, path=path)
-
-    def feature_preparation(self, features, data):
-        """Feature preparation
-
-        This function takes features and rearrange the data to operate with a
-        DeepLearning class.
-
-        Parameters
-        ----------
-
-        """
-        purpose = "training"
         data.get_largest_number_atoms(purpose)
 
         rearrengements = []
         conditions = []
+
+        if isinstance(features, OrderedDict):
+            features = [features]
+
         if isinstance(features, (list, types.GeneratorType)):
             for chunk in features:
-                chunk = OrderedDict(chunk)
+                if isinstance(chunk, OrderedDict) == False:
+                    chunk = OrderedDict(chunk)
                 rearrange = {
                     symbol: [] for symbol in data.unique_element_symbols[purpose]
                 }
@@ -120,3 +98,37 @@ class DeepLearningTrainer(ABC, object):
                 conditions.append(condition)
 
         return rearrengements, conditions
+
+
+class DeepLearningTrainer(ABC, object):
+    def checkpoint_save(self, epoch, model, label=None, checkpoint=None, path=""):
+        """Checkpoint saver
+
+        A method that saves the checkpoint of a model during training.
+
+        Parameters
+        ----------
+        epoch : int
+            Epoch number.
+        model : object
+            A DeepLearning object.
+        label : str, optional
+            String with checkpoint label, by default None.
+        checkpoint : int, optional
+            Set checkpoints. If set to 100, at each 100 epoch the model will be
+            saved. Use -1 to save each epoch. Default is None.
+        path : str, optional
+            Path to save the checkpoint, by default "".
+        """
+
+        if label is None:
+            label = f"checkpoint-{epoch}"
+        else:
+            label = f"{label}-checkpoint-{epoch}"
+
+        if checkpoint is None:
+            pass
+        elif checkpoint == -1:
+            Potentials.save(model=model, label=label, path=path)
+        elif epoch % checkpoint == 0:
+            Potentials.save(model=model, label=label, path=path)
