@@ -194,7 +194,7 @@ def read_log(logfile, metric="loss", refresh=None, data_only=False):
                     loss.append(float(line[3]))
                     training.append(float(line[4]))
                     test.append(float(line[6]))
-                except ValueError:
+                except (ValueError, IndexError):
                     pass
 
         if metric == "loss":

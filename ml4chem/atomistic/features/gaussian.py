@@ -213,12 +213,13 @@ class Gaussian(AtomisticFeatures):
 
             if image_hashes == data_hashes:
                 # Check if both lists are the same.
+                self.dimension = len(data[list(data.keys())[0]][0][1])
                 return data
             elif any(i in image_hashes for i in data_hashes):
-                # Check if any of the elem
                 _data = {}
                 for hash in image_hashes:
                     _data[hash] = data[hash]
+                self.dimension = len(_data[list(_data.keys())[0]][0][1])
                 return _data
 
             if svm_keys == list(data.keys()):
