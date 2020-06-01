@@ -19,9 +19,13 @@ class ActiveLearning(object):
         Atomistic similarities?, by default False.
     """
 
-    def __init__(self, labeled, unlabeled, atomistic=False):
+    def __init__(self, labeled, unlabeled, atomistic=True):
         self.labeled = labeled
         self.unlabeled = unlabeled
+
+        if atomistic == False:
+            raise RuntimeError("This is not implemented yet.")
+
         self.atomistic = atomistic
 
     def run(self, kernel, max_variance=10, max_iter=None):
@@ -45,7 +49,9 @@ class ActiveLearning(object):
         print(self.D.shape)
         logger.info("Finished...\n")
 
-        _indices = np.cumsum([len(graph.nodes) for graph in self.labeled + self.unlabeled]).tolist()
+        _indices = np.cumsum(
+            [len(graph.nodes) for graph in self.labeled + self.unlabeled]
+        ).tolist()
 
         l_indices = []
         u_indices = []
@@ -74,10 +80,10 @@ class ActiveLearning(object):
 
             print(l_indices)
             print(u_indices)
-            Dl = np.take(self.D, l_indices) ** -.5
+            Dl = np.take(self.D, l_indices) ** -0.5
             self.kll = Dl[None, :] * self._rll * Dl[:, None]
             _u_indices = list(itertools.chain.from_iterable(u_indices))
-            Du = np.take(self.D, _u_indices) ** -.5
+            Du = np.take(self.D, _u_indices) ** -0.5
             self.klu = Dl[:, None] * self._rlu * Du[None, :]
             # print("KLL")
             # print(self.kll)
@@ -89,9 +95,9 @@ class ActiveLearning(object):
 
             for u in range(len(_u_indices)):
                 klu_u = self.klu[None:, u]
-                vu = 1. - klu_u.T.dot(k_inv).dot(klu_u)
+                vu = 1.0 - klu_u.T.dot(k_inv).dot(klu_u)
                 self.variances.append(vu)
-            
+
             self.max_var_index = np.argmax(self.variances)
             self.current_var = self.variances[self.max_var_index]
 
@@ -110,6 +116,7 @@ class ActiveLearning(object):
                 "A graph with variance {} has been labeled.".format(self.current_var)
             )
 
+            # TODO add max_variance as a criterion for converging.
             # if self.current_var > max_variance:
             #     add_to_labeled = self.unlabeled.pop(self.pop_index)
             #     self.labeled.append(add_to_labeled)
