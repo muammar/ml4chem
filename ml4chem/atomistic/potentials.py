@@ -3,6 +3,7 @@ import codecs
 import copy
 import json
 import logging
+import os
 import torch
 from ase.calculators.calculator import Calculator
 from ml4chem.backends.available import available_backends
@@ -50,6 +51,7 @@ class Potentials(Calculator, object):
         "RetentionTimes": "rt",
         "KernelRidge": "kernelridge",
         "GaussianProcess": "gaussian_process",
+        "VAE": "autoencoders",
     }
 
     def __init__(
@@ -94,7 +96,7 @@ class Potentials(Calculator, object):
         kwargs["ml4chem_path"] = model
         kwargs["preprocessor"] = preprocessor
 
-        with open(params) as ml4chem_params:
+        with open(params, "rb") as ml4chem_params:
             ml4chem_params = json.load(ml4chem_params)
             model_type = ml4chem_params["model"].get("type")
 
@@ -103,7 +105,7 @@ class Potentials(Calculator, object):
             module_name = Potentials.module_names[model_params["name"]]
 
             model_class = dynamic_import(
-                class_name, "ml4chem.models", alt_name=module_name
+                class_name, "ml4chem.atomistic.models", alt_name=module_name
             )
 
             delete = ["name", "type", "class_name"]
@@ -115,7 +117,13 @@ class Potentials(Calculator, object):
 
                 weights = load(model)
                 # TODO remove after de/serialization is fixed.
-                weights = {key.decode("utf-8"): value for key, value in weights.items()}
+                try:
+                    weights = {
+                        key.decode("utf-8"): value for key, value in weights.items()
+                    }
+                except AttributeError:
+                    weights = {key: value for key, value in weights.items()}
+
                 model_params.update({"weights": weights})
                 model = model_class(**model_params)
             else:
@@ -125,14 +133,21 @@ class Potentials(Calculator, object):
         # Instantiation of fingerprint class
         fingerprint_params = ml4chem_params.get("features", None)
 
-        if fingerprint_params is None:
-            features = fingerprint_params
+        if fingerprint_params == None:
+            features = None
         else:
-            name = fingerprint_params.get("name")
-            del fingerprint_params["name"]
+            if "kwargs" in fingerprint_params.keys():
+                update_dict_with = fingerprint_params.pop("kwargs")
+                fingerprint_params.update(update_dict_with)
 
-            features = dynamic_import(name, "ml4chem.features")
-            features = features(**fingerprint_params)
+            if fingerprint_params is None:
+                features = fingerprint_params
+            else:
+                name = fingerprint_params.get("name")
+                del fingerprint_params["name"]
+
+                features = dynamic_import(name, "ml4chem.atomistic.features")
+                features = features(**fingerprint_params)
 
         calc = Cls(features=features, model=model, **kwargs)
 
@@ -155,9 +170,15 @@ class Potentials(Calculator, object):
         """
 
         if path is None:
-            path = ""
+            path = "."
 
-        path += label
+        if os.path.isdir(path) is False:
+            os.makedirs(path)
+
+        if path[-1] == "/":
+            path += label
+        else:
+            path = path + "/" + label
 
         if model is not None:
             model_name = model.name()
@@ -247,17 +268,18 @@ class Potentials(Calculator, object):
         """
 
         purpose = "training"
-        data_handler = Data(training_set, purpose=purpose)
         # Raw input and targets aka X, y
+        data_handler = Data(training_set, purpose=purpose)
         training_set, targets = data_handler.get_data(purpose=purpose)
 
-        # Now let's train
+        # Now let's featurize
         # SVM models
         if self.model.name() in Potentials.svm_models:
             # Mapping raw positions into a feature space aka X
             feature_space, reference_features = self.features.calculate(
                 training_set, data=data_handler, purpose=purpose, svm=True
             )
+
             self.model.prepare_model(
                 feature_space, reference_features, data=data_handler
             )
@@ -302,8 +324,9 @@ class Potentials(Calculator, object):
 
             # This is something specific of pytorch.
             module = Potentials.module_names[self.model.name()]
-            train = dynamic_import("train", "ml4chem.models", alt_name=module)
+            train = dynamic_import("train", "ml4chem.atomistic.models", alt_name=module)
 
+            # Let's train
             train(
                 feature_space,
                 targets,
@@ -363,6 +386,8 @@ class Potentials(Calculator, object):
                     reference_space = load(self.reference_space)
                 except:
                     raise ("This is not a database...")
+
+                self.model.prepare_model(None, None, data=data_handler, purpose=purpose)
 
                 energy = self.model.get_potential_energy(
                     features, reference_space, purpose=purpose

@@ -5,11 +5,14 @@ import time
 import torch
 
 import numpy as np
+import pandas as pd
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
-from ml4chem.models.loss import AtomicMSELoss
-from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
+from ml4chem.atomistic.models.base import DeepLearningModel, DeepLearningTrainer
+from ml4chem.atomistic.models.loss import AtomicMSELoss
+from ml4chem.optim.handler import get_optimizer, get_lr_scheduler, get_lr
 from ml4chem.utils import convert_elapsed_time, get_chunks, get_number_of_parameters
+from pprint import pformat
 
 
 # Setting precision and starting logger object
@@ -17,7 +20,7 @@ torch.set_printoptions(precision=10)
 logger = logging.getLogger()
 
 
-class NeuralNetwork(torch.nn.Module):
+class NeuralNetwork(DeepLearningModel, torch.nn.Module):
     """Atom-centered Neural Network Regression with Pytorch
 
     This model is based on Ref. 1 by Behler and Parrinello.
@@ -48,7 +51,7 @@ class NeuralNetwork(torch.nn.Module):
         return cls.NAME
 
     def __init__(self, hiddenlayers=(3, 3), activation="relu", **kwargs):
-        super(NeuralNetwork, self).__init__()
+        super(DeepLearningModel, self).__init__()
         self.hiddenlayers = hiddenlayers
         self.activation = activation
 
@@ -77,6 +80,10 @@ class NeuralNetwork(torch.nn.Module):
             logger.info(" ")
             logger.info("Model")
             logger.info("=====")
+            now = datetime.datetime.now()
+            logger.info(
+                "Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S"))
+            )
             logger.info("Model name: {}.".format(self.name()))
             logger.info("Number of hidden-layers: {}".format(hl))
             logger.info(
@@ -203,8 +210,83 @@ class NeuralNetwork(torch.nn.Module):
         outputs = torch.stack(outputs)
         return outputs
 
+    def get_activations(self, images, model=None, numpy=True):
+        """Get activations of each hidden-layer
 
-class train(object):
+        This function allows to extract activations of each hidden-layer of
+        the neural network. 
+
+        Parameters
+        ----------
+        image : dict
+           Image with structure hash, features. 
+        model : object
+            A ML4Chem model object.
+        numpy : bool
+            Whether we want numpy arrays or tensors. 
+
+
+        Returns
+        -------
+        activations : DataFrame
+            A DataFrame with activations for each layer.  
+        """
+
+        activations = []
+        columns = ["hash", "atom.index", "atom.symbol"]
+
+        if model is None:
+            model = self
+
+        model.eval()
+
+        for hash, data in images.items():
+            for index, (symbol, features) in enumerate(data):
+
+                counter = 0
+                layer_counter = 0
+                for l, layer in enumerate(model.linears[symbol].modules()):
+                    if isinstance(layer, torch.nn.Linear) and counter == 0:
+                        x = layer(features)
+
+                        if numpy:
+                            data_ = [hash, index, symbol, x.detach_().numpy()]
+                        else:
+                            data_ = [hash, index, symbol, x.detach_()]
+
+                        layer_column_name = f"layer{layer_counter}"
+
+                        if layer_column_name not in columns:
+                            columns.append(layer_column_name)
+
+                        counter += 1
+                        layer_counter += 1
+
+                    elif isinstance(layer, torch.nn.Linear) and counter > 0:
+                        x = layer(x)
+
+                        if numpy:
+                            data_.append(x.detach_().numpy())
+                        else:
+                            data_.append(x.detach_())
+
+                        layer_column_name = f"layer{layer_counter}"
+                        if layer_column_name not in columns:
+                            columns.append(layer_column_name)
+
+                        counter += 1
+                        layer_counter += 1
+
+                activations.append(data_)
+                del data_
+
+        # Create DataFrame from lists
+        df = pd.DataFrame(activations, columns=columns)
+
+        return df
+
+
+class train(DeepLearningTrainer):
     """Train the model
 
     Parameters
@@ -227,6 +309,7 @@ class train(object):
         This is the L2 regularization. It is not the same as weight decay.
     convergence : dict
         Instead of using epochs, users can set a convergence criterion.
+        Supported keys are "training" and "test".
     lossfxn : obj
         A loss function object.
     device : str
@@ -239,6 +322,29 @@ class train(object):
 
         >>> lr_scheduler = ('ReduceLROnPlateau',
                             {'mode': 'min', 'patience': 10})
+    uncertainty : list
+        A list of uncertainties that are used to penalize during the loss
+        function evaluation.
+    checkpoint : dict
+        Set checkpoints. Dictionary with following structure:
+
+        >>> checkpoint = {"label": label, "checkpoint": 100, "path": ""}
+        
+        `label` refers to the name used to save the checkpoint, `checkpoint`
+        is a integer or -1 for saving all epochs, and the path is where the
+        checkpoint is stored. Default is None and no checkpoint is saved.
+    test : dict
+        A dictionary used to compute the error over a validation/test set
+        during training procedures.
+
+        >>>  test = {"features": test_space, "targets": test_targets, "data": data_test}
+
+        The keys,values of the dictionary are: 
+
+        - "data": a `Data` object.
+        - "targets": test set targets. 
+        - "features": a feature space obtained using `features.calculate()`.
+
     """
 
     def __init__(
@@ -255,9 +361,25 @@ class train(object):
         device="cpu",
         batch_size=None,
         lr_scheduler=None,
+        uncertainty=None,
+        checkpoint=None,
+        test=None,
     ):
 
         self.initial_time = time.time()
+
+        if lossfxn is None:
+            lossfxn = AtomicMSELoss
+
+        logger.info("")
+        logger.info("Training")
+        logger.info("========")
+        logger.info(f"Convergence criteria: {convergence}")
+        logger.info(f"Loss function: {lossfxn.__name__}")
+        if uncertainty is not None:
+            logger.info("Options:")
+            logger.info(f"    - Uncertainty penalization: {pformat(uncertainty)}")
+        logger.info("")
 
         atoms_per_image = data.atoms_per_image
 
@@ -270,7 +392,14 @@ class train(object):
             targets = list(get_chunks(targets, batch_size, svm=False))
             atoms_per_image = list(get_chunks(atoms_per_image, batch_size, svm=False))
 
-        logger.info(" ")
+            if uncertainty != None:
+                uncertainty = list(get_chunks(uncertainty, batch_size, svm=False))
+                uncertainty = [
+                    torch.tensor(u, requires_grad=False, dtype=torch.float)
+                    for u in uncertainty
+                ]
+
+        logger.info("")
         logging.info("Batch Information")
         logging.info("-----------------")
         logging.info("Number of batches: {}.".format(len(chunks)))
@@ -317,36 +446,25 @@ class train(object):
         if lr_scheduler is not None:
             self.scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
 
-        logger.info(" ")
-        logger.info("Starting training...")
-        logger.info(" ")
-
-        logger.info(
-            "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
-                "Epoch", "Time Stamp", "Loss", "RMSE/img", "RMSE/atom"
-            )
-        )
-        logger.info(
-            "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
-                "------", "-------------------", "------------", "--------", "---------"
-            )
-        )
         self.atoms_per_image = atoms_per_image
         self.convergence = convergence
         self.device = device
         self.epochs = epochs
         self.model = model
         self.lr_scheduler = lr_scheduler
+        self.lossfxn = lossfxn
+        self.checkpoint = checkpoint
+        self.test = test
 
         # Data scattering
         client = dask.distributed.get_client()
         self.chunks = [client.scatter(chunk) for chunk in chunks]
         self.targets = [client.scatter(target) for target in targets]
 
-        if lossfxn is None:
-            self.lossfxn = AtomicMSELoss
+        if uncertainty != None:
+            self.uncertainty = [client.scatter(u) for u in uncertainty]
         else:
-            self.lossfxn = lossfxn
+            self.uncertainty = uncertainty
 
         # Let the hunger games begin...
         self.trainer()
@@ -354,10 +472,59 @@ class train(object):
     def trainer(self):
         """Run the training class"""
 
+        logger.info(" ")
+        logger.info("Starting training...\n")
+
+        if self.test is None:
+            logger.info(
+                "{:6s} {:19s} {:12s} {:12s} {:8s}".format(
+                    "Epoch", "Time Stamp", "Loss", "Error/img", "Error/atom"
+                )
+            )
+            logger.info(
+                "{:6s} {:19s} {:12s} {:8s} {:8s}".format(
+                    "------",
+                    "-------------------",
+                    "------------",
+                    "------------",
+                    "------------",
+                )
+            )
+
+        else:
+            test_features = self.test.get("features", None)
+            test_targets = self.test.get("targets", None)
+            test_data = self.test.get("data", None)
+
+            logger.info(
+                "{:6s} {:19s} {:12s} {:12s} {:12s} {:12s} {:16s}".format(
+                    "Epoch",
+                    "Time Stamp",
+                    "Loss",
+                    "Error/img",
+                    "Error/atom",
+                    "Error/img (t)",
+                    "Error/atom (t)",
+                )
+            )
+            logger.info(
+                "{:6s} {:19s} {:12s} {:8s} {:8s} {:8s} {:8s}".format(
+                    "------",
+                    "-------------------",
+                    "------------",
+                    "------------",
+                    "------------",
+                    "------------",
+                    "------------",
+                )
+            )
+
         converged = False
         _loss = []
         _rmse = []
         epoch = 0
+
+        client = dask.distributed.get_client()
 
         while not converged:
             epoch += 1
@@ -366,6 +533,7 @@ class train(object):
             loss, outputs_ = train.closure(
                 self.chunks,
                 self.targets,
+                self.uncertainty,
                 self.model,
                 self.lossfxn,
                 self.atoms_per_image,
@@ -379,28 +547,63 @@ class train(object):
                 self.optimizer.step(options)
 
             # RMSE per image and per/atom
-            client = dask.distributed.get_client()
 
             rmse = client.submit(compute_rmse, *(outputs_, self.targets))
             atoms_per_image = torch.cat(self.atoms_per_image)
+
             rmse_atom = client.submit(
                 compute_rmse, *(outputs_, self.targets, atoms_per_image)
             )
             rmse = rmse.result()
             rmse_atom = rmse_atom.result()
-
             _loss.append(loss.item())
             _rmse.append(rmse)
-
             # In the case that lr_scheduler is not None
             if self.lr_scheduler is not None:
                 self.scheduler.step(loss)
+                print("Epoch {} lr {}".format(epoch, get_lr(self.optimizer)))
 
             ts = time.time()
             ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
-            logger.info(
-                "{:6d} {} {:8e} {:8f} {:8f}".format(epoch, ts, loss, rmse, rmse_atom)
-            )
+
+            if self.test is None:
+                logger.info(
+                    "{:6d} {} {:8e} {:4e} {:4e}".format(
+                        epoch, ts, loss.detach(), rmse, rmse_atom
+                    )
+                )
+            else:
+                test_model = self.model.eval()
+                test_predictions = test_model(test_features).detach()
+                rmse_test = client.submit(
+                    compute_rmse, *(test_predictions, test_targets)
+                )
+
+                atoms_per_image_test = torch.tensor(
+                    test_data.atoms_per_image, requires_grad=False
+                )
+                rmse_atom_test = client.submit(
+                    compute_rmse,
+                    *(test_predictions, test_targets, atoms_per_image_test),
+                )
+
+                rmse_test = rmse_test.result()
+                rmse_atom_test = rmse_atom_test.result()
+
+                logger.info(
+                    "{:6d} {} {:8e} {:4e} {:4e} {:4e} {:4e}".format(
+                        epoch,
+                        ts,
+                        loss.detach(),
+                        rmse,
+                        rmse_atom,
+                        rmse_test,
+                        rmse_atom_test,
+                    )
+                )
+
+            if self.checkpoint is not None:
+                self.checkpoint_save(epoch, self.model, **self.checkpoint)
 
             if self.convergence is None and epoch == self.epochs:
                 converged = True
@@ -415,7 +618,9 @@ class train(object):
         )
 
     @classmethod
-    def closure(Cls, chunks, targets, model, lossfxn, atoms_per_image, device):
+    def closure(
+        Cls, chunks, targets, uncertainty, model, lossfxn, atoms_per_image, device
+    ):
         """Closure
 
         This class method clears previous gradients, iterates over batches,
@@ -430,6 +635,9 @@ class train(object):
             Tensor with input data points in batch with index.
         targets : tensor or list
             The targets.
+        uncertainty : list
+            A list of uncertainties that are used to penalize during the loss
+            function evaluation.
         model : obj
             Pytorch model to perform forward() and get gradients.
         lossfxn : obj
@@ -453,7 +661,16 @@ class train(object):
             accumulation.append(
                 client.submit(
                     train.train_batches,
-                    *(index, chunk, targets, model, lossfxn, atoms_per_image, device)
+                    *(
+                        index,
+                        chunk,
+                        targets,
+                        uncertainty,
+                        model,
+                        lossfxn,
+                        atoms_per_image,
+                        device,
+                    ),
                 )
             )
         dask.distributed.wait(accumulation)
@@ -477,7 +694,7 @@ class train(object):
 
     @classmethod
     def train_batches(
-        Cls, index, chunk, targets, model, lossfxn, atoms_per_image, device
+        Cls, index, chunk, targets, uncertainty, model, lossfxn, atoms_per_image, device
     ):
         """A function that allows training per batches
 
@@ -492,6 +709,9 @@ class train(object):
             The targets.
         model : obj
             Pytorch model to perform forward() and get gradients.
+        uncertainty : list
+            A list of uncertainties that are used to penalize during the loss
+            function evaluation.
         lossfxn : obj
             A loss function object.
         atoms_per_image : list
@@ -507,7 +727,12 @@ class train(object):
         inputs = OrderedDict(chunk)
         outputs = model(inputs)
 
-        loss = lossfxn(outputs, targets[index], atoms_per_image[index])
+        if uncertainty == None:
+            loss = lossfxn(outputs, targets[index], atoms_per_image[index])
+        else:
+            loss = lossfxn(
+                outputs, targets[index], atoms_per_image[index], uncertainty[index]
+            )
         loss.backward()
 
         gradients = []

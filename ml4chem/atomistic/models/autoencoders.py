@@ -1,6 +1,5 @@
 import dask
 import datetime
-import inspect
 import logging
 import time
 import torch
@@ -8,7 +7,8 @@ import torch
 import numpy as np
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
-from ml4chem.models.loss import MSELoss
+from ml4chem.atomistic.models.base import DeepLearningModel
+from ml4chem.atomistic.models.loss import MSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 from ml4chem.utils import convert_elapsed_time, get_chunks, lod_to_list
 
@@ -17,7 +17,7 @@ torch.set_printoptions(precision=10)
 logger = logging.getLogger()
 
 
-class AutoEncoder(torch.nn.Module):
+class AutoEncoder(DeepLearningModel, torch.nn.Module):
     """Fully connected atomic autoencoder
 
 
@@ -68,7 +68,7 @@ class AutoEncoder(torch.nn.Module):
     def __init__(
         self, hiddenlayers=None, activation="relu", one_for_all=False, **kwargs
     ):
-        super(AutoEncoder, self).__init__()
+        super(DeepLearningModel, self).__init__()
 
         self.hiddenlayers = hiddenlayers
         self.activation = activation
@@ -122,7 +122,9 @@ class AutoEncoder(torch.nn.Module):
             )
 
         if self.name() == "VAE":
-            logger.info("Variant: {}.".format(self.variant))
+            logger.info(
+                "Variant: {}. One for all: {}.".format(self.variant, self.one_for_all)
+            )
 
         try:
             unique_element_symbols = data.unique_element_symbols[purpose]
@@ -955,6 +957,8 @@ class train(object):
             if self.anneal:
                 annealing = annealer.update(epoch)
                 print(annealing)
+            else:
+                annealing = None
 
             self.optimizer.zero_grad()  # clear previous gradients
 
@@ -1212,7 +1216,7 @@ class Annealer(object):
     """Annealing class
 
     Based on on https://arxiv.org/abs/1903.10145.
-    
+
     Parameters
     ----------
     warm_up : int, optional
@@ -1234,12 +1238,12 @@ class Annealer(object):
 
     def update(self, epoch):
         """Update annealing value
-        
+
         Parameters
         ----------
         epoch : int
-            Epoch on the training process. 
-        
+            Epoch on the training process.
+
         Returns
         -------
         annealing

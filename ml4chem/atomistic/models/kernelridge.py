@@ -1,4 +1,5 @@
 import dask
+import datetime
 import logging
 import time
 import numpy as np
@@ -64,30 +65,30 @@ class KernelRidge(object):
 
     Notes
     -----
-        In the case of training total energies, we need to apply either an
-        atomic decomposition Ansatz (ADA) during training or an energy
-        partition scheme to the training set. ADA can be achieved based on
-        Ref. 1.
-        For an explanation of what they do, see the Master thesis by Sonja
-        Mathias.
+    In the case of training total energies, we need to apply either an
+    atomic decomposition Ansatz (ADA) during training or an energy
+    partition scheme to the training set. ADA can be achieved based on
+    Ref. 1.
+    For an explanation of what they do, see the Master thesis by Sonja
+    Mathias.
 
-        http://wissrech.ins.uni-bonn.de/teaching/master/masterthesis_mathias_revised.pdf
+    http://wissrech.ins.uni-bonn.de/teaching/master/masterthesis_mathias_revised.pdf
 
-        ADA is the default way of training total energies in this KernelRidge
-        class.
+    ADA is the default way of training total energies in this KernelRidge
+    class.
 
-        An energy partition scheme for  total energies can be obtained from an
-        artificial neural network or methods such as the interacting quantum
-        atoms theory (IQA). I implemented the nnpartition mode for which users
-        can provide the path to a NN calculator and we take the energies
-        per-atom from the function .calculate_atomic_energy(). The strategy
-        would be to use train the NN with a very tight convergence criterion
-        (1e-6 RSME).  Then, calling .calculate_atomic_energy() would give you
-        the atomic energies for such set.
+    An energy partition scheme for  total energies can be obtained from an
+    artificial neural network or methods such as the interacting quantum
+    atoms theory (IQA). I implemented the nnpartition mode for which users
+    can provide the path to a NN calculator and we take the energies
+    per-atom from the function .calculate_atomic_energy(). The strategy
+    would be to use train the NN with a very tight convergence criterion
+    (1e-6 RSME).  Then, calling .calculate_atomic_energy() would give you
+    the atomic energies for such set.
 
-        For forces is a different history because we do know the derivative of
-        the energy with respect to atom positions (a per-atom quantity).  So we
-        rely on the method in the algorithm shown by Rupp in Ref. 2.
+    For forces is a different history because we do know the derivative of
+    the energy with respect to atom positions (a per-atom quantity).  So we
+    rely on the method in the algorithm shown by Rupp in Ref. 2.
 
     References
     ----------
@@ -178,10 +179,18 @@ class KernelRidge(object):
         This method builds the atomic kernel matrices and the LT vectors needed
         to apply the atomic decomposition Ansatz.
         """
+
+        if self.batch_size == None:
+            self.batch_size = data.get_total_number_atoms()
+
         if purpose == "training":
+            now = datetime.datetime.now()
             logger.info(" ")
-            logger.info("Model Training")
-            logger.info("==============")
+            logger.info("Model")
+            logger.info("=====")
+            logger.info(
+                "Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S"))
+            )
             logger.info("Model name: {}.".format(self.name()))
             logger.info("Kernel parameters:")
             logger.info("    - Kernel function: {}.".format(self.kernel))
@@ -189,57 +198,160 @@ class KernelRidge(object):
             logger.info("    - Lamda: {}.".format(self.lamda))
             logger.info(" ")
 
-        dim = len(reference_features)
+            dim = len(reference_features)
 
-        """
-        Atomic kernel matrices
-        """
+            """
+            Atomic kernel matrices
+            """
 
-        initial_time = time.time()
-
-        logger.info("Computing Kernel Matrix...")
-        # We start populating computations with delayed functions to
-        # operate with dask's scheduler
-        logger.warning("    Adding calculations to scheduler...")
-
-        computations = self.get_kernel_matrix(
-            feature_space, reference_features, purpose=purpose
-        )
-
-        scheduler_time = time.time() - initial_time
-        h, m, s = convert_elapsed_time(scheduler_time)
-        logger.info(
-            "    {} kernel evaluations added in {} hours {} minutes "
-            "{:.2f} seconds.".format(len(computations), h, m, s)
-        )
-
-        if self.batch_size is not None:
-            computations = list(get_chunks(computations, self.batch_size))
-            logger.info(
-                "    The calculations are in batches of {}.".format(self.batch_size)
+            logger.info("Computing Kernel Matrix...")
+            # We start populating computations with delayed functions to
+            # operate with dask's scheduler
+            kernel_matrix = self.get_kernel_matrix(
+                feature_space, reference_features, purpose=purpose
             )
 
-        # We compute the calculations with dask and the result is converted
-        # to numpy array.
-        logger.info("    Evaluating atomic similarities...")
+            # futures = self.get_kernel_matrix(
+            #     feature_space, reference_features, purpose=purpose
+            # )
 
-        if self.batch_size is None:
-            kernel_matrix = dask.compute(*computations, scheduler=self.scheduler)
-        else:
-            kernel_matrix = []
-            for i, chunk in enumerate(computations):
-                kernel_matrix += dask.compute(*chunk, scheduler=self.scheduler)
+            # if self.batch_size is not None:
+            #     futures = list(get_chunks(futures, self.batch_size))
+            #     logger.info(
+            #         "    The calculations are in batches of {}.".format(self.batch_size)
+            #     )
 
-        # FIXME probably not very efficient yet.
-        # Found at https://stackoverflow.com/a/36250972/1995261
+            # We compute the calculations with dask and the result is converted
+            # to numpy array.
 
-        _K = np.zeros([dim, dim])
-        indices_upper = np.triu_indices(dim)
-        _K[indices_upper] = kernel_matrix
-        self.K = _K.T + _K
-        np.fill_diagonal(self.K, np.diag(_K))
-        del _K
+            # if self.batch_size is None:
+            #     kernel_matrix = client.gather(futures)
+            # else:
+            #     kernel_matrix = []
+            #     for chunk in futures:
+            #         kernel_matrix += client.gather(chunk)
 
+            # FIXME probably not very efficient yet.
+            # Found at https://stackoverflow.com/a/36250972/1995261
+
+            _K = np.zeros([dim, dim])
+            indices_upper = np.triu_indices(dim)
+            _K[indices_upper] = kernel_matrix
+            self.K = _K.T + _K
+            np.fill_diagonal(self.K, np.diag(_K))
+            del _K
+
+    def get_kernel_matrix(self, feature_space, reference_features, purpose):
+        """Get kernel matrix delayed computations
+
+
+        Parameters
+        ----------
+        features : dict, list
+            Dictionary with hash and features, or a list.
+        reference_space : array
+            Array with reference feature space.
+        purpose : str
+            Purpose of this kernel matrix. Accepted arguments are 'training',
+            and 'inference'.
+
+        Returns
+        -------
+        kernel_matrix
+            List with kernel matrix values.
+
+
+        Notes
+        -----
+        This class method expects the feature_space to be an OrderedDict and
+        reference_space but it turns out that for computing variances, it
+        might be the case the feature_space is also a list.
+        """
+
+        call = {"exponential": exponential, "laplacian": laplacian, "rbf": rbf}
+
+        initial_time = time.time()
+        if isinstance(reference_features, dict):
+            # This is the case when the reference_features are a
+            # dictionary, too. If that's true we have to convert it to a list.
+            reference_features = list(reference_features.values())[0]
+
+        chunks = list(get_chunks(feature_space, self.batch_size))
+
+        logger.info(
+            "    The calculations are distributed in {} batches of {} atoms.".format(
+                len(chunks), self.batch_size
+            )
+        )
+
+        counter = 0
+        kernel_matrix = []
+
+        for c, chunk in enumerate(chunks):
+            chunk_initial_time = time.time()
+            logger.info("        Computing kernel functions for chunk {}...".format(c))
+            intermediates = []
+
+            if isinstance(feature_space, dict) and isinstance(reference_features, list):
+                if isinstance(chunk, dict) is False:
+                    chunk = OrderedDict(chunk)
+
+                reference_lenght = len(reference_features)
+
+                for hash, _feature_space in chunk.items():
+                    f_map = []
+                    for i_symbol, i_afp in _feature_space:
+                        i_symbol = decode(i_symbol)
+                        f_map.append(1)
+
+                        if purpose == "training":
+
+                            for j in range(counter, reference_lenght):
+                                j_symbol, j_afp = reference_features[j]
+
+                                kernel = call[self.kernel](
+                                    i_afp, j_afp, i_symbol, j_symbol, self.sigma
+                                )
+
+                                intermediates.append(kernel)
+                            counter += 1
+                        else:
+                            for j_symbol, j_afp in reference_features:
+                                j_symbol = decode(j_symbol)
+                                kernel = call[self.kernel](
+                                    i_afp, j_afp, i_symbol, j_symbol, self.sigma
+                                )
+                                intermediates.append(kernel)
+                    self.fingerprint_map.append(f_map)
+
+            elif isinstance(feature_space, list) and isinstance(
+                reference_features, list
+            ):
+                for i_symbol, i_afp in chunk:
+                    for j_symbol, j_afp in reference_features:
+                        i_symbol = decode(i_symbol)
+                        j_symbol = decode(j_symbol)
+
+                        kernel = call[self.kernel](
+                            i_afp, j_afp, i_symbol, j_symbol, self.sigma
+                        )
+                        intermediates.append(kernel)
+
+            # Compute stuff from above
+            kernel_matrix += dask.compute(intermediates, scheduler=self.scheduler)[0]
+            del intermediates
+
+        chunk_final_time = time.time() - chunk_initial_time
+        h, m, s = convert_elapsed_time(chunk_final_time)
+        logger.info(
+            "          ...finished in {} hours {} minutes {:.2f} "
+            "seconds.".format(h, m, s)
+        )
+        # dask.distributed.wait(kernel_matrix)
+
+        del reference_features
+
+        # kernel_matrix = client.gather(kernel_matrix)
         build_time = time.time() - initial_time
         h, m, s = convert_elapsed_time(build_time)
         logger.info(
@@ -251,97 +363,32 @@ class KernelRidge(object):
         LT Vectors
         """
         # We build the LT matrix needed for ADA
-        logger.info("Building LT matrix")
-        computations = []
-        for index, feature_space in enumerate(feature_space.items()):
-            computations.append(self.get_lt(index))
+        if purpose == "training":
+            self.LT = []
+            logger.info("Building LT matrix")
+            computations = []
+            for index, feature_space in enumerate(feature_space.items()):
+                computations.append(self.get_lt(index))
 
-        self.LT = np.array((dask.compute(*computations, scheduler=self.scheduler)))
-        lt_time = time.time() - initial_time
-        h, m, s = convert_elapsed_time(lt_time)
-        logger.info(
-            "LT matrix built in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
-        )
+            computations = list(get_chunks(computations, self.batch_size))
+            logger.info(
+                "    The calculations are distributed in {} batches of {} molecules.".format(
+                    len(computations), self.batch_size
+                )
+            )
+            for chunk in computations:
+                self.LT += dask.compute(*chunk, scheduler=self.scheduler)
 
-    def get_kernel_matrix(self, feature_space, reference_features, purpose):
-        """Get kernel matrix delayed computations
+            self.LT = np.array(self.LT)
+            del computations
+            del chunk
+            lt_time = time.time() - initial_time
+            h, m, s = convert_elapsed_time(lt_time)
+            logger.info(
+                "LT matrix built in {} hours {} minutes {:.2f} seconds.".format(h, m, s)
+            )
 
-
-        Parameters
-        ----------
-        features : dict
-            Dictionary with hash and features. 
-        reference_space : array
-            Array with reference feature space.
-        purpose : str
-            Purpose of this kernel matrix. Accepted arguments are 'training',
-            and 'inference'.
-
-        Returns
-        -------
-        computations
-            List with delayed computations. 
-        """
-
-        call = {"exponential": exponential, "laplacian": laplacian, "rbf": rbf}
-        computations = []
-
-        if isinstance(feature_space, dict):
-            if isinstance(reference_features, dict):
-                # This is the case when the reference_features are a
-                # dictionary, too.
-                reference_features = list(reference_features.values())[0]
-
-            counter = 0
-            reference_lenght = len(reference_features)
-            for hash, _feature_space in feature_space.items():
-                f_map = []
-                for i_symbol, i_afp in _feature_space:
-                    i_symbol = decode(i_symbol)
-                    f_map.append(1)
-
-                    if purpose == "training":
-
-                        for j in range(counter, reference_lenght):
-                            j_symbol, j_afp = reference_features[j]
-
-                            kernel = call[self.kernel](
-                                i_afp,
-                                j_afp,
-                                i_symbol=i_symbol,
-                                j_symbol=j_symbol,
-                                sigma=self.sigma,
-                            )
-                            computations.append(kernel)
-                        counter += 1
-                    else:
-                        for j_symbol, j_afp in reference_features:
-                            j_symbol = decode(j_symbol)
-                            kernel = call[self.kernel](
-                                i_afp,
-                                j_afp,
-                                i_symbol=i_symbol,
-                                j_symbol=j_symbol,
-                                sigma=self.sigma,
-                            )
-                            computations.append(kernel)
-                self.fingerprint_map.append(f_map)
-        else:
-            for i_symbol, i_afp in feature_space:
-                for j_symbol, j_afp in reference_features:
-                    i_symbol = decode(i_symbol)
-                    j_symbol = decode(j_symbol)
-
-                    kernel = call[self.kernel](
-                        i_afp,
-                        j_afp,
-                        i_symbol=i_symbol,
-                        j_symbol=j_symbol,
-                        sigma=self.sigma,
-                    )
-                    computations.append(kernel)
-
-        return computations
+        return kernel_matrix
 
     def train(self, inputs, targets, data=None):
         """Train the model
@@ -365,6 +412,7 @@ class KernelRidge(object):
         size = len(targets)
         I_e = np.identity(size)
         K = self.LT.dot(self.K).dot(self.LT.T)
+        del self.LT
         logger.info("Size of the Kernel matrix is {}.".format(K.shape))
         logger.info("Starting Cholesky Factorization...")
         cholesky_U = cholesky((K + (lamda * I_e)))
@@ -380,26 +428,29 @@ class KernelRidge(object):
 
     def get_potential_energy(self, features, reference_space, purpose):
         """Get potential energy with Kernel Ridge
-        
+
         Parameters
         ----------
         features : dict
-            Dictionary with hash and features. 
+            Dictionary with hash and features.
         reference_space : array
             Array with reference feature space.
         purpose : str
             Purpose of this function: 'training', 'inference'.
-        
+
         Returns
         -------
         energy
             Energy of a molecule.
         """
-        reference_space = reference_space[b"reference_space"]
-        computations = self.get_kernel_matrix(
-            features, reference_space, purpose=purpose
-        )
-        kernel = np.array(dask.compute(*computations, scheduler=self.scheduler))
+        client = dask.distributed.get_client()
+        try:
+            reference_space = reference_space[b"reference_space"]
+        except KeyError:
+            reference_space = reference_space["reference_space"]
+
+        futures = self.get_kernel_matrix(features, reference_space, purpose=purpose)
+        kernel = np.array(client.gather(futures))
         weights = np.array(self.weights["energy"])
         dim = int(kernel.shape[0] / weights.shape[0])
         kernel = kernel.reshape(dim, len(weights))
@@ -458,7 +509,7 @@ class KernelRidge(object):
 
 
 """
-Auxiliary functions 
+Auxiliary functions
 """
 
 
@@ -638,12 +689,12 @@ def laplacian(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.0):
 
 def decode(symbol):
     """Decode from binary to string
-    
+
     Parameters
     ----------
     symbol : binary
         A string in binary form, e.g. b'hola'.
-    
+
     Returns
     -------
     str

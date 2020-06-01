@@ -1,11 +1,16 @@
+import logging
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import seaborn as sns
 import matplotlib.pyplot as plt
+from collections import OrderedDict
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from sklearn.pipeline import make_pipeline
 from ml4chem.data.serialization import load
-import time
+
+
+logger = logging.getLogger()
 
 
 def parity(predictions, true, scores=False, filename=None, **kwargs):
@@ -30,7 +35,7 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
 
     min_val = min(true)
     max_val = max(true)
-    fig = plt.figure(figsize=(6.0, 6.0))
+    fig = plt.figure(figsize=(6, 6))
     ax = fig.add_subplot(111)
     ax.plot(true, predictions, "r.")
     ax.plot([min_val, max_val], [min_val, max_val], "k-", lw=0.3)
@@ -55,7 +60,7 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
         plt.savefig(filename, **kwargs)
 
 
-def read_log(logfile, metric="loss", refresh=None):
+def read_log(logfile, metric="loss", refresh=None, data_only=False):
     """Read the logfile
 
     Parameters
@@ -63,9 +68,27 @@ def read_log(logfile, metric="loss", refresh=None):
     logfile : str
         Path to logfile.
     metric : str
-        Metric to plot. Supported are loss and rmse.
+        The keys,values of the dictionary are:
+
+        - "loss": Loss function values.
+        - "training": Training error.
+        - "test": Test error.
+        - "combined": training + test errors in same plot.
+
     refresh : float
         Interval in seconds before refreshing log file plot.
+    data_only : bool
+        If set to True, this function returns only data in a dataframe with
+        the following structure:
+
+    >>> df.head()
+       epochs      loss  training      test
+    0       1  33779.46  815.6884  793.3943
+
+    Returns
+    -------
+    pandas.DataFrame or matplotlib.pyplot object
+        If data_only is true we return dataframe, otherwise a figure.
     """
 
     if refresh is not None:
@@ -89,7 +112,8 @@ def read_log(logfile, metric="loss", refresh=None):
     start = False
     epochs = []
     loss = []
-    rmse = []
+    training = []
+    test = []
 
     initiliazed = False
     while refresh is not None:
@@ -102,36 +126,47 @@ def read_log(logfile, metric="loss", refresh=None):
                     line = line.split()
                     epochs.append(int(line[0]))
                     loss.append(float(line[3]))
-                    rmse.append(float(line[4]))
+                    training.append(float(line[4]))
+                    test.append(float(line[6]))
+                except IndexError:
+                    epochs.append(int(line[0]))
+                    loss.append(float(line[3]))
+                    training.append(float(line[4]))
                 except ValueError:
                     pass
 
         if initiliazed is False:
             if metric == "loss":
-                (fig,) = plt.plot(epochs, loss, label="loss")
+                (fig,) = plt.plot(epochs, loss, label="Loss")
 
-            elif metric == "rmse":
-                (fig,) = plt.plot(epochs, rmse, label="rmse")
+            elif metric == "training":
+                (fig,) = plt.plot(epochs, training, label="Training")
 
-            else:
-                (fig,) = plt.plot(epochs, loss, label="loss")
-                (fig,) = plt.plot(epochs, rmse, label="rmse")
+            elif metric == "test":
+                (fig,) = plt.plot(epochs, test, label="Test")
+
+            elif metric == "combined":
+                (fig,) = plt.plot(epochs, training, label="Training")
+                (fig2,) = plt.plot(epochs, test, label="Test")
         else:
             if metric == "loss":
                 fig.set_data(epochs, loss)
 
-            elif metric == "rmse":
-                fig.set_data(epochs, rmse)
+            elif metric == "training":
+                fig.set_data(epochs, training)
 
-            else:
-                fig.set_data(epochs, loss)
-                fig.set_data(epochs, rmse)
+            elif metric == "test":
+                fig.set_data(epochs, test)
+
+            elif metric == "combined":
+                fig.set_data(epochs, training)
+                fig2.set_data(epochs, test)
 
             # Updating annotation
             if metric == "loss":
                 values = loss
-            elif metric == "rmse":
-                values = rmse
+            else:
+                values = training
 
             reported = values[-1]
             x = int(epochs[-1] * 0.9)
@@ -157,25 +192,49 @@ def read_log(logfile, metric="loss", refresh=None):
                     line = line.split()
                     epochs.append(int(line[0]))
                     loss.append(float(line[3]))
-                    rmse.append(float(line[4]))
+                    training.append(float(line[4]))
+                    test.append(float(line[6]))
                 except ValueError:
                     pass
 
         if metric == "loss":
             (fig,) = plt.plot(epochs, loss, label="loss")
 
-        elif metric == "rmse":
-            (fig,) = plt.plot(epochs, rmse, label="rmse")
+        elif metric == "training":
+            (fig,) = plt.plot(epochs, training, label="Training")
 
+        elif metric == "test":
+            (fig,) = plt.plot(epochs, test, label="Training")
+
+        elif metric == "combined":
+            (fig,) = plt.plot(epochs, training, label="Training")
+            (fig,) = plt.plot(epochs, test, label="Test")
+
+        if data_only:
+            data = OrderedDict()
+            columns = ["epochs", "loss", "training", "test"]
+            arr = [epochs, loss, training, test]
+
+            if metric != "combined":
+                columns.pop(-1)
+                arr.pop(-1)
+
+            for i, column in enumerate(columns):
+                data[column] = arr[i]
+            return pd.DataFrame.from_dict(data)
         else:
-            (fig,) = plt.plot(epochs, loss, label="loss")
-            (fig,) = plt.plot(epochs, rmse, label="rmse")
-
-        plt.show(block=True)
+            plt.show(block=True)
 
 
 def plot_atomic_features(
-    latent_space, method="PCA", dimensions=2, backend="seaborn", **kwargs
+    latent_space,
+    method="PCA",
+    dimensions=2,
+    backend="seaborn",
+    data_only=False,
+    preprocessor=None,
+    backend_kwargs=None,
+    **kwargs,
 ):
     """Plot high dimensional atomic feature vectors
 
@@ -197,10 +256,27 @@ def plot_atomic_features(
     backend : str, optional
         Select the backend to plot features. Supported are "plotly" and
         "seaborn", by default "plotly".
+    preprocessor : obj
+        One of the preprocessors supported by sklearn e.g.: StandardScaler(),
+        Normalizer().
+    backend_kwargs : dict
+        Dictionary with extra keyword arguments to extend functionality of
+        backends that cannot be set with the defaults keyword arguments of
+        the plot_atomic_features function.
+
+        For more information see:
+            - https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html
+            - https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html
+    data_only : bool
+        If set to True, this function returns only data in a dataframe with
+        the following structure:
     """
+    if backend_kwargs == None:
+        backend_kwargs = {}
+
     method = method.lower()
     backend = backend.lower()
-    dot_size = kwargs["dot_size"]
+    dot_size = kwargs.get("dot_size", 2)
 
     supported_methods = ["pca", "tsne"]
 
@@ -208,7 +284,8 @@ def plot_atomic_features(
         raise NotImplementedError
 
     if backend == "seaborn":
-        # This hack is needed because it seems plotly import overwrite everything.
+        # This hack is needed because it seems plotly import overwrite
+        # everything.
         import matplotlib.pyplot as plt
 
     axis = ["x", "y", "z"]
@@ -245,8 +322,16 @@ def plot_atomic_features(
         from sklearn.decomposition import PCA
 
         labels = {str(axis[i]): "PCA-{}".format(i + 1) for i in range(len(axis))}
-        pca = PCA(n_components=dimensions)
-        pca_result = pca.fit_transform(full_ls)
+
+        dim_reduction = PCA(n_components=dimensions, **backend_kwargs)
+
+        if preprocessor != None:
+            logger.info(
+                f"Creating pipeline with preprocessor {preprocessor.__class__.__name__}..."
+            )
+            dim_reduction = make_pipeline(preprocessor, dim_reduction)
+
+        pca_result = dim_reduction.fit_transform(full_ls)
 
         to_pandas = []
 
@@ -284,9 +369,15 @@ def plot_atomic_features(
 
         labels = {str(axis[i]): "t-SNE-{}".format(i + 1) for i in range(len(axis))}
 
-        tsne = manifold.TSNE(n_components=dimensions)
+        dim_reduction = manifold.TSNE(n_components=dimensions, **backend_kwargs)
 
-        tsne_result = tsne.fit_transform(full_ls)
+        if preprocessor != None:
+            logger.info(
+                f"Creating pipeline with preprocessor {preprocessor.__class__.__name__}..."
+            )
+            dim_reduction = make_pipeline(preprocessor, dim_reduction)
+
+        tsne_result = dim_reduction.fit_transform(full_ls)
 
         to_pandas = []
 
@@ -319,9 +410,13 @@ def plot_atomic_features(
         elif dimensions == 2 and backend == "seaborn":
             sns.scatterplot(**labels, data=df, hue="Symbol")
 
-    try:
-        plt.show()
-    except:
-        pass
+    if data_only:
+        return df, dim_reduction
 
-    return plt
+    else:
+        try:
+            plt.show()
+        except:
+            pass
+
+        return plt, df, dim_reduction

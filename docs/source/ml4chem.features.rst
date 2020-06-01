@@ -1,37 +1,37 @@
-ml4chem.features package
+ml4chem.atomistic.features package
 ========================
 
 Submodules
 ----------
 
-ml4chem.features.autoencoders module
+ml4chem.atomistic.features.autoencoders module
 ------------------------------------
 
-.. automodule:: ml4chem.features.autoencoders
+.. automodule:: ml4chem.atomistic.features.autoencoders
     :members:
     :undoc-members:
     :show-inheritance:
 
-ml4chem.features.cartesian module
+ml4chem.atomistic.features.cartesian module
 ---------------------------------
 
-.. automodule:: ml4chem.features.cartesian
+.. automodule:: ml4chem.atomistic.features.cartesian
     :members:
     :undoc-members:
     :show-inheritance:
 
-ml4chem.features.cutoff module
+ml4chem.atomistic.features.cutoff module
 ------------------------------
 
-.. automodule:: ml4chem.features.cutoff
+.. automodule:: ml4chem.atomistic.features.cutoff
     :members:
     :undoc-members:
     :show-inheritance:
 
-ml4chem.features.gaussian module
+ml4chem.atomistic.features.gaussian module
 --------------------------------
 
-.. automodule:: ml4chem.features.gaussian
+.. automodule:: ml4chem.atomistic.features.gaussian
     :members:
     :undoc-members:
     :show-inheritance:
@@ -40,7 +40,7 @@ ml4chem.features.gaussian module
 Module contents
 ---------------
 
-.. automodule:: ml4chem.features
+.. automodule:: ml4chem.atomistic.features
     :members:
     :undoc-members:
     :show-inheritance:

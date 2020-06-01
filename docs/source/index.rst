@@ -25,6 +25,17 @@
 
    models
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Computing
+
+   hpc
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Visualization
+
+   visualization
 
 Indices and tables
 ==================

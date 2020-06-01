@@ -1,69 +1,69 @@
-ml4chem.models package
+ml4chem.atomistic.models package
 ======================
 
 Submodules
 ----------
 
-ml4chem.models.autoencoders module
+ml4chem.atomistic.models.autoencoders module
 ----------------------------------
 
-.. automodule:: ml4chem.models.autoencoders
+.. automodule:: ml4chem.atomistic.models.autoencoders
     :members:
     :undoc-members:
     :show-inheritance:
 
-ml4chem.models.gaussian\_process module
+ml4chem.atomistic.models.gaussian\_process module
 ---------------------------------------
 
-.. automodule:: ml4chem.models.gaussian_process
+.. automodule:: ml4chem.atomistic.models.gaussian_process
     :members:
     :undoc-members:
     :show-inheritance:
 
-ml4chem.models.kernelridge module
+ml4chem.atomistic.models.kernelridge module
 ---------------------------------
 
-.. automodule:: ml4chem.models.kernelridge
+.. automodule:: ml4chem.atomistic.models.kernelridge
     :members:
     :undoc-members:
     :show-inheritance:
 
-ml4chem.models.loss module
+ml4chem.atomistic.models.loss module
 --------------------------
 
-.. automodule:: ml4chem.models.loss
+.. automodule:: ml4chem.atomistic.models.loss
     :members:
     :undoc-members:
     :show-inheritance:
 
-ml4chem.models.merger module
+ml4chem.atomistic.models.merger module
 ----------------------------
 
-.. automodule:: ml4chem.models.merger
+.. automodule:: ml4chem.atomistic.models.merger
     :members:
     :undoc-members:
     :show-inheritance:
 
-ml4chem.models.neuralnetwork module
+ml4chem.atomistic.models.neuralnetwork module
 -----------------------------------
 
-.. automodule:: ml4chem.models.neuralnetwork
+.. automodule:: ml4chem.atomistic.models.neuralnetwork
     :members:
     :undoc-members:
     :show-inheritance:
 
-ml4chem.models.rt module
+ml4chem.atomistic.models.rt module
 ------------------------
 
-.. automodule:: ml4chem.models.rt
+.. automodule:: ml4chem.atomistic.models.rt
     :members:
     :undoc-members:
     :show-inheritance:
 
-ml4chem.models.se3net module
+ml4chem.atomistic.models.se3net module
 ----------------------------
 
-.. automodule:: ml4chem.models.se3net
+.. automodule:: ml4chem.atomistic.models.se3net
     :members:
     :undoc-members:
     :show-inheritance:
@@ -72,7 +72,7 @@ ml4chem.models.se3net module
 Module contents
 ---------------
 
-.. automodule:: ml4chem.models
+.. automodule:: ml4chem.atomistic.models
     :members:
     :undoc-members:
     :show-inheritance:

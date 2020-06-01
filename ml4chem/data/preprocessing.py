@@ -83,23 +83,26 @@ class Preprocessing(object):
             preprocessor_name = "Normalizer"
 
         elif self.preprocessing is not None and purpose == "inference":
+            logger.info("\nData preprocessing")
+            logger.info("------------------")
+            logger.info(f"Preprocessor loaded from file : {self.preprocessing}.")
             self.preprocessor = joblib.load(self.preprocessing)
 
         else:
             logger.warning(
-                "{} with {} is not supported.".format(self.preprocessing, self.kwargs)
+                f"Preprocessor ({self.preprocessing}, {self.kwargs}) is not supported."
             )
             self.preprocessor = preprocessor_name = None
 
         if purpose == "training" and preprocessor_name is not None:
-            logger.info("Data preprocessing")
+            logger.info("\nData preprocessing")
             logger.info("------------------")
-            logger.info("Preprocessor: {}.".format(preprocessor_name))
+            logger.info(f"Preprocessor: {preprocessor_name}.")
             logger.info("Options:")
             for k, v in self.kwargs.items():
-                logger.info("    - {}: {}.".format(k, v))
+                logger.info(f"    - {k}: {v}.")
 
-            logger.info(" ")
+        logger.info(" ")
 
         return self.preprocessor
 

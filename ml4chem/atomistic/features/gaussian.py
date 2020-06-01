@@ -1,14 +1,15 @@
 import dask
+import datetime
 import logging
 import os
 import time
-import torch
+import dask.array as da
 import numpy as np
 import pandas as pd
 from ase.data import atomic_numbers
 from collections import OrderedDict
-from ml4chem.features.cutoff import Cosine
-from ml4chem.features.base import AtomisticFeatures
+from ml4chem.atomistic.features.cutoff import Cosine
+from ml4chem.atomistic.features.base import AtomisticFeatures
 from ml4chem.data.serialization import dump, load
 from ml4chem.data.preprocessing import Preprocessing
 from ml4chem.utils import get_chunks, get_neighborlist, convert_elapsed_time
@@ -18,6 +19,7 @@ logger = logging.getLogger()
 
 class Gaussian(AtomisticFeatures):
     """Behler-Parrinello symmetry functions
+
     This class builds local chemical environments for atoms based on the
     Behler-Parrinello Gaussian type symmetry functions. It is modular enough
     that can be used just for creating feature spaces.
@@ -73,7 +75,6 @@ class Gaussian(AtomisticFeatures):
     @classmethod
     def name(cls):
         """Returns name of class"""
-
         return cls.NAME
 
     def __init__(
@@ -91,8 +92,12 @@ class Gaussian(AtomisticFeatures):
         weighted=False,
         batch_size=None,
     ):
+        super(Gaussian, self).__init__()
 
-        self.cutoff = cutoff
+        cutoff_keys = ["radial", "angular"]
+        if isinstance(cutoff, (int, float)):
+            cutoff = {cutoff_key: cutoff for cutoff_key in cutoff_keys}
+
         self.normalized = normalized
         self.filename = filename
         self.scheduler = scheduler
@@ -140,6 +145,8 @@ class Gaussian(AtomisticFeatures):
             "value",
             "keys",
             "batch_size",
+            "__class__",
+            "cutoff_keys",
         ]
 
         for param in delete:
@@ -153,10 +160,14 @@ class Gaussian(AtomisticFeatures):
             if v is not None:
                 self.params[k] = v
 
+        self.cutoff = cutoff
+        self.cutofffxn = {}
+
         if cutofffxn is None:
-            self.cutofffxn = Cosine(cutoff=cutoff)
+            for cutoff_key in cutoff_keys:
+                self.cutofffxn[cutoff_key] = Cosine(cutoff=self.cutoff[cutoff_key])
         else:
-            self.cutofffxn = cutofffxn
+            raise RuntimeError("This case is not implemented yet...")
 
     def calculate(self, images=None, purpose="training", data=None, svm=False):
         """Calculate the features per atom in an atoms objects
@@ -186,10 +197,13 @@ class Gaussian(AtomisticFeatures):
         logger.info(" ")
         logger.info("Featurization")
         logger.info("=============")
+        now = datetime.datetime.now()
+        logger.info("Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S")))
+        logger.info(f"Module name: {self.name()}.")
 
         # FIXME the block below should become a function.
         if os.path.isfile(self.filename) and self.overwrite is False:
-            logger.warning("Loading features from {}.".format(self.filename))
+            logger.warning(f"Loading features from {self.filename}.")
             logger.info(" ")
             svm_keys = [b"feature_space", b"reference_space"]
             data = load(self.filename)
@@ -216,7 +230,7 @@ class Gaussian(AtomisticFeatures):
 
         # Verify that we know the unique element symbols
         if data.unique_element_symbols is None:
-            logger.info("Getting unique element symbols for {}".format(purpose))
+            logger.info(f"Getting unique element symbols for {purpose}")
 
             unique_element_symbols = data.get_unique_element_symbols(
                 images, purpose=purpose
@@ -224,12 +238,12 @@ class Gaussian(AtomisticFeatures):
 
             unique_element_symbols = unique_element_symbols[purpose]
 
-            logger.info("Unique chemical elements: {}".format(unique_element_symbols))
+            logger.info(f"Unique chemical elements: {unique_element_symbols}")
 
         elif isinstance(data.unique_element_symbols, dict):
             unique_element_symbols = data.unique_element_symbols[purpose]
 
-            logger.info("Unique chemical elements: {}".format(unique_element_symbols))
+            logger.info(f"Unique chemical elements: {unique_element_symbols}")
 
         # we make the features
         self.GP = self.custom.get("GP", None)
@@ -243,7 +257,12 @@ class Gaussian(AtomisticFeatures):
         else:
             logger.info("Using parameters from file to create symmetry functions...\n")
 
-        self.print_fingerprint_params(self.GP)
+        self.print_features_params(self.GP)
+
+        symbol = data.unique_element_symbols[purpose][0]
+        sample = np.zeros(len(self.GP[symbol]))
+
+        self.dimension = len(sample)
 
         preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
         preprocessor.set(purpose=purpose)
@@ -266,30 +285,56 @@ class Gaussian(AtomisticFeatures):
             intermediate = []
 
             for image in images_.items():
-                key, image = image
+                _, image = image
                 end = ini + len(image)
                 atoms_index_map.append(list(range(ini, end)))
                 ini = end
                 for atom in image:
                     index = atom.index
                     symbol = atom.symbol
-                    nl = get_neighborlist(image, cutoff=self.cutoff)
-                    # n_indices: neighbor indices for central atom_i.
-                    # n_offsets: neighbor offsets for central atom_i.
-                    n_indices, n_offsets = nl[atom.index]
 
-                    n_symbols = np.array(image.get_chemical_symbols())[n_indices]
-                    neighborpositions = image.positions[n_indices] + np.dot(
-                        n_offsets, image.get_cell()
-                    )
+                    cutoff_keys = ["radial", "angular"]
+                    n_symbols, neighborpositions = {}, {}
 
-                    afp = self.get_atomic_fingerprint(
+                    if isinstance(self.cutoff, dict):
+                        for cutoff_key in cutoff_keys:
+                            nl = get_neighborlist(image, cutoff=self.cutoff[cutoff_key])
+                            # n_indices: neighbor indices for central atom_i.
+                            # n_offsets: neighbor offsets for central atom_i.
+                            n_indices, n_offsets = nl[atom.index]
+
+                            n_symbols_ = np.array(image.get_chemical_symbols())[
+                                n_indices
+                            ]
+                            n_symbols[cutoff_key] = n_symbols_
+
+                            neighborpositions_ = image.positions[n_indices] + np.dot(
+                                n_offsets, image.get_cell()
+                            )
+                            neighborpositions[cutoff_key] = neighborpositions_
+                    else:
+                        for cutoff_key in cutoff_keys:
+                            nl = get_neighborlist(image, cutoff=self.cutoff)
+                            # n_indices: neighbor indices for central atom_i.
+                            # n_offsets: neighbor offsets for central atom_i.
+                            n_indices, n_offsets = nl[atom.index]
+
+                            n_symbols_ = np.array(image.get_chemical_symbols())[
+                                n_indices
+                            ]
+                            n_symbols[cutoff_key] = n_symbols_
+
+                            neighborpositions_ = image.positions[n_indices] + np.dot(
+                                n_offsets, image.get_cell()
+                            )
+                            neighborpositions[cutoff_key] = neighborpositions_
+
+                    afp = self.get_atomic_features(
                         atom,
                         index,
                         symbol,
                         n_symbols,
                         neighborpositions,
-                        self.preprocessor,
                         image_molecule=image,
                         weighted=self.weighted,
                         n_indices=n_indices,
@@ -304,6 +349,7 @@ class Gaussian(AtomisticFeatures):
         scheduler_time = time.time() - initial_time
 
         dask.distributed.wait(stacked_features)
+
         h, m, s = convert_elapsed_time(scheduler_time)
         logger.info(
             "... finished in {} hours {} minutes {:.2f}" " seconds.".format(h, m, s)
@@ -312,32 +358,25 @@ class Gaussian(AtomisticFeatures):
         logger.info("")
 
         if self.preprocessor is not None:
-            logger.info("Converting features to dask array...")
-            symbol = data.unique_element_symbols[purpose][0]
-            sample = np.zeros(len(self.GP[symbol]))
-            # dim = (len(stacked_features), len(sample))
 
+            scaled_feature_space = []
+
+            # To take advantage of dask_ml we need to convert our numpy array
+            # into a dask array.
+            logger.info("Converting features to dask array...")
             stacked_features = [
-                dask.array.from_delayed(lazy, dtype=float, shape=sample.shape)
+                da.from_delayed(lazy, dtype=float, shape=sample.shape)
                 for lazy in stacked_features
             ]
-
             layout = {0: tuple(len(i) for i in atoms_index_map), 1: -1}
             # stacked_features = dask.array.stack(stacked_features, axis=0).rechunk(layout)
-            stacked_features = dask.array.stack(stacked_features, axis=0).rechunk(
-                layout
-            )
+            stacked_features = da.stack(stacked_features, axis=0).rechunk(layout)
 
             logger.info(
                 "Shape of array is {} and chunks {}.".format(
                     stacked_features.shape, stacked_features.chunks
                 )
             )
-
-            # To take advantage of dask_ml we need to convert our numpy array
-            # into a dask array.
-
-            scaled_feature_space = []
 
             # Note that dask_ml by default convert the output of .fit
             # in a concrete value.
@@ -363,17 +402,19 @@ class Gaussian(AtomisticFeatures):
 
                 scaled_feature_space.append(features)
 
-            # scaled_feature_space = client.gather(scaled_feature_space)
-
         else:
-            feature_space = []
+            scaled_feature_space = []
             atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
+            stacked_features = client.scatter(stacked_features, broadcast=True)
 
             for indices in atoms_index_map:
                 features = client.submit(
                     self.stack_features, *(indices, stacked_features)
                 )
-                feature_space.append(features)
+                scaled_feature_space.append(features)
+
+            scaled_feature_space = client.gather(scaled_feature_space)
+
         # Clean
         del stacked_features
 
@@ -386,22 +427,32 @@ class Gaussian(AtomisticFeatures):
 
             for i, image in enumerate(images.items()):
                 restacked = client.submit(
-                    self.restack_image, *(i, image, None, scaled_feature_space, svm)
+                    self.restack_image, *(i, image, scaled_feature_space, svm)
                 )
-                feature_space.append(restacked)
 
                 # image = (hash, ase_image) -> tuple
                 for atom in image[1]:
-                    reference_space.append(
-                        self.restack_atom(i, atom, scaled_feature_space)
+                    restacked_atom = client.submit(
+                        self.restack_atom, *(i, atom, scaled_feature_space)
                     )
+                    reference_space.append(restacked_atom)
 
-            reference_space = dask.compute(*reference_space, scheduler=self.scheduler)
+                feature_space.append(restacked)
+
+            reference_space = client.gather(reference_space)
+
+        elif svm is False and purpose == "training":
+            for i, image in enumerate(images.items()):
+                restacked = client.submit(
+                    self.restack_image, *(i, image, scaled_feature_space, svm)
+                )
+                feature_space.append(restacked)
+
         else:
             try:
                 for i, image in enumerate(images.items()):
                     restacked = client.submit(
-                        self.restack_image, *(i, image, None, scaled_feature_space, svm)
+                        self.restack_image, *(i, image, scaled_feature_space, svm)
                     )
                     feature_space.append(restacked)
 
@@ -409,7 +460,7 @@ class Gaussian(AtomisticFeatures):
                 # scaled_feature_space does not exist.
                 for i, image in enumerate(images.items()):
                     restacked = client.submit(
-                        self.restack_image, *(i, image, feature_space, None, svm)
+                        self.restack_image, *(i, image, feature_space, svm)
                     )
                     feature_space.append(restacked)
 
@@ -430,7 +481,7 @@ class Gaussian(AtomisticFeatures):
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             if self.filename is not None:
-                logger.info("features saved to {}.".format(self.filename))
+                logger.info(f"features saved to {self.filename}.")
                 data = {"feature_space": feature_space}
                 data.update({"reference_space": reference_space})
                 dump(data, filename=self.filename)
@@ -444,7 +495,7 @@ class Gaussian(AtomisticFeatures):
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             if self.filename is not None:
-                logger.info("features saved to {}.".format(self.filename))
+                logger.info(f"features saved to {self.filename}.")
                 dump(feature_space, filename=self.filename)
                 self.feature_space = feature_space
 
@@ -467,131 +518,13 @@ class Gaussian(AtomisticFeatures):
         return features
 
     @dask.delayed
-    def restack_atom(self, image_index, atom, scaled_feature_space):
-        """Restack atoms to a raveled list to use with SVM
-
-        Parameters
-        ----------
-        image_index : int
-            Index of original hashed image.
-        atom : object
-            An atom object.
-        scaled_feature_space : np.array
-            A numpy array with the scaled features
-
-        Returns
-        -------
-        symbol, features : tuple
-            The hashed key image and its corresponding features.
-        """
-
-        symbol = atom.symbol
-        features = scaled_feature_space[image_index][atom.index]
-
-        return symbol, features
-
-    def restack_image(self, index, image, feature_space, scaled_feature_space, svm):
-        """Restack images to correct dictionary's structure to train
-
-        Parameters
-        ----------
-        index : int
-            Index of original hashed image.
-        image : obj
-            An ASE image object.
-        feature_space : np.array
-            A numpy array with raw features.
-        scaled_feature_space : np.array
-            A numpy array with scaled features.
-
-        Returns
-        -------
-        hash, features : tuple
-            Hash of image and its corresponding features.
-        """
-        hash, image = image
-
-        if scaled_feature_space is not None:
-            features = []
-            for j, atom in enumerate(image):
-                symbol = atom.symbol
-                if svm:
-                    scaled = scaled_feature_space[index][j]
-                else:
-                    scaled = torch.tensor(
-                        scaled_feature_space[index][j],
-                        requires_grad=False,
-                        dtype=torch.float,
-                    )
-                features.append((symbol, scaled))
-
-        elif feature_space is not None:
-            features = feature_space[index]
-
-        return hash, features
-
-    @dask.delayed
-    def features_per_image(self, image):
-        """A delayed function to parallelize features per image
-
-        Parameters
-        ----------
-        image : obj
-            An ASE image object.
-
-        Notes
-        -----
-            This function is not being currently used.
-        """
-
-        key, image = image
-        image_positions = image.positions
-
-        feature_space = []
-
-        for atom in image:
-            index = atom.index
-            symbol = atom.symbol
-            nl = get_neighborlist(image, cutoff=self.cutoff)
-            n_indices, n_offsets = nl[atom.index]
-
-            n_symbols = [image[i].symbol for i in n_indices]
-            neighborpositions = [
-                image_positions[neighbor] + np.dot(offset, image.cell)
-                for (neighbor, offset) in zip(n_indices, n_offsets)
-            ]
-
-            feature_vector = self.get_atomic_fingerprint(
-                atom,
-                index,
-                symbol,
-                n_symbols,
-                neighborpositions,
-                self.preprocessor,
-                n_indices=n_indices,
-                image_molecule=image,
-                weighted=self.weighted,
-            )
-
-            if self.preprocessor is not None:
-                feature_space.append(feature_vector[1])
-            else:
-                feature_space.append(feature_vector)
-
-        if self.preprocessor is not None:
-            return feature_space
-        else:
-            return key, feature_space
-
-    @dask.delayed
-    def get_atomic_fingerprint(
+    def get_atomic_features(
         self,
         atom,
         index,
         symbol,
         n_symbols,
         neighborpositions,
-        preprocessor,
         n_indices=None,
         image_molecule=None,
         weighted=False,
@@ -608,8 +541,6 @@ class Gaussian(AtomisticFeatures):
             Index of atom in atoms object.
         symbol : str
             Chemical symbol of atom in atoms object.
-        preprocessor : str
-            Feature preprocessor.
         n_symbols : ndarray of str
             Array of neighbors' symbols.
         neighborpositions : ndarray of float
@@ -620,14 +551,18 @@ class Gaussian(AtomisticFeatures):
             True if applying weighted feature of Gaussian function. See Ref.
             2.
         """
-
+        cutoff_keys = ["radial", "angular"]
         num_symmetries = len(self.GP[symbol])
         Ri = atom.position
-        fingerprint = [None] * num_symmetries
+        features = [None] * num_symmetries
 
         # See https://listserv.brown.edu/cgi-bin/wa?A2=ind1904&L=AMP-USERS&P=19048
         # n_numbers = [atomic_numbers[symbol] for symbol in n_symbols]
-        n_numbers = [atomic_numbers[item] for item in n_symbols]
+        n_numbers = [
+            atomic_numbers[item]
+            for cutoff_key in cutoff_keys
+            for item in n_symbols[cutoff_key]
+        ]
 
         for count in range(num_symmetries):
             GP = self.GP[symbol][count]
@@ -635,12 +570,12 @@ class Gaussian(AtomisticFeatures):
             if GP["type"] == "G2":
                 feature = calculate_G2(
                     n_numbers,
-                    n_symbols,
-                    neighborpositions,
+                    n_symbols["radial"],
+                    neighborpositions["radial"],
                     GP["symbol"],
                     GP["eta"],
-                    self.cutoff,
-                    self.cutofffxn,
+                    self.cutoff["radial"],
+                    self.cutofffxn["radial"],
                     Ri,
                     image_molecule=image_molecule,
                     n_indices=n_indices,
@@ -650,14 +585,14 @@ class Gaussian(AtomisticFeatures):
             elif GP["type"] == "G3":
                 feature = calculate_G3(
                     n_numbers,
-                    n_symbols,
-                    neighborpositions,
+                    n_symbols["angular"],
+                    neighborpositions["angular"],
                     GP["symbols"],
                     GP["gamma"],
                     GP["zeta"],
                     GP["eta"],
-                    self.cutoff,
-                    self.cutofffxn,
+                    self.cutoff["angular"],
+                    self.cutofffxn["angular"],
                     Ri,
                     normalized=self.normalized,
                     image_molecule=image_molecule,
@@ -673,8 +608,8 @@ class Gaussian(AtomisticFeatures):
                     GP["gamma"],
                     GP["zeta"],
                     GP["eta"],
-                    self.cutoff,
-                    self.cutofffxn,
+                    self.cutoff["angular"],
+                    self.cutofffxn["angular"],
                     Ri,
                     normalized=self.normalized,
                     image_molecule=image_molecule,
@@ -682,16 +617,12 @@ class Gaussian(AtomisticFeatures):
                     weighted=weighted,
                 )
             else:
-                logger.error("not implemented")
-            fingerprint[count] = feature
+                raise NotImplementedError(
+                    "The requested symmetry function is not implemented yet..."
+                )
+            features[count] = feature
 
-        if preprocessor is None:
-            fingerprint = torch.tensor(
-                fingerprint, requires_grad=False, dtype=torch.float
-            )
-            return symbol, fingerprint
-        else:
-            return np.array(fingerprint)
+        return np.array(features)
 
     def make_symmetry_functions(self, symbols, custom=None, angular_type="G3"):
         """Function to make symmetry functions
@@ -749,18 +680,37 @@ class Gaussian(AtomisticFeatures):
 
             for symbol in symbols:
                 _GP = []
-                for type in types:
-                    if type.upper() == "G2":
+                for type_ in types:
+                    if type_.upper() == "G2":
+                        keys = ["Rs"]
+
+                        kwargs = {}
+                        for key in keys:
+                            val = custom[type_].get(key, None)
+                            if val is not None:
+                                kwargs[key] = val
+
                         _GP += self.get_symmetry_functions(
-                            type=type, etas=custom[type]["etas"], symbols=symbols
+                            type=type_,
+                            etas=custom[type_]["etas"],
+                            symbols=symbols,
+                            **kwargs,
                         )
                     else:
+                        keys = ["gammas", "Rs_a", "thetas"]
+
+                        kwargs = {}
+                        for key in keys:
+                            val = custom[type_].get(key, None)
+                            if val is not None:
+                                kwargs[key] = val
+
                         _GP += self.get_symmetry_functions(
-                            type=type,
+                            type=type_,
                             symbols=symbols,
-                            etas=custom[type]["etas"],
-                            zetas=custom[type]["zetas"],
-                            gammas=custom[type]["gammas"],
+                            etas=custom[type_]["etas"],
+                            zetas=custom[type_]["zetas"],
+                            **kwargs,
                         )
                 GP[symbol] = _GP
 
@@ -812,12 +762,12 @@ class Gaussian(AtomisticFeatures):
                                 )
             return GP
         else:
-            error = "The requested type of symmetry function is not supported."
-            logger.error(error)
-            raise (error)
+            raise RuntimeError(
+                "The requested type of symmetry function is not supported."
+            )
 
-    def print_fingerprint_params(self, GP):
-        """Print fingerprint parameters"""
+    def print_features_params(self, GP):
+        """Print features parameters"""
 
         logger.info("Number of features per chemical element:")
         for symbol, v in GP.items():
@@ -826,7 +776,7 @@ class Gaussian(AtomisticFeatures):
         _symbols = []
         for symbol, value in GP.items():
             logger.info(" ")
-            logger.info("Symmetry function parameters for {} atom:".format(symbol))
+            logger.info(f"Symmetry function parameters for {symbol} atom:")
             underline = "---------------------------------------"
 
             for char in range(len(symbol)):
@@ -1083,6 +1033,7 @@ def calculate_G4(
     -------
     feature : float
         G4 feature value.
+
     Notes
     -----
     The difference between the calculate_G3 and the calculate_G4 function is
@@ -1122,6 +1073,7 @@ def calculate_G4(
 def weighted_h(image_molecule, n_indices):
     """ Calculate the atomic numbers of neighboring atoms for a molecule,
     then multiplies each neighor atomic number by each other.
+
     Parameters
     ----------
     image_molecule : ase object, list

@@ -7,15 +7,17 @@ You can install ML4Chem from ``pip``, ``conda`` or ``sources``.
 Pip
 ------
 
-You can install ML4Chem and all its dependencies like NumPy, Pandas, Dask,
-and so on that are necessary for deploying this package. For a global
-installation, execute::
+You can install ML4Chem and all its dependencies with pip::
 
-   pip install "ml4chem"    
+   python3 -m pip install "ml4chem"    
 
 If you want to install the application for your user::
 
-   pip install --user ml4chem
+   pyhon3 -m pip install --user ml4chem
+
+If you want to install the development version of the `master` branch::
+
+    python3 -m pip install --upgrade git+https://github.com/muammar/ml4chem.git
 
 
 Conda
@@ -29,6 +31,9 @@ For conda installation, execute::
 Sources
 --------
 
+This type of installation is useful if you are going to develop new features
+for ML4chem.
+
 1. Clone the application::
 
     git clone https://github.com/muammar/ml4chem
@@ -36,7 +41,7 @@ Sources
 2. Install the requirements::
 
     cd ml4chem
-    pip install -r requirements.txt
+    python3 -m pip install -r requirements.txt
 
 3. After requirements are installed, you can proceed to add ``ml4chem`` to
    your ``PYTHONPATH`` and ``PATH`` (to use the ``ml4chem`` command line

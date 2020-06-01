@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-import time
 import click
 import os
 import sys
 
 path = os.path.dirname(os.path.abspath(__file__)).strip("bin")
 sys.path.append(path)
-from ml4chem.data.visualization import read_log, plot_atomic_features
+from ml4chem.visualization import read_log, plot_atomic_features
 
 
 @click.command()
@@ -25,7 +24,7 @@ from ml4chem.data.visualization import read_log, plot_atomic_features
 )
 def main(**args):
     """ML4Chem command line tool"""
-    training_plots = ["rmse", "loss"]
+    training_plots = ["training", "loss", "test", "combined"]
     dim_visualization = ["pca", "tsne"]
 
     _file = args["file"]
@@ -39,8 +38,10 @@ def main(**args):
         elif args["plot"].lower() in dim_visualization:
             method = args["plot"]
             backend = args["backend"]
-            plt = plot_atomic_features(_file, method=method, backend=backend)
+            plot_atomic_features(_file, method=method, backend=backend)
 
+        else: 
+            raise NotImplementedError(f"Supported values are {training_plots}")
 
 if __name__ == "__main__":
     main()

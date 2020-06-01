@@ -3,15 +3,15 @@
 Introduction
 ==============
 Data is central in Machine Learning and ML4Chem provides some tools to
-prepare your Datas. We support the following:
+prepare your Datas. We support the following input formats:
 
 1. `Atomic Simulation Environment (ASE) <https://wiki.fysik.dtu.dk/ase/>`_.
 
-We will be adding support to other libraries, soon. 
+We will be adding support to other libraries, soon.
 
 
 ===================
-Data Handler
+Data 
 ===================
 
 .. contents:: :local:
@@ -35,30 +35,3 @@ dictionary with the molecules in ``images.traj`` and the ``targets`` variable
 as a list of energies.
 
 For more information please refer to :mod:`ml4chem.data.handler`.
-
-===================
-Visualization
-===================
-
-We also offer a :mod:`ml4chem.data.visualization` module to plot interesting
-graphics about your model, features, or even monitor the progress of the loss
-function and error minimization.
-
-Two backends are supported to plot in ML4Chem: Seaborn and Plotly. 
-
-An example is shown below::
-
-    from ml4chem.data.visualization import plot_atomic_features
-    fig = plot_atomic_features("latent_space.db", 
-                               method="pca", 
-                               dimensions=3, 
-                               backend="plotly")
-    fig.write_html("latent_example.html")
-
-This will produce an interactive plot with plotly where dimensionality was
-reduced using PCA, and an html with the name `latent_example.html` is
-created.
-
-.. raw:: html
-   :file: _static/pca_visual.html
-

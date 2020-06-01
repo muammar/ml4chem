@@ -1,6 +1,9 @@
 from collections import OrderedDict
+from ml4chem.data.utils import ase_to_xyz
 from ml4chem.utils import get_hash
+import datetime
 import logging
+import pandas as pd
 
 logger = logging.getLogger()
 
@@ -30,8 +33,10 @@ class Data(object):
         self.images = None
         self.targets = None
         self.unique_element_symbols = None
-        logger.info("Data")
+        logger.info("\nData")
         logger.info("====")
+        now = datetime.datetime.now()
+        logger.info("Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S")))
 
         if self.is_valid_structure(images) is False:
             logger.warning("Data structure is not compatible with ML4Chem.")
@@ -48,13 +53,6 @@ class Data(object):
             The purpose of the data so that structure is prepared accordingly.
             Supported are: 'training', 'inference'
 
-        Returns
-        -------
-        self.images : dict
-            Ordered dictionary of images corresponding to order of self.targets
-            list.
-        self.targets : list
-            Targets used for training the model.
         """
         logger.info("Preparing images for {}...".format(purpose))
         self.images = OrderedDict()
@@ -168,12 +166,21 @@ class Data(object):
         return self.unique_element_symbols
 
     def get_data(self, purpose=None):
-        """
+        """A method to get data
+
         Parameters
         ----------
         purpose : str
             The purpose of the data so that structure is prepared accordingly.
             Supported are: 'training', 'inference'
+
+        Returns
+        -------
+        self.images : dict
+            Ordered dictionary of images corresponding to order of self.targets
+            list.
+        self.targets : list
+            Targets used for training the model.
         """
 
         if purpose == "training":
@@ -182,7 +189,18 @@ class Data(object):
             return self.images
 
     def get_total_number_atoms(self):
+        """Get the total number of atoms"""
         return sum(self.atoms_per_image)
 
     def to_pandas(self):
-        raise NotImplementedError
+        """Convert data to pandas DataFrame"""
+        images = OrderedDict()
+        columns = ["xyz"]
+
+        for key, atoms in self.images.items():
+            images[key] = ase_to_xyz(atoms, file=False)
+
+        df = pd.DataFrame.from_dict(images, orient="index", columns=columns)
+        df["energy"] = self.targets
+
+        return df

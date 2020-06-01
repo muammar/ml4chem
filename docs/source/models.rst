@@ -43,7 +43,7 @@ physics-constrained e.g. rotational and translational invariance.
 ML4Chem supports by default Gaussian symmetry functions, and atomic latent
 features.
 
-Gaussian symmetry functions 
+Gaussian Symmetry Functions 
 ---------------------------
 In 2007, Behler and Parrinello [Behler2007]_ introduced a fixed-length
 feature vector, referred also as "symmetry functions" (SF), to generalize the
@@ -115,12 +115,12 @@ predicting energy and atomic forces.
 
 ::
 
-    from ml4chem.features.gaussian import Gaussian
+    from ml4chem.atomistic.features.gaussian import Gaussian
 
     features = Gaussian(cutoff=6.5, normalized=True, save_preprocessor="features.scaler")
 
 In the code snippet above we are building Gaussian type features using the
-:class:`ml4chem.features.gaussian.Gaussian` class. We use a ``cutoff``
+:class:`ml4chem.atomistic.features.gaussian.Gaussian` class. We use a ``cutoff``
 radius of :math:`6.5` angstrom, we normalized by the squared cutoff raidous,
 and the preprocessing is saved to the file ``features.scaler`` (by default
 the preprocessing used is ``MinMaxScaler`` in a range :math:`(-1, 1)` as
@@ -131,10 +131,34 @@ you need to pass ``angular_type`` keyword argument::
     features = Gaussian(cutoff=6.5, normalized=True,
                         save_preprocessor="features.scaler", angular_type="G4")
 
-Atomic latent features 
+
+Atomic Enviroment Vector
 ---------------------------
-These features are decided by the neural network and can be obtained with the
-`Autoencoder` class. 
+The Gaussian feature vectors were modified by Smith et al [Smith2017]_ in the
+following way:
+
+The radial symmetry functions are not normalized by the squared of the cutoff
+radius, and instead of several `eta` values they use a single value to
+produce thin Gaussian peaks, and different `R_s` parameters are used to probe
+outward from the atomic center.
+
+.. math::
+    \mathbf{G_i^2} = \sum_{j \neq j}^{N_{atom}} e^{-\eta(\mathbf{R_{ij}}-R_{s})^2} f_c(R_{ij}),
+
+The angular part adds an arbitrary number of shifts in the angular
+environment and an exponential factor that allows the angular environment to
+be considered within radial shells based on the average of the distance from
+the neighboring atoms.
+
+.. math::
+    \mathbf{G_i^4} = 2^{1-\zeta} \sum_{j, k \neq i} (1 + cos(\theta_{ijk} - \theta_s))^{\zeta} e^{-\eta
+        [((\mathbf{R_{ij}} + \mathbf{R_{ik}} / 2) - R_s)^2]} f_c(R_{ij}) f_c(R_{ik}).
+
+
+Atomic Latent Features 
+---------------------------
+Atomic latent features are those extracted using unsupervised learning. 
+
 
 ==========================
 Models
@@ -153,7 +177,7 @@ In ML4Chem, a neural network can be instantiated as shown below:
 
 :: 
 
-    from ml4chem.models.neuralnetwork import NeuralNetwork
+    from ml4chem.atomistic.models.neuralnetwork import NeuralNetwork
 
     n = 10
     activation = "relu"
@@ -161,7 +185,7 @@ In ML4Chem, a neural network can be instantiated as shown below:
     nn.prepare_model()
 
 Here, we are building a NN with the
-:class:`ml4chem.models.neuralnetwork.NeuralNetwork` class with two
+:class:`ml4chem.atomistic.models.neuralnetwork.NeuralNetwork` class with two
 hidden-layers composed 10 neurons each, and a ReLu activation function.
 
 Autoencoders
@@ -178,7 +202,7 @@ reconstruct the input data.
    :align: center
 :: 
 
-    from ml4chem.models.autoencoders import AutoEncoder
+    from ml4chem.atomistic.models.autoencoders import AutoEncoder
 
     hiddenlayers = {"encoder": (20, 10, 4), "decoder": (4, 10, 20)}
     activation = "tanh"
@@ -207,7 +231,7 @@ for an AE as follows:
 
 :: 
 
-    from ml4chem.models.autoencoders import VAE
+    from ml4chem.atomistic.models.autoencoders import VAE
 
     hiddenlayers = {"encoder": (20, 10, 4), "decoder": (4, 10, 20)}
     activation = "tanh"
@@ -240,5 +264,6 @@ uncertainty of each prediction.
 
 .. [Behler2007] Behler, J. & Parrinello, M. Generalized Neural-Network Representation of High-Dimensional Potential-Energy Surfaces. Phys. Rev. Lett. 98, 146401 (2007).
 .. [Behler2015] Behler, J. Constructing high-dimensional neural network potentials: A tutorial review. Int. J. Quantum Chem. 115, 1032–1050 (2015).
+.. [Smith2017] 1. Smith, J. S., Isayev, O. & Roitberg, A. E. ANI-1: an extensible neural network potential with DFT accuracy at force field computational cost. Chem. Sci. 8, 3192–3203 (2017).
 .. [Kingma2013] Kingma, D. P. & Welling, M. Auto-Encoding Variational Bayes. arXiv Prepr. arXiv1312.6114 (2013).
 .. [Rupp2015] Rupp, M. Machine learning for quantum mechanics in a nutshell. Int. J. Quantum Chem. 115, 1058–1073 (2015).

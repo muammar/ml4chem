@@ -11,7 +11,6 @@
         "weights_independent": true,
         "forcetraining": false,
         "sum_rule": true,
-        "batch_size": 160,
         "kwargs": {}
     },
     "features": {

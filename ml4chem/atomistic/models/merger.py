@@ -7,7 +7,7 @@ import logging
 import numpy as np
 from collections import OrderedDict
 from ml4chem.metrics import compute_rmse
-from ml4chem.utils import convert_elapsed_time, dynamic_import, get_chunks, lod_to_list
+from ml4chem.utils import dynamic_import, get_chunks, lod_to_list
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler
 
 # Setting precision and starting logger object
@@ -152,6 +152,8 @@ class ModelMerger(torch.nn.Module):
         logger.info(" ")
         logging.info("Model Merger")
         logging.info("============")
+        now = datetime.datetime.now()
+        logger.info("Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S")))
         logging.info("Merging the following models:")
 
         for model in self.models:
@@ -206,7 +208,7 @@ class ModelMerger(torch.nn.Module):
             _args, _varargs, _keywords, _defaults = inspect.getargspec(loss)
             if "latent" in _args:
                 train = dynamic_import(
-                    "train", "ml4chem.models", alt_name="autoencoders"
+                    "train", "ml4chem.atomistic.models", alt_name="autoencoders"
                 )
                 self.inputs_chunk_vals = train.get_inputs_chunks(chunks[index])
             else:
@@ -289,7 +291,7 @@ class ModelMerger(torch.nn.Module):
         for key in self.models[1].state_dict():
             old_state_dict[key] = self.models[1].state_dict()[key].clone()
 
-        from ml4chem.models.autoencoders import Annealer
+        from ml4chem.atomistic.models.autoencoders import Annealer
 
         annealer = Annealer()
 
@@ -384,7 +386,9 @@ class ModelMerger(torch.nn.Module):
         client = dask.distributed.get_client()
 
         if name == "PytorchPotentials" and independent_loss:
-            train = dynamic_import("train", "ml4chem.models", alt_name="neuralnetwork")
+            train = dynamic_import(
+                "train", "ml4chem.atomistic.models", alt_name="neuralnetwork"
+            )
 
             inputs = []
             # FIXME this is not scaling to n number of models.
@@ -404,7 +408,9 @@ class ModelMerger(torch.nn.Module):
             return loss, outputs_
 
         elif name in ModelMerger.autoencoders and independent_loss:
-            train = dynamic_import("train", "ml4chem.models", alt_name="autoencoders")
+            train = dynamic_import(
+                "train", "ml4chem.atomistic.models", alt_name="autoencoders"
+            )
             targets = self.targets[index]
 
             loss, outputs_ = train.closure(

@@ -3,9 +3,9 @@ from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
 
 sys.path.append("../../")
-from ml4chem import Potentials
-from ml4chem.features import Gaussian
-from ml4chem.models.kernelridge import KernelRidge
+from ml4chem.atomistic import Potentials
+from ml4chem.atomistic.features import Gaussian
+from ml4chem.atomistic.models.kernelridge import KernelRidge
 from ml4chem.utils import logger
 
 
@@ -16,6 +16,7 @@ def train():
     # Arguments for fingerprinting the images
     normalized = True
     batch_size = 160
+    batch_size = None
 
     calc = Potentials(
         features=Gaussian(

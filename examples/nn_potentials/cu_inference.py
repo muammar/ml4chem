@@ -4,7 +4,7 @@ import sys
 sys.path.append("../../")
 from ase.io import Trajectory
 from dask.distributed import Client, LocalCluster
-from ml4chem import Potentials
+from ml4chem.atomistic import Potentials
 
 
 def main():

@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 
-def AtomicMSELoss(outputs, targets, atoms_per_image):
+def AtomicMSELoss(outputs, targets, atoms_per_image, uncertainty=None):
     """Default loss function
 
     If user does not input loss function we provide mean-squared error loss
@@ -14,6 +14,11 @@ def AtomicMSELoss(outputs, targets, atoms_per_image):
         Outputs of the model.
     targets : tensor
         Expected value of outputs.
+    atoms_per_image : tensor
+        A tensor with the number of atoms per image. 
+    uncertainty : tensor, optional
+        A tensor of uncertainties that are used to penalize during the loss
+        function evaluation.
 
 
     Returns
@@ -22,12 +27,19 @@ def AtomicMSELoss(outputs, targets, atoms_per_image):
         The value of the loss function.
     """
 
-    criterion = torch.nn.MSELoss(reduction="sum")
-    outputs_atom = torch.div(outputs, atoms_per_image)
-    targets_atom = torch.div(targets, atoms_per_image)
+    if uncertainty == None:
+        criterion = torch.nn.MSELoss(reduction="sum")
+        outputs_atom = torch.div(outputs, atoms_per_image)
+        targets_atom = torch.div(targets, atoms_per_image)
 
-    loss = criterion(outputs_atom, targets_atom) * 0.5
-
+        loss = criterion(outputs_atom, targets_atom) * 0.5
+    else:
+        criterion = torch.nn.MSELoss(reduction="none")
+        outputs_atom = torch.div(outputs, atoms_per_image)
+        targets_atom = torch.div(targets, atoms_per_image)
+        loss = (
+            criterion(outputs_atom, targets_atom) / (2 * torch.pow(uncertainty, 2))
+        ).sum() * 0.5
     return loss
 
 
@@ -51,6 +63,7 @@ def SumSquaredDiff(outputs, targets):
     In the literature it is mentioned that for real-valued autoencoders the
     reconstruction loss function is the sum of squared differences.
     """
+
     loss = (outputs - targets).pow(2).sum() * 0.5
     return loss
 
@@ -303,8 +316,6 @@ def VAELoss(
     """
 
     loss = []
-
-    dim = 1
 
     if annealing is None:
         annealing = 1.0

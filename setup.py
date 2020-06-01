@@ -1,5 +1,6 @@
 import setuptools
 import ml4chem
+import pip
 
 try:
     with open("README.md", "r") as fh:
@@ -26,7 +27,11 @@ def load_requirements(fname):
 
 
 version = ml4chem.__version__
-install_requires = load_requirements("requirements.txt")
+
+try:
+    install_requires = load_requirements("requirements.txt")
+except pip._internal.exceptions.InstallationError:
+    install_requires = load_requirements("../requirements.txt")
 
 setuptools.setup(
     name="ml4chem",

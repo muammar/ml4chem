@@ -1,15 +1,17 @@
 import json
 import logging
+import pandas as pd
 import torch
 from collections import OrderedDict
 from ml4chem.data.preprocessing import Preprocessing
+from ml4chem.atomistic.features.base import AtomisticFeatures
 from ml4chem.utils import dynamic_import
 
 # Starting logger object
 logger = logging.getLogger()
 
 
-class LatentFeatures(object):
+class LatentFeatures(AtomisticFeatures):
     """Extraction of features using AutoEncoder model class.
 
     The latent space represents a feature space from the inputs that an
@@ -99,7 +101,7 @@ class LatentFeatures(object):
         # Now, we need to take the inputs and convert them to the right feature
         # space
         name, kwargs = self.features
-        features = dynamic_import(name, "ml4chem.features")
+        features = dynamic_import(name, "ml4chem.atomistic.features")
         features = features(**kwargs)
 
         feature_space = features.calculate(
@@ -176,6 +178,7 @@ class LatentFeatures(object):
                 feature_space, svm=svm, purpose=purpose
             )
 
+        self.feature_space = latent_space
         return latent_space
 
     def load_encoder(self, encoder, **kwargs):
@@ -211,9 +214,15 @@ class LatentFeatures(object):
         input_dimension = model_params.pop("input_dimension")
         output_dimension = model_params.pop("output_dimension")
 
-        autoencoder = dynamic_import(name, "ml4chem.models", alt_name="autoencoders")
+        autoencoder = dynamic_import(
+            name, "ml4chem.atomistic.models", alt_name="autoencoders"
+        )
         autoencoder = autoencoder(**model_params)
         autoencoder.prepare_model(input_dimension, output_dimension, **kwargs)
         autoencoder.load_state_dict(torch.load(model_path), strict=True)
 
         return autoencoder.eval()
+
+    def to_pandas(self):
+        """Convert features to pandas DataFrame"""
+        return pd.DataFrame.from_dict(self.feature_space, orient="index")

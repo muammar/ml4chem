@@ -3,7 +3,6 @@ seaborn
 dask_ml
 ase
 scipy
-torch
 numpy
 pip
 pandas
