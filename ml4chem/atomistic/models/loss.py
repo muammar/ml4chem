@@ -378,7 +378,7 @@ def VAELoss(
     return loss
 
 
-def TopologicalLoss(X, z):
+def TopologicalLoss(X=None, z=None, outputs=None, targets=None):
     """Computes topological loss function
 
     This is an implementation of the loss function of the paper "Topological
@@ -394,6 +394,10 @@ def TopologicalLoss(X, z):
         Input space. 
     z : tensor
         Latent space.
+    outputs : tensor, optional
+        Outputs of the model. Default is None.
+    targets : tensor, optional
+        Expected value of outputs. Default is None.
     
 
     Returns
@@ -417,8 +421,8 @@ def TopologicalLoss(X, z):
     # (nodes)
     spr_d_matrix_X = csr_matrix(dist_matrix_X)
     spr_d_matrix_z = csr_matrix(dist_matrix_z)
-    mst_X = minimum_spanning_tree(spr_d_matrix_X.toarray().astype(float))
-    mst_z = minimum_spanning_tree(spr_d_matrix_z.toarray().astype(float))
+    mst_X = torch.tensor(minimum_spanning_tree(spr_d_matrix_X).toarray().astype(float))
+    mst_z = torch.tensor(minimum_spanning_tree(spr_d_matrix_z).toarray().astype(float))
 
     # Mask all entries larger than 0 to 1
     mst_X[mst_X > 0] = 1
@@ -432,4 +436,9 @@ def TopologicalLoss(X, z):
         (dist_matrix_z * mst_z) - (dist_matrix_X * mst_z)
     ) 
 
-    return LXz + LzX
+    # Reconstruction
+    if outputs != None and targets != None:
+        loss_rec = MSELoss(outputs, targets)
+        return LXz + LzX + loss_rec
+    else: 
+        return LXz + LzX 

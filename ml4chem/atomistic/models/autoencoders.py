@@ -1175,6 +1175,17 @@ class train(object):
             # In the case of using EncoderMapLoss the inputs are needed, too.
             args.update({"inputs": inputs_chunk_vals[index]})
 
+        if loss_name == "TopologicalLoss":
+            latent = {
+                "z": model.get_latent_space(
+                    inputs, svm=False, purpose="preprocessing"
+                )
+            }
+            args.update(latent)
+
+            # In the case of using TopologicalLoss the inputs are needed, too.
+            args.update({"X": inputs_chunk_vals[index]})
+
         loss = lossfxn(**args)
         loss.backward()
 
