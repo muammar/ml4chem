@@ -26,9 +26,15 @@ class Cosine(object):
         cutofffxn : float
             Value of the cutoff function.
         """
-        if rij > self.cutoff:
-            cutofffxn = 0.0
-        else:
+        try:
+            # Serial
+            if rij > self.cutoff:
+                cutofffxn = 0.0
+            else:
+                cutofffxn = 0.5 * (np.cos(np.pi * rij / self.cutoff) + 1.0)
+        except ValueError:
+            # Vectorized
             cutofffxn = 0.5 * (np.cos(np.pi * rij / self.cutoff) + 1.0)
+            cutofffxn[rij > self.cutoff] = 0
 
         return cutofffxn

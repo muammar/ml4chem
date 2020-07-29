@@ -15,7 +15,7 @@ class AtomisticFeatures(ABC):
         pass
 
     @abstractmethod
-    def calculate(self, **kwargs):
+    def __call__(self, **kwargs):
         """Calculate features"""
         pass
 

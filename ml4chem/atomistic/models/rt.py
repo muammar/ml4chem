@@ -101,7 +101,6 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
         for symbol in unique_element_symbols:
             linears = []
 
-
             for index in layers:
                 # This is the input layer
                 if index == 0:
@@ -497,14 +496,18 @@ class train(DeepLearningTrainer):
             test_features = self.test.get("features", None)
             test_targets = self.test.get("targets", None)
             test_data = self.test.get("data", None)
-            test_features, conditions = self.model.feature_preparation(test_features, test_data)
+            test_features, conditions = self.model.feature_preparation(
+                test_features, test_data
+            )
 
             # The preparation above is returning a list so the dictionary is
             # inside and has to be indexed.
             test_features, conditions = test_features[0], conditions[0]
 
             # FIXME adding [] is an ugly hack that has to be fixed.
-            test_targets = [torch.tensor(list(test_targets.values())[0], requires_grad=False)]
+            test_targets = [
+                torch.tensor(list(test_targets.values())[0], requires_grad=False)
+            ]
 
             logger.info(
                 "{:6s} {:19s} {:12s} {:12s} {:12s} {:12s} {:16s}".format(
@@ -600,7 +603,7 @@ class train(DeepLearningTrainer):
                 test_model = self.model.eval()
                 test_predictions = test_model(test_features, conditions)
                 # FIXME adding [] is an ugly hack that has to be fixed.
-                test_predictions = [torch.stack(list(test_predictions.values())).sum(0)] 
+                test_predictions = [torch.stack(list(test_predictions.values())).sum(0)]
 
                 rmse_test = client.submit(
                     compute_mae, *(test_predictions, test_targets)
@@ -807,7 +810,10 @@ class train(DeepLearningTrainer):
         else:
             for key, targets_ in targets.items():
                 loss += lossfxn(
-                    outputs[key], targets_[index].result(), atoms_per_image[index], uncertainty[index]
+                    outputs[key],
+                    targets_[index].result(),
+                    atoms_per_image[index],
+                    uncertainty[index],
                 )
 
         loss.backward()

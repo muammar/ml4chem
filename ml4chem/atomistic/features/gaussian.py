@@ -169,7 +169,7 @@ class Gaussian(AtomisticFeatures):
         else:
             raise RuntimeError("This case is not implemented yet...")
 
-    def calculate(self, images=None, purpose="training", data=None, svm=False):
+    def __call__(self, images=None, purpose="training", data=None, svm=False):
         """Calculate the features per atom in an atoms objects
 
         Parameters
@@ -193,7 +193,11 @@ class Gaussian(AtomisticFeatures):
             A reference space useful for SVM models.
         """
 
-        client = dask.distributed.get_client()
+        try: 
+            client = dask.distributed.get_client()
+        except AttributeError:
+            # No dask operation
+            client = None
         logger.info(" ")
         logger.info("Featurization")
         logger.info("=============")
@@ -330,26 +334,43 @@ class Gaussian(AtomisticFeatures):
                             )
                             neighborpositions[cutoff_key] = neighborpositions_
 
-                    afp = self.get_atomic_features(
-                        atom,
-                        index,
-                        symbol,
-                        n_symbols,
-                        neighborpositions,
-                        image_molecule=image,
-                        weighted=self.weighted,
-                        n_indices=n_indices,
-                    )
+                    if client == None:
+                        afp = self.get_atomic_features(
+                            atom,
+                            index,
+                            symbol,
+                            n_symbols,
+                            neighborpositions,
+                            image_molecule=image,
+                            weighted=self.weighted,
+                            n_indices=n_indices,
+                        )
+                    else:
+                        afp = dask.delayed(self.get_atomic_features)(
+                            atom,
+                            index,
+                            symbol,
+                            n_symbols,
+                            neighborpositions,
+                            image_molecule=image,
+                            weighted=self.weighted,
+                            n_indices=n_indices,
+                        )
+
 
                     intermediate.append(afp)
 
-            intermediate = client.persist(intermediate, scheduler=self.scheduler)
+            if client == None:
+                pass
+            else:
+                intermediate = client.persist(intermediate, scheduler=self.scheduler)
             stacked_features += intermediate
             del intermediate
 
         scheduler_time = time.time() - initial_time
 
-        dask.distributed.wait(stacked_features)
+        if client != None:
+            dask.distributed.wait(stacked_features)
 
         h, m, s = convert_elapsed_time(scheduler_time)
         logger.info(
@@ -405,16 +426,21 @@ class Gaussian(AtomisticFeatures):
 
         else:
             scaled_feature_space = []
-            atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
-            stacked_features = client.scatter(stacked_features, broadcast=True)
+            if client != None:
+                atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
+                stacked_features = client.scatter(stacked_features, broadcast=True)
 
             for indices in atoms_index_map:
-                features = client.submit(
-                    self.stack_features, *(indices, stacked_features)
-                )
+                if client == None:
+                    features = self.stack_features(indices, stacked_features)
+                else:
+                    features = client.submit(
+                        self.stack_features, *(indices, stacked_features)
+                    )
                 scaled_feature_space.append(features)
 
-            scaled_feature_space = client.gather(scaled_feature_space)
+            if client != None:
+                scaled_feature_space = client.gather(scaled_feature_space)
 
         # Clean
         del stacked_features
@@ -427,20 +453,31 @@ class Gaussian(AtomisticFeatures):
             reference_space = []
 
             for i, image in enumerate(images.items()):
-                restacked = client.submit(
-                    self.restack_image, *(i, image, scaled_feature_space, svm)
-                )
+                if client == None:
+                    restacked = self.restack_image(i, image, scaled_feature_space, svm)
 
-                # image = (hash, ase_image) -> tuple
-                for atom in image[1]:
-                    restacked_atom = client.submit(
-                        self.restack_atom, *(i, atom, scaled_feature_space)
+                    # image = (hash, ase_image) -> tuple
+                    for atom in image[1]:
+                        restacked_atom = self.restack_atom(i, atom, scaled_feature_space)
+                        reference_space.append(restacked_atom)
+
+                    feature_space.append(restacked)
+                else:
+                    restacked = client.submit(
+                        self.restack_image, *(i, image, scaled_feature_space, svm)
                     )
-                    reference_space.append(restacked_atom)
 
-                feature_space.append(restacked)
+                    # image = (hash, ase_image) -> tuple
+                    for atom in image[1]:
+                        restacked_atom = client.submit(
+                            self.restack_atom, *(i, atom, scaled_feature_space)
+                        )
+                        reference_space.append(restacked_atom)
 
-            reference_space = client.gather(reference_space)
+                    feature_space.append(restacked)
+
+            if client != None:
+                reference_space = client.gather(reference_space)
 
         elif svm is False and purpose == "training":
             for i, image in enumerate(images.items()):
@@ -465,7 +502,9 @@ class Gaussian(AtomisticFeatures):
                     )
                     feature_space.append(restacked)
 
-        feature_space = client.gather(feature_space)
+        if client != None:
+            feature_space = client.gather(feature_space)
+
         feature_space = OrderedDict(feature_space)
 
         fp_time = time.time() - initial_time
@@ -478,7 +517,8 @@ class Gaussian(AtomisticFeatures):
         )
 
         if svm and purpose == "training":
-            client.restart()  # Reclaims memory aggressively
+            if client != None:
+                client.restart()  # Reclaims memory aggressively
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             if self.filename is not None:
@@ -518,7 +558,6 @@ class Gaussian(AtomisticFeatures):
 
         return features
 
-    @dask.delayed
     def get_atomic_features(
         self,
         atom,
@@ -871,20 +910,29 @@ def calculate_G2(
         Rc = cutoff
     else:
         Rc = 1.0
+
+    Ris, Rjs, weights = [], [], []
+
     for count in range(num_neighbors):
         symbol = neighborsymbols[count]
         Rj = neighborpositions[count]
 
         if symbol == center_symbol:
-            Rij = np.linalg.norm(Rj - Ri)
-
-            feature += np.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
+            Ris.append(Ri)
+            Rjs.append(Rj)
 
             if weighted:
-                weighted_atom = image_molecule[n_indices[count]].number
-                feature *= weighted_atom
+                weights.append(image_molecule[n_indices[count]].number)
+    
+    Ris = np.array(Ris)
+    Rjs = np.array(Rjs)
+    Rij = np.linalg.norm(Rjs - Ris, axis=1)
+    feature = np.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
 
-    return feature
+    if weighted:
+        feature *= weights
+
+    return feature.sum()
 
 
 def calculate_G3(
