@@ -429,10 +429,10 @@ def TopologicalLoss(X=None, z=None, outputs=None, targets=None):
     mst_z[mst_z > 0] = 1
 
     # Computation of distance metric
-    LXz = .5 * np.linalg.norm(
+    LXz = .5 * torch.norm(
         (dist_matrix_X * mst_X) - (dist_matrix_z * mst_X)
     ) 
-    LzX = .5 * np.linalg.norm(
+    LzX = .5 * torch.norm(
         (dist_matrix_z * mst_z) - (dist_matrix_X * mst_z)
     ) 
 
