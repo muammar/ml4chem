@@ -1,5 +1,7 @@
 import torch
 import numpy as np
+from scipy.sparse.csgraph import minimum_spanning_tree
+from scipy.sparse import csr_matrix
 
 
 def AtomicMSELoss(outputs, targets, atoms_per_image, uncertainty=None):
@@ -236,13 +238,15 @@ def get_distance(i, j, periodicity):
     return torch.min(d, periodicity - d)
 
 
-def get_pairwise_distances(positions, squared=False):
+def get_pairwise_distances(x, y=None, squared=False):
     """Get pairwise distances of a matrix
 
     Parameters
     ----------
-    positions : tensor
-        Tensor with positions.
+    x : tensor
+        Tensor to compute pairwise distances.
+    y : tensor, optional
+        Second tensor to compute distances with respect to x.
     squared : bool, optional
         Whether or not the squared of pairwise distances are computed, by
         default False.
@@ -252,13 +256,22 @@ def get_pairwise_distances(positions, squared=False):
     distances
         Pairwise distances.
     """
+    x_norm = (x**2).sum(1).view(-1, 1)
 
-    dot_product = torch.matmul(positions, positions.t())
-    square_norm = dot_product.diag()
-    distances = square_norm.unsqueeze(0) - 2.0 * dot_product + square_norm.unsqueeze(1)
-    distances = torch.max(distances, torch.zeros_like(distances))
+    if y is not None:
+        y_t = torch.transpose(y, 0, 1)
+        y_norm = (y**2).sum(1).view(1, -1)
+    else:
+        y_t = torch.transpose(x, 0, 1)
+        y_norm = x_norm.view(1, -1)
+    
+    dist = x_norm + y_norm - 2.0 * torch.mm(x, y_t)
+    # Ensure diagonal is zero if x=y
+    # if y is None:
+    #     dist = dist - torch.diag(dist.diag)
+    distances = torch.clamp(dist, 0.0, np.inf)
 
-    if squared is True:
+    if squared == True:
         distances = torch.sqrt(distances)
 
     return distances
@@ -363,3 +376,69 @@ def VAELoss(
     loss = torch.mean(torch.stack(loss))
 
     return loss
+
+
+def TopologicalLoss(X=None, z=None, outputs=None, targets=None):
+    """Computes topological loss function
+
+    This is an implementation of the loss function of the paper "Topological
+    Autoencoders" https://arxiv.org/abs/1906.00722. This function takes the
+    input space and latent space, perform persistent homology over them,
+    applies minimum spanning tree on the sparse distance matrices to obtain
+    edges, and finally uses minimum spanning tree to determine nodes. With
+    this information, it is possible to compute Eqs. 2 and 3 of the paper.
+
+    Parameters
+    ----------
+    X : tensor
+        Input space. 
+    z : tensor
+        Latent space.
+    outputs : tensor, optional
+        Outputs of the model. Default is None.
+    targets : tensor, optional
+        Expected value of outputs. Default is None.
+    
+
+    Returns
+    -------
+    loss
+        The value of the loss function based on persistent homology.
+
+    Notes
+    -----
+    Thanks to Nicole Sanderson (LBL) and Edgar Jaramillo Rodriguez (UC Davis).
+
+    """
+
+    # Computation of distance matrices (edges)
+    # distance_matrix_X = csr_matrix(diagrams_input["dperm2all"])
+    # distance_matrix_z = csr_matrix(diagrams_latent["dperm2all"])
+    dist_matrix_X = get_pairwise_distances(X, squared=True)
+    dist_matrix_z = get_pairwise_distances(z, squared=True)
+
+    # Computation of the minimum spanning tree over sparse distance matrices
+    # (nodes)
+    spr_d_matrix_X = csr_matrix(dist_matrix_X)
+    spr_d_matrix_z = csr_matrix(dist_matrix_z)
+    mst_X = torch.tensor(minimum_spanning_tree(spr_d_matrix_X).toarray().astype(float))
+    mst_z = torch.tensor(minimum_spanning_tree(spr_d_matrix_z).toarray().astype(float))
+
+    # Mask all entries larger than 0 to 1
+    mst_X[mst_X > 0] = 1
+    mst_z[mst_z > 0] = 1
+
+    # Computation of distance metric
+    LXz = .5 * torch.norm(
+        (dist_matrix_X * mst_X) - (dist_matrix_z * mst_X)
+    ) 
+    LzX = .5 * torch.norm(
+        (dist_matrix_z * mst_z) - (dist_matrix_X * mst_z)
+    ) 
+
+    # Reconstruction
+    if outputs != None and targets != None:
+        loss_rec = MSELoss(outputs, targets)
+        return LXz + LzX + loss_rec
+    else: 
+        return LXz + LzX 
