@@ -17,7 +17,7 @@ def AtomicMSELoss(outputs, targets, atoms_per_image, uncertainty=None):
     targets : tensor
         Expected value of outputs.
     atoms_per_image : tensor
-        A tensor with the number of atoms per image. 
+        A tensor with the number of atoms per image.
     uncertainty : tensor, optional
         A tensor of uncertainties that are used to penalize during the loss
         function evaluation.
@@ -256,15 +256,15 @@ def get_pairwise_distances(x, y=None, squared=False):
     distances
         Pairwise distances.
     """
-    x_norm = (x**2).sum(1).view(-1, 1)
+    x_norm = (x ** 2).sum(1).view(-1, 1)
 
     if y is not None:
         y_t = torch.transpose(y, 0, 1)
-        y_norm = (y**2).sum(1).view(1, -1)
+        y_norm = (y ** 2).sum(1).view(1, -1)
     else:
         y_t = torch.transpose(x, 0, 1)
         y_norm = x_norm.view(1, -1)
-    
+
     dist = x_norm + y_norm - 2.0 * torch.mm(x, y_t)
     # Ensure diagonal is zero if x=y
     # if y is None:
@@ -378,67 +378,95 @@ def VAELoss(
     return loss
 
 
-def TopologicalLoss(X=None, z=None, outputs=None, targets=None):
-    """Computes topological loss function
+class TopologicalLoss(object):
+    def __init__(self, loss_weights=None):
+        """Computes topological loss function
 
-    This is an implementation of the loss function of the paper "Topological
-    Autoencoders" https://arxiv.org/abs/1906.00722. This function takes the
-    input space and latent space, perform persistent homology over them,
-    applies minimum spanning tree on the sparse distance matrices to obtain
-    edges, and finally uses minimum spanning tree to determine nodes. With
-    this information, it is possible to compute Eqs. 2 and 3 of the paper.
+        This is an implementation of the loss function of the paper "Topological
+        Autoencoders" https://arxiv.org/abs/1906.00722. This function takes the
+        input space and latent space, perform persistent homology over them,
+        applies minimum spanning tree on the sparse distance matrices to obtain
+        edges, and finally uses minimum spanning tree to determine nodes. With
+        this information, it is possible to compute Eqs. 2 and 3 of the paper.
 
-    Parameters
-    ----------
-    X : tensor
-        Input space. 
-    z : tensor
-        Latent space.
-    outputs : tensor, optional
-        Outputs of the model. Default is None.
-    targets : tensor, optional
-        Expected value of outputs. Default is None.
-    
 
-    Returns
-    -------
-    loss
-        The value of the loss function based on persistent homology.
+        Parameters
+        ----------
+        loss_weights : dict, optional
+            A dictionary to weight reconstruction and topological
+            loss functions.
 
-    Notes
-    -----
-    Thanks to Nicole Sanderson (LBL) and Edgar Jaramillo Rodriguez (UC Davis).
+        >>>  loss_weights = {"topology": 0.2, "reconstruction": 0.8}
 
-    """
 
-    # Computation of distance matrices (edges)
-    # distance_matrix_X = csr_matrix(diagrams_input["dperm2all"])
-    # distance_matrix_z = csr_matrix(diagrams_latent["dperm2all"])
-    dist_matrix_X = get_pairwise_distances(X, squared=True)
-    dist_matrix_z = get_pairwise_distances(z, squared=True)
+        Returns
+        -------
+        loss
+            The value of the loss function based on persistent homology.
 
-    # Computation of the minimum spanning tree over sparse distance matrices
-    # (nodes)
-    spr_d_matrix_X = csr_matrix(dist_matrix_X)
-    spr_d_matrix_z = csr_matrix(dist_matrix_z)
-    mst_X = torch.tensor(minimum_spanning_tree(spr_d_matrix_X).toarray().astype(float))
-    mst_z = torch.tensor(minimum_spanning_tree(spr_d_matrix_z).toarray().astype(float))
+        Notes
+        -----
+        Thanks to Nicole Sanderson (LBL) and Edgar Jaramillo Rodriguez (UC Davis).
 
-    # Mask all entries larger than 0 to 1
-    mst_X[mst_X > 0] = 1
-    mst_z[mst_z > 0] = 1
+        """
+        keys = ["topology", "reconstruction"]
 
-    # Computation of distance metric
-    LXz = .5 * torch.norm(
-        (dist_matrix_X * mst_X) - (dist_matrix_z * mst_X)
-    ) 
-    LzX = .5 * torch.norm(
-        (dist_matrix_z * mst_z) - (dist_matrix_X * mst_z)
-    ) 
+        if loss_weights != None and isinstance(loss_weights, dict) == False:
+            raise RuntimeError(
+                "You need to provide a dictionary with structure: loss_weights = {'topology': 0.2, 'reconstruction': 0.8}"
+            )
 
-    # Reconstruction
-    if outputs != None and targets != None:
-        loss_rec = MSELoss(outputs, targets)
-        return LXz + LzX + loss_rec
-    else: 
-        return LXz + LzX 
+        if loss_weights == None:
+            loss_weights = {key: 1.0 for key in keys}
+
+        self.loss_weights = loss_weights
+
+    def __call__(self, X=None, z=None, outputs=None, targets=None):
+        """
+
+        Parameters
+        ----------
+        X : tensor
+            Input space.
+        z : tensor
+            Latent space.
+        outputs : tensor, optional
+            Outputs of the model. Default is None.
+        targets : tensor, optional
+            Expected value of outputs. Default is None.
+        """
+
+        # Computation of distance matrices (edges)
+        # distance_matrix_X = csr_matrix(diagrams_input["dperm2all"])
+        # distance_matrix_z = csr_matrix(diagrams_latent["dperm2all"])
+        dist_matrix_X = get_pairwise_distances(X, squared=True)
+        dist_matrix_z = get_pairwise_distances(z, squared=True)
+
+        # Computation of the minimum spanning tree over sparse distance matrices
+        # (nodes)
+        spr_d_matrix_X = csr_matrix(dist_matrix_X)
+        spr_d_matrix_z = csr_matrix(dist_matrix_z)
+        mst_X = torch.tensor(
+            minimum_spanning_tree(spr_d_matrix_X).toarray().astype(float)
+        )
+        mst_z = torch.tensor(
+            minimum_spanning_tree(spr_d_matrix_z).toarray().astype(float)
+        )
+
+        # Mask all entries larger than 0 to 1
+        mst_X[mst_X > 0] = 1
+        mst_z[mst_z > 0] = 1
+
+        # Computation of distance metric
+        LXz = 0.5 * torch.norm((dist_matrix_X * mst_X) - (dist_matrix_z * mst_X))
+        LzX = 0.5 * torch.norm((dist_matrix_z * mst_z) - (dist_matrix_X * mst_z))
+
+        # Reconstruction
+        if outputs != None and targets != None:
+            loss_rec = MSELoss(outputs, targets)
+            return (
+                self.loss_weights["topology"] * (LXz + LzX)
+                + self.loss_weights["reconstruction"] * loss_rec
+            )
+        else:
+            return self.loss_weights["topology"] * (LXz + LzX)
