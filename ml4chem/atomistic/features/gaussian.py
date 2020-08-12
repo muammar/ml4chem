@@ -193,7 +193,7 @@ class Gaussian(AtomisticFeatures):
             A reference space useful for SVM models.
         """
 
-        try: 
+        try:
             client = dask.distributed.get_client()
         except AttributeError:
             # No dask operation
@@ -357,7 +357,6 @@ class Gaussian(AtomisticFeatures):
                             n_indices=n_indices,
                         )
 
-
                     intermediate.append(afp)
 
             if client == None:
@@ -458,7 +457,9 @@ class Gaussian(AtomisticFeatures):
 
                     # image = (hash, ase_image) -> tuple
                     for atom in image[1]:
-                        restacked_atom = self.restack_atom(i, atom, scaled_feature_space)
+                        restacked_atom = self.restack_atom(
+                            i, atom, scaled_feature_space
+                        )
                         reference_space.append(restacked_atom)
 
                     feature_space.append(restacked)
@@ -923,7 +924,7 @@ def calculate_G2(
 
             if weighted:
                 weights.append(image_molecule[n_indices[count]].number)
-    
+
     Ris = np.array(Ris)
     Rjs = np.array(Rjs)
     Rij = np.linalg.norm(Rjs - Ris, axis=1)
@@ -1001,29 +1002,90 @@ def calculate_G3(
     else:
         Rc = 1.0
 
+    # cosi = []
+    # for j in counts:
+    #     for k in counts[(j + 1) :]:
+    #         els = sorted([neighborsymbols[j], neighborsymbols[k]])
+    #         if els != G_elements:
+    #             continue
+
+    #         Rij_vector = neighborpositions[j] - Ri
+    #         Rij = np.linalg.norm(Rij_vector)
+    #         Rik_vector = neighborpositions[k] - Ri
+    #         Rik = np.linalg.norm(Rik_vector)
+    #         Rjk_vector = neighborpositions[k] - neighborpositions[j]
+    #         Rjk = np.linalg.norm(Rjk_vector)
+    #         cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
+    #         cosi.append(cos_theta_ijk)
+    #         term = (1.0 + gamma * cos_theta_ijk) ** zeta
+    #         term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
+    #         if weighted:
+    #             term *= weighted_h(image_molecule, n_indices)
+    #         term *= cutofffxn(Rij)
+    #         term *= cutofffxn(Rik)
+    #         term *= cutofffxn(Rjk)
+    #         feature += term
+    # feature *= 2.0 ** (1.0 - zeta)
+    # print(f"original {feature}")
+    neighborpositions_j = []
+    neighborpositions_k = []
+
     for j in counts:
         for k in counts[(j + 1) :]:
             els = sorted([neighborsymbols[j], neighborsymbols[k]])
             if els != G_elements:
                 continue
+            neighborpositions_j.append(neighborpositions[j])
+            neighborpositions_k.append(neighborpositions[k])
 
-            Rij_vector = neighborpositions[j] - Ri
-            Rij = np.linalg.norm(Rij_vector)
-            Rik_vector = neighborpositions[k] - Ri
-            Rik = np.linalg.norm(Rik_vector)
-            Rjk_vector = neighborpositions[k] - neighborpositions[j]
-            Rjk = np.linalg.norm(Rjk_vector)
-            cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
-            term = (1.0 + gamma * cos_theta_ijk) ** zeta
-            term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
-            if weighted:
-                term *= weighted_h(image_molecule, n_indices)
-            term *= cutofffxn(Rij)
-            term *= cutofffxn(Rik)
-            term *= cutofffxn(Rjk)
-            feature += term
+    neighborpositions_j = np.array(neighborpositions_j)
+    Rij_vector = neighborpositions_j - Ri
+    # Rij = np.linalg.norm(Rij_vector)
+    Rij = np.sqrt(np.einsum("ij,ij->i", Rij_vector, Rij_vector))
+
+    neighborpositions_k = np.array(neighborpositions_k)
+    Rik_vector = neighborpositions_k - Ri
+    # Rik = np.linalg.norm(Rik_vector)
+    Rik = np.sqrt(np.einsum("ij,ij->i", Rik_vector, Rik_vector))
+
+    Rjk_vector = neighborpositions_k - neighborpositions_j
+    # Rjk = np.linalg.norm(Rjk_vector)
+    Rjk = np.sqrt(np.einsum("ij,ij->i", Rjk_vector, Rjk_vector))
+
+    cos_theta_ijk = angles_row_wise(Rij_vector, Rik_vector)
+    term = (1.0 + gamma * cos_theta_ijk) ** zeta
+    term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
+
+    if weighted:
+        term *= weighted_h(image_molecule, n_indices)
+
+    term *= cutofffxn(Rij)
+    term *= cutofffxn(Rik)
+    term *= cutofffxn(Rjk)
+    feature += term
     feature *= 2.0 ** (1.0 - zeta)
-    return feature
+    return feature.sum()
+
+
+def angles_row_wise(a, b):
+    """Compute cosine angles row wise
+
+    Parameters
+    ----------
+    a : tensor
+        Tensor a. 
+    b : tensor
+        Tensor b.
+
+    Returns
+    -------
+    angles
+        The cosine angles row wise. 
+    """
+    p1 = np.einsum("ij,ij->i", a, b)
+    p2 = np.einsum("ij,ij->i", a, a)
+    p3 = np.einsum("ij,ij->i", b, b)
+    return p1 / np.sqrt(p2 * p3)
 
 
 def calculate_G4(

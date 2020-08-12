@@ -1186,9 +1186,7 @@ class train(object):
 
         if loss_name == "TopologicalLoss":
             latent = {
-                "z": model.get_latent_space(
-                    inputs, svm=False, purpose="preprocessing"
-                )
+                "z": model.get_latent_space(inputs, svm=False, purpose="preprocessing")
             }
             args.update(latent)
 
