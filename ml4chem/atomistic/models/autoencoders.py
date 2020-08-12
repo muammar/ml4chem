@@ -1002,10 +1002,15 @@ class train(object):
             ts = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d " "%H:%M:%S")
             logger.info("{:6d} {} {:8e} {:8f}".format(epoch, ts, loss, rmse))
 
-            if self.convergence is None and epoch == self.epochs:
+            if self.convergence is not None and rmse < self.convergence["rmse"]:
                 converged = True
-            elif self.convergence is not None and rmse < self.convergence["rmse"]:
+
+            elif self.convergence is not None and epoch == self.epochs:
                 converged = True
+
+            elif self.convergence is None and epoch == self.epochs:
+                converged = True
+
             # elif cycles == stop:
             #   converged = True
 
@@ -1121,7 +1126,11 @@ class train(object):
             The loss function of the batch.
         """
         inputs = OrderedDict(chunk)
-        loss_name = lossfxn.__name__
+
+        try:
+            loss_name = lossfxn.__name__
+        except:
+            loss_name = lossfxn.__class__.__name__
 
         if model.name() == "VAE":
             if model.variant == "multivariate":
