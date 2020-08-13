@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 import time
+import torch
 import dask.array as da
 import numpy as np
 import pandas as pd
@@ -169,7 +170,32 @@ class Gaussian(AtomisticFeatures):
         else:
             raise RuntimeError("This case is not implemented yet...")
 
-    def __call__(self, images=None, purpose="training", data=None, svm=False):
+    def __call__(self, images, **kwargs):
+        """Callable aspect of the Gaussian class
+
+        Parameters
+        ----------
+        image : dict
+            Hashed images using the Data class.
+        purpose : str
+            The supported purposes are: 'training', 'inference'.
+        data : obj
+            data object
+        svm : bool
+            Whether or not these features are going to be used for kernel
+            methods.
+
+        Returns
+        -------
+        feature_space : dict
+            A dictionary with key hash and value as a list with the following
+            structure: {'hash': [('H', [vector]]}
+        reference_space : dict
+            A reference space useful for SVM models.
+        """
+        return self.calculate(images=images, **kwargs)
+
+    def calculate(self, images=None, purpose="training", data=None, svm=False):
         """Calculate the features per atom in an atoms objects
 
         Parameters
@@ -192,6 +218,9 @@ class Gaussian(AtomisticFeatures):
         reference_space : dict
             A reference space useful for SVM models.
         """
+
+        self.forcetraining = data.forcetraining
+        self.svm = svm
 
         try:
             client = dask.distributed.get_client()
@@ -378,7 +407,7 @@ class Gaussian(AtomisticFeatures):
 
         logger.info("")
 
-        if self.preprocessor is not None:
+        if self.preprocessor != None:
 
             scaled_feature_space = []
 
@@ -482,10 +511,15 @@ class Gaussian(AtomisticFeatures):
 
         elif svm is False and purpose == "training":
             for i, image in enumerate(images.items()):
-                restacked = client.submit(
-                    self.restack_image, *(i, image, scaled_feature_space, svm)
-                )
-                feature_space.append(restacked)
+                if client == None:
+                    restacked = self.restack_image(i, image, scaled_feature_space, svm)
+                    feature_space.append(restacked)
+
+                else:
+                    restacked = client.submit(
+                        self.restack_image, *(i, image, scaled_feature_space, svm)
+                    )
+                    feature_space.append(restacked)
 
         else:
             try:
@@ -533,7 +567,8 @@ class Gaussian(AtomisticFeatures):
             return self.feature_space, self.reference_space
 
         elif svm is False and purpose == "training":
-            client.restart()  # Reclaims memory aggressively
+            if client != None:
+                client.restart()  # Reclaims memory aggressively
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             if self.filename is not None:
@@ -594,7 +629,12 @@ class Gaussian(AtomisticFeatures):
         """
         cutoff_keys = ["radial", "angular"]
         num_symmetries = len(self.GP[symbol])
+        # The central atom
         Ri = atom.position
+
+        if self.forcetraining:
+            Ri.requires_grad = True
+
         features = [None] * num_symmetries
 
         # See https://listserv.brown.edu/cgi-bin/wa?A2=ind1904&L=AMP-USERS&P=19048
@@ -663,7 +703,10 @@ class Gaussian(AtomisticFeatures):
                 )
             features[count] = feature
 
-        return np.array(features)
+        if self.svm:
+            return np.array(features)
+        else:
+            return torch.stack(features)
 
     def make_symmetry_functions(self, symbols, custom=None, angular_type="G3"):
         """Function to make symmetry functions
@@ -925,10 +968,16 @@ def calculate_G2(
             if weighted:
                 weights.append(image_molecule[n_indices[count]].number)
 
-    Ris = np.array(Ris)
-    Rjs = np.array(Rjs)
-    Rij = np.linalg.norm(Rjs - Ris, axis=1)
-    feature = np.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
+    if isinstance(Ri, np.ndarray):
+        Ris = np.array(Ris)
+        Rjs = np.array(Rjs)
+        Rij = np.linalg.norm(Rjs - Ris, axis=1)
+        feature = np.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
+    else:
+        Ris = torch.stack(Ris)
+        Rjs = torch.stack(Rjs)
+        Rij = torch.norm(Rjs - Ris, dim=1)
+        feature = torch.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
 
     if weighted:
         feature *= weights
@@ -1002,31 +1051,6 @@ def calculate_G3(
     else:
         Rc = 1.0
 
-    # cosi = []
-    # for j in counts:
-    #     for k in counts[(j + 1) :]:
-    #         els = sorted([neighborsymbols[j], neighborsymbols[k]])
-    #         if els != G_elements:
-    #             continue
-
-    #         Rij_vector = neighborpositions[j] - Ri
-    #         Rij = np.linalg.norm(Rij_vector)
-    #         Rik_vector = neighborpositions[k] - Ri
-    #         Rik = np.linalg.norm(Rik_vector)
-    #         Rjk_vector = neighborpositions[k] - neighborpositions[j]
-    #         Rjk = np.linalg.norm(Rjk_vector)
-    #         cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
-    #         cosi.append(cos_theta_ijk)
-    #         term = (1.0 + gamma * cos_theta_ijk) ** zeta
-    #         term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
-    #         if weighted:
-    #             term *= weighted_h(image_molecule, n_indices)
-    #         term *= cutofffxn(Rij)
-    #         term *= cutofffxn(Rik)
-    #         term *= cutofffxn(Rjk)
-    #         feature += term
-    # feature *= 2.0 ** (1.0 - zeta)
-    # print(f"original {feature}")
     neighborpositions_j = []
     neighborpositions_k = []
 
@@ -1038,23 +1062,36 @@ def calculate_G3(
             neighborpositions_j.append(neighborpositions[j])
             neighborpositions_k.append(neighborpositions[k])
 
-    neighborpositions_j = np.array(neighborpositions_j)
-    Rij_vector = neighborpositions_j - Ri
-    # Rij = np.linalg.norm(Rij_vector)
-    Rij = np.sqrt(np.einsum("ij,ij->i", Rij_vector, Rij_vector))
+    if isinstance(Ri, np.ndarray):
+        neighborpositions_j = np.array(neighborpositions_j)
+        Rij_vector = neighborpositions_j - Ri
+        Rij = np.sqrt(np.einsum("ij,ij->i", Rij_vector, Rij_vector))
 
-    neighborpositions_k = np.array(neighborpositions_k)
-    Rik_vector = neighborpositions_k - Ri
-    # Rik = np.linalg.norm(Rik_vector)
-    Rik = np.sqrt(np.einsum("ij,ij->i", Rik_vector, Rik_vector))
+        neighborpositions_k = np.array(neighborpositions_k)
+        Rik_vector = neighborpositions_k - Ri
+        Rik = np.sqrt(np.einsum("ij,ij->i", Rik_vector, Rik_vector))
 
-    Rjk_vector = neighborpositions_k - neighborpositions_j
-    # Rjk = np.linalg.norm(Rjk_vector)
-    Rjk = np.sqrt(np.einsum("ij,ij->i", Rjk_vector, Rjk_vector))
+        Rjk_vector = neighborpositions_k - neighborpositions_j
+        Rjk = np.sqrt(np.einsum("ij,ij->i", Rjk_vector, Rjk_vector))
 
-    cos_theta_ijk = angles_row_wise(Rij_vector, Rik_vector)
-    term = (1.0 + gamma * cos_theta_ijk) ** zeta
-    term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
+        cos_theta_ijk = angles_row_wise(Rij_vector, Rik_vector, numpy=True)
+        term = (1.0 + gamma * cos_theta_ijk) ** zeta
+        term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
+    else:
+        neighborpositions_j = torch.stack(neighborpositions_j)
+        Rij_vector = neighborpositions_j - Ri
+        Rij = torch.sqrt(torch.einsum("ij,ij->i", Rij_vector, Rij_vector))
+
+        neighborpositions_k = torch.stack(neighborpositions_k)
+        Rik_vector = neighborpositions_k - Ri
+        Rik = torch.sqrt(torch.einsum("ij,ij->i", Rik_vector, Rik_vector))
+
+        Rjk_vector = neighborpositions_k - neighborpositions_j
+        Rjk = torch.sqrt(torch.einsum("ij,ij->i", Rjk_vector, Rjk_vector))
+
+        cos_theta_ijk = angles_row_wise(Rij_vector, Rik_vector, numpy=False)
+        term = (1.0 + gamma * cos_theta_ijk) ** zeta
+        term *= torch.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
 
     if weighted:
         term *= weighted_h(image_molecule, n_indices)
@@ -1067,7 +1104,7 @@ def calculate_G3(
     return feature.sum()
 
 
-def angles_row_wise(a, b):
+def angles_row_wise(a, b, numpy):
     """Compute cosine angles row wise
 
     Parameters
@@ -1076,16 +1113,24 @@ def angles_row_wise(a, b):
         Tensor a. 
     b : tensor
         Tensor b.
+    numpy : bool
+        Are we operating a numpy or torch object?
 
     Returns
     -------
     angles
         The cosine angles row wise. 
     """
-    p1 = np.einsum("ij,ij->i", a, b)
-    p2 = np.einsum("ij,ij->i", a, a)
-    p3 = np.einsum("ij,ij->i", b, b)
-    return p1 / np.sqrt(p2 * p3)
+    if numpy:
+        p1 = np.einsum("ij,ij->i", a, b)
+        p2 = np.einsum("ij,ij->i", a, a)
+        p3 = np.einsum("ij,ij->i", b, b)
+        return p1 / np.sqrt(p2 * p3)
+    else:
+        p1 = torch.einsum("ij,ij->i", a, b)
+        p2 = torch.einsum("ij,ij->i", a, a)
+        p3 = torch.einsum("ij,ij->i", b, b)
+        return p1 / torch.sqrt(p2 * p3)
 
 
 def calculate_G4(

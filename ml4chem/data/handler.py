@@ -1,9 +1,13 @@
+from ase.geometry import wrap_positions
 from collections import OrderedDict, Counter
+from functools import partial
 from ml4chem.data.utils import ase_to_xyz
 from ml4chem.utils import get_hash
+import pandas as pd
 import datetime
 import logging
-import pandas as pd
+import torch
+
 
 logger = logging.getLogger()
 
@@ -31,16 +35,26 @@ class Data(object):
     target_keys : list
         A list with the keys to build targets. For potentials the
         target_keys are ["energies", "forces"].
+    svm : bool
+        Whether or not these features are going to be used for kernel
+        methods.
     """
 
     def __init__(
-        self, images, purpose="inference", forcetraining=False, target_keys=None
+        self,
+        images,
+        purpose="inference",
+        forcetraining=False,
+        target_keys=None,
+        svm=False,
     ):
 
         self.images = None
         self.targets = None
         self.target_keys = target_keys
         self.unique_element_symbols = None
+        self.forcetraining = forcetraining
+        self.svm = svm
         logger.info("\nData")
         logger.info("====")
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -50,9 +64,9 @@ class Data(object):
             logger.warning(
                 "Data structure is not compatible with ML4Chem but will be automatically prepared for you..."
             )
-            self.prepare_images(images, purpose=purpose, forcetraining=forcetraining)
+            self.prepare_images(images, purpose=purpose)
 
-    def prepare_images(self, images, purpose=None, forcetraining=False):
+    def prepare_images(self, images, purpose=None):
         """Function to prepare images to operate with ML4Chem
 
         Parameters
@@ -62,18 +76,15 @@ class Data(object):
         purpose : str
             The purpose of the data so that structure is prepared accordingly.
             Supported are: 'training', 'inference'
-        forcetraining : bool, optional
-            Activate force training. Default is False.
         """
         logger.info(f"Preparing images for {purpose}...")
 
         if self.target_keys == None:
             self.target_keys = ["energies"]
 
-        if forcetraining:
+        if self.forcetraining:
             logger.info("Including forces in targets...")
             self.target_keys.append("forces")
-            self.coordinates = []
 
         self.images, self.targets = OrderedDict(), OrderedDict()
         self.atoms_per_image = []
@@ -89,15 +100,20 @@ class Data(object):
             if key in self.images.keys():
                 duplicates += 1
             else:
+                if self.svm == False:
+                    image.get_positions = partial(get_positions, image)
+                    image.arrays["positions"] = torch.tensor(
+                        image.positions, requires_grad=False
+                    )
+
                 self.images[key] = image
                 if purpose == "training":
                     # When purpose is training then you also need targets and
                     # number of atoms in each image
                     self.targets["energies"].append(image.get_potential_energy())
                     self.atoms_per_image.append(len(image))
-                    if forcetraining:
+                    if self.forcetraining:
                         self.targets["forces"].append(image.get_forces())
-                        self.coordinates.append(image.get_positions())
 
         if purpose == "training":
             if "energies" in self.target_keys:
@@ -248,3 +264,27 @@ class Data(object):
         df["energy"] = self.targets
 
         return df
+
+
+"""
+Auxiliary functions
+"""
+
+
+def get_positions(self, wrap=False, **wrap_kw):
+    """Get array of positions.
+
+    Parameters:
+
+    wrap: bool
+        wrap atoms back to the cell before returning positions
+    wrap_kw: (keyword=value) pairs
+        optional keywords `pbc`, `center`, `pretty_translation`, `eps`,
+        see :func:`ase.geometry.wrap_positions`
+    """
+    if wrap:
+        if "pbc" not in wrap_kw:
+            wrap_kw["pbc"] = self.pbc
+        return wrap_positions(self.positions, self.cell, **wrap_kw)
+    else:
+        return self.arrays["positions"]

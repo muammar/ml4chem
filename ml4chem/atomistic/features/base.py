@@ -15,7 +15,7 @@ class AtomisticFeatures(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, **kwargs):
+    def calculate(self, **kwargs):
         """Calculate features"""
         pass
 
@@ -53,13 +53,16 @@ class AtomisticFeatures(ABC):
                 if isinstance(scaled, tuple):
                     symbol, scaled = scaled
 
-                if isinstance(scaled, np.ndarray) is False:
+                try:
                     scaled = scaled.compute()
+                except AttributeError:
+                    # When AttributeError raises a problem it means we have a tensor with no Dask.
+                    pass
 
-                if svm is False:
-                    scaled = torch.tensor(
-                        scaled, requires_grad=False, dtype=torch.float,
-                    )
+                # if svm is False:
+                #     scaled = torch.tensor(
+                #         scaled, requires_grad=False, dtype=torch.float,
+                #     )
                 features.append((symbol, scaled))
 
         return hash, features

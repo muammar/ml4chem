@@ -379,36 +379,37 @@ def VAELoss(
 
 
 class TopologicalLoss(object):
+    """Computes topological loss function
+
+    This is an implementation of the loss function of the paper "Topological
+    Autoencoders" https://arxiv.org/abs/1906.00722. This function takes the
+    input space and latent space, perform persistent homology over them,
+    applies minimum spanning tree on the sparse distance matrices to obtain
+    edges, and finally uses minimum spanning tree to determine nodes. With
+    this information, it is possible to compute Eqs. 2 and 3 of the paper.
+
+
+    Parameters
+    ----------
+    loss_weights : dict, optional
+        A dictionary to weight reconstruction and topological
+        loss functions.
+
+    >>>  loss_weights = {"topology": 0.2, "reconstruction": 0.8}
+
+
+    Returns
+    -------
+    loss
+        The value of the loss function based on persistent homology.
+
+    Notes
+    -----
+    Thanks to Nicole Sanderson (LBL) and Edgar Jaramillo Rodriguez (UC Davis).
+
+    """
+
     def __init__(self, loss_weights=None):
-        """Computes topological loss function
-
-        This is an implementation of the loss function of the paper "Topological
-        Autoencoders" https://arxiv.org/abs/1906.00722. This function takes the
-        input space and latent space, perform persistent homology over them,
-        applies minimum spanning tree on the sparse distance matrices to obtain
-        edges, and finally uses minimum spanning tree to determine nodes. With
-        this information, it is possible to compute Eqs. 2 and 3 of the paper.
-
-
-        Parameters
-        ----------
-        loss_weights : dict, optional
-            A dictionary to weight reconstruction and topological
-            loss functions.
-
-        >>>  loss_weights = {"topology": 0.2, "reconstruction": 0.8}
-
-
-        Returns
-        -------
-        loss
-            The value of the loss function based on persistent homology.
-
-        Notes
-        -----
-        Thanks to Nicole Sanderson (LBL) and Edgar Jaramillo Rodriguez (UC Davis).
-
-        """
         keys = ["topology", "reconstruction"]
 
         if loss_weights != None and isinstance(loss_weights, dict) == False:
