@@ -65,7 +65,7 @@ class DeepLearningModel(ABC):
                     for symbol, features_ in values:
                         if symbol not in image.keys():
                             image[symbol] = []
-                        image[symbol].append(features_)
+                        image[symbol].append(features_.float())
 
                     for symbol in data.unique_element_symbols[purpose]:
                         tensors = image.get(symbol)

@@ -314,12 +314,16 @@ class Gaussian(AtomisticFeatures):
         chunks = get_chunks(images, self.batch_size, svm=svm)
 
         ini = end = 0
+        self.coordinates = []
+
         for chunk in chunks:
             images_ = OrderedDict(chunk)
+            coordinates_ = OrderedDict()
             intermediate = []
 
             for image in images_.items():
-                _, image = image
+                hash, image = image
+                coordinates_[hash] = []
                 end = ini + len(image)
                 atoms_index_map.append(list(range(ini, end)))
                 ini = end
@@ -364,7 +368,7 @@ class Gaussian(AtomisticFeatures):
                             neighborpositions[cutoff_key] = neighborpositions_
 
                     if client == None:
-                        afp = self.get_atomic_features(
+                        afp, Ri = self.get_atomic_features(
                             atom,
                             index,
                             symbol,
@@ -375,7 +379,7 @@ class Gaussian(AtomisticFeatures):
                             n_indices=n_indices,
                         )
                     else:
-                        afp = dask.delayed(self.get_atomic_features)(
+                        afp, Ri = dask.delayed(self.get_atomic_features)(
                             atom,
                             index,
                             symbol,
@@ -386,6 +390,7 @@ class Gaussian(AtomisticFeatures):
                             n_indices=n_indices,
                         )
 
+                    coordinates_[hash].append((symbol, Ri))
                     intermediate.append(afp)
 
             if client == None:
@@ -393,6 +398,7 @@ class Gaussian(AtomisticFeatures):
             else:
                 intermediate = client.persist(intermediate, scheduler=self.scheduler)
             stacked_features += intermediate
+            self.coordinates.append(coordinates_)
             del intermediate
 
         scheduler_time = time.time() - initial_time
@@ -706,7 +712,7 @@ class Gaussian(AtomisticFeatures):
         if self.svm:
             return np.array(features)
         else:
-            return torch.stack(features)
+            return torch.stack(features), Ri
 
     def make_symmetry_functions(self, symbols, custom=None, angular_type="G3"):
         """Function to make symmetry functions
