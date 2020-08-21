@@ -4,7 +4,7 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.sparse import csr_matrix
 
 
-def AtomicMSELoss(outputs, targets, atoms_per_image, uncertainty=None):
+class AtomicMSELoss(object):
     """Default loss function
 
     If user does not input loss function we provide mean-squared error loss
@@ -12,37 +12,73 @@ def AtomicMSELoss(outputs, targets, atoms_per_image, uncertainty=None):
 
     Parameters
     ----------
-    outputs : tensor
-        Outputs of the model.
-    targets : tensor
-        Dictionary of tensors.
-    atoms_per_image : tensor
-        A tensor with the number of atoms per image.
-    uncertainty : tensor, optional
-        A tensor of uncertainties that are used to penalize during the loss
-        function evaluation.
+    forcetraining : bool
+        Activate force training, by default False.
+    force_coefficient : float
+        The weight of the force loss to the total loss. By default 0.1.
 
-
-    Returns
-    -------
-    loss : tensor
-        The value of the loss function.
     """
 
-    if uncertainty == None:
-        criterion = torch.nn.MSELoss(reduction="sum")
-        outputs_atom = torch.div(outputs, atoms_per_image)
-        targets_atom = torch.div(targets, atoms_per_image)
+    def __init__(self, force_coefficient=0.1, forcetraining=False):
+        self.forcetraining = forcetraining
+        self.force_coefficient = force_coefficient
 
-        loss = criterion(outputs_atom, targets_atom) * 0.5
-    else:
-        criterion = torch.nn.MSELoss(reduction="none")
-        outputs_atom = torch.div(outputs, atoms_per_image)
-        targets_atom = torch.div(targets, atoms_per_image)
-        loss = (
-            criterion(outputs_atom, targets_atom) / (2 * torch.pow(uncertainty, 2))
-        ).sum() * 0.5
-    return loss
+    def __call__(
+        self, outputs, targets, atoms_per_image, uncertainty=None,
+    ):
+        """Call the AtomicMSELoss loss
+
+        Parameters
+        ----------
+        outputs : tensor
+            Dictionary with energy and forces outputs of the model.
+        targets : tensor
+            Dictionary with energy and forces targets of the model.
+        atoms_per_image : tensor
+            A tensor with the number of atoms per image.
+        uncertainty : tensor, optional
+            A tensor of uncertainties that are used to penalize during the loss
+            function evaluation.
+
+        Returns
+        -------
+        loss : tensor
+            The value of the loss function.
+        """
+
+        if uncertainty == None:
+            target_energy = torch.tensor(targets["energies"])
+
+            criterion = torch.nn.MSELoss(reduction="sum")
+            outputs_atom = torch.div(outputs["energies"], atoms_per_image)
+            targets_atom = torch.div(target_energy, atoms_per_image)
+
+            energy_loss = criterion(outputs_atom, targets_atom) * 0.5
+
+            if self.forcetraining:
+                target_forces = torch.from_numpy(np.concatenate(targets["forces"]))
+                force_loss = criterion(outputs["forces"], target_forces)
+                print(force_loss)
+        else:
+            criterion = torch.nn.MSELoss(reduction="none")
+            outputs_atom = torch.div(outputs, atoms_per_image)
+            targets_atom = torch.div(targets, atoms_per_image)
+            energy_loss = (
+                criterion(outputs_atom, targets_atom) / (2 * torch.pow(uncertainty, 2))
+            ).sum() * 0.5
+
+            if self.forcetraining:
+                raise RuntimeError("This is not implemented yet.")
+
+        if self.forcetraining:
+            loss = (
+                energy_loss
+                + (self.force_coefficient / target_forces.shape[0]) * force_loss
+            )
+        else:
+            loss = energy_loss
+
+        return loss
 
 
 def SumSquaredDiff(outputs, targets):
