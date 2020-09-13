@@ -13,3 +13,6 @@ matplotlib
 dscribe
 msgpack_python
 scikit_learn
+sphinx
+sphinx_rtd_theme
+m2r
