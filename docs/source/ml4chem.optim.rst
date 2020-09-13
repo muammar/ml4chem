@@ -20,7 +20,6 @@ ml4chem.optim.handler module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 

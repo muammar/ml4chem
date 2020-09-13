@@ -5,6 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
    ml4chem.atomistic
    ml4chem.backends
@@ -13,6 +14,14 @@ Subpackages
 
 Submodules
 ----------
+
+ml4chem.active module
+---------------------
+
+.. automodule:: ml4chem.active
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 ml4chem.metrics module
 ----------------------
@@ -37,7 +46,6 @@ ml4chem.visualization module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------

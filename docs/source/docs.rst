@@ -4,7 +4,19 @@ Building Documentation
 Documentation is a very important part of any project, and in ML4Chem special
 attention is given to provide a clear documentation.
 
-To locally build the docs you need to execute the `makedocs.sh` script::
+To locally build the docs you need to make sure all dependencies are correctly
+installed::
+
+   cd /path/ml4chem
+   pip install -r requirements.txt
+   cd /path/ml4chem/docs
+   pip install -r requirements.txt
+
+Also, you have to install `m2r` from the following git repository::
+
+   pip install --upgrade 'git+https://github.com/crossnox/m2r@dev#egg=m2r'
+
+Finally, execute the `makedocs.sh` script::
 
    sh makedocs.sh
 
