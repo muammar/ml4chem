@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+import torch
 import joblib
 
 logger = logging.getLogger()
@@ -43,13 +44,16 @@ class Preprocessing(object):
         else:
             self.preprocessing = preprocessor
 
-    def set(self, purpose):
+    def set(self, purpose, numpy=True):
         """Set a preprocessing method
 
         Parameters
         ----------
         purpose : str
             Supported purposes are : 'training', 'inference'.
+        numpy : bool
+            Whether we are preparing the preprocessor to work with tensors or
+            numpy arrays.
 
         Returns
         -------
@@ -59,12 +63,18 @@ class Preprocessing(object):
         logger.info("")
 
         if self.preprocessing == "minmaxscaler" and purpose == "training":
-            from dask_ml.preprocessing import MinMaxScaler
 
             if self.kwargs is None:
                 self.kwargs = {"feature_range": (-1, 1)}
-            self.preprocessor = MinMaxScaler(**self.kwargs)
-            preprocessor_name = "MinMaxScaler"
+
+            if numpy:
+                from dask_ml.preprocessing import MinMaxScaler
+
+                self.preprocessor = MinMaxScaler(**self.kwargs)
+                preprocessor_name = "MinMaxScaler"
+            else:
+                self.preprocessor = MinMaxScalerVectorized(**self.kwargs)
+                preprocessor_name = "MinMaxScaler"
 
         elif self.preprocessing == "standardscaler" and purpose == "training":
             from dask_ml.preprocessing import StandardScaler
@@ -118,7 +128,7 @@ class Preprocessing(object):
         """
         joblib.dump(preprocessor, path)
 
-    def fit(self, stacked_features, scheduler):
+    def fit(self, stacked_features, scheduler=None):
         """Fit features
 
         Parameters
@@ -141,9 +151,9 @@ class Preprocessing(object):
             scaled_features = self.preprocessor.transform(stacked_features)
             return scaled_features
         else:
-            self.preprocessor.fit(stacked_features)
-            scaled_features = self.preprocessor.transform(stacked_features)
-            return scaled_features.compute(scheduler=scheduler)
+            return self.preprocessor.fit(stacked_features)
+            # scaled_features = self.preprocessor.transform(stacked_features)
+            # return scaled_features.compute(scheduler=scheduler)
 
     def transform(self, raw_features):
         """Transform features to scaled features
@@ -167,3 +177,45 @@ class Preprocessing(object):
             return scaled_features.compute()
         except:
             return scaled_features
+
+
+class MinMaxScalerVectorized(object):
+    """MinMax Scaling
+
+    Transforms each channel to the range [0, 1].
+
+    Parameters
+    ----------
+    feature_range : tuple
+        Desired range of transformed data.
+    """
+
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+    def fit(self, tensor):
+        """Fit features
+
+        Parameters
+        ----------
+        stacked_features : list
+            List of stacked features.
+
+        Returns
+        -------
+        scaled_features 
+            A tensor with scaled features using requested preprocessor.
+        """
+
+        tensor = torch.stack(tensor)
+
+        # Feature range
+        a, b = self.feature_range
+
+        dist = tensor.max(dim=0, keepdim=True)[0] - tensor.min(dim=0, keepdim=True)[0]
+        dist[dist == 0.0] = 1.0
+        scale = 1.0 / dist
+        tensor.mul_(scale).sub_(tensor.min(dim=0, keepdim=True)[0])
+        tensor.mul_(b - a).add_(a)
+
+        return tensor

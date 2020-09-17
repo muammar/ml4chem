@@ -23,6 +23,9 @@ class AtomicMSELoss(object):
         self.forcetraining = forcetraining
         self.force_coefficient = force_coefficient
 
+    def name(self):
+        return "Atomistic Loss"
+
     def __call__(
         self, outputs, targets, atoms_per_image, uncertainty=None,
     ):
@@ -48,7 +51,6 @@ class AtomicMSELoss(object):
 
         if uncertainty == None:
             target_energy = torch.tensor(targets["energies"])
-
             criterion = torch.nn.MSELoss(reduction="sum")
             outputs_atom = torch.div(outputs["energies"], atoms_per_image)
             targets_atom = torch.div(target_energy, atoms_per_image)
@@ -71,10 +73,7 @@ class AtomicMSELoss(object):
                 raise RuntimeError("This is not implemented yet.")
 
         if self.forcetraining:
-            loss = (
-                energy_loss
-                + (self.force_coefficient / target_forces.shape[0]) * force_loss
-            )
+            loss = energy_loss + (self.force_coefficient * force_loss)
         else:
             loss = energy_loss
 

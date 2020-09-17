@@ -224,7 +224,7 @@ class Gaussian(AtomisticFeatures):
 
         try:
             client = dask.distributed.get_client()
-        except AttributeError:
+        except (AttributeError, ValueError):
             # No dask operation
             client = None
         logger.info(" ")
@@ -299,7 +299,7 @@ class Gaussian(AtomisticFeatures):
         self.dimension = len(sample)
 
         preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
-        preprocessor.set(purpose=purpose)
+        preprocessor.set(purpose=purpose, numpy=svm)
 
         # We start populating computations to get atomic features.
         logger.info("")
@@ -413,7 +413,7 @@ class Gaussian(AtomisticFeatures):
 
         logger.info("")
 
-        if self.preprocessor != None:
+        if self.preprocessor != None and svm:
 
             scaled_feature_space = []
 
@@ -457,6 +457,12 @@ class Gaussian(AtomisticFeatures):
                 # features = self.stack_features(indices, stacked_features)
 
                 scaled_feature_space.append(features)
+
+        elif self.preprocessor != None and svm == False:
+            if purpose == "training":
+                scaled_feature_space = preprocessor.fit(stacked_features)
+            else:
+                stacked_features = preprocessor.transform(stacked_features)
 
         else:
             scaled_feature_space = []
@@ -638,8 +644,10 @@ class Gaussian(AtomisticFeatures):
         # The central atom
         Ri = atom.position
 
-        if self.forcetraining:
-            Ri.requires_grad = True
+        if self.forcetraining and isinstance(Ri, (np.ndarray, np.generic)) == False:
+            Ri.requires_grad_(
+                True
+            )  # At this point the coordinates are a leaf and require gradients.
 
         features = [None] * num_symmetries
 
@@ -710,7 +718,7 @@ class Gaussian(AtomisticFeatures):
             features[count] = feature
 
         if self.svm:
-            return np.array(features)
+            return np.array(features), Ri
         else:
             return torch.stack(features), Ri
 

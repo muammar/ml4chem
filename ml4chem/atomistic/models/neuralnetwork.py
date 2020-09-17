@@ -366,13 +366,13 @@ class train(DeepLearningTrainer):
         self.initial_time = time.time()
 
         if lossfxn is None:
-            lossfxn = AtomicMSELoss
+            lossfxn = AtomicMSELoss(forcetraining=forcetraining)
 
         logger.info("")
         logger.info("Training")
         logger.info("========")
         logger.info(f"Convergence criteria: {convergence}")
-        logger.info(f"Loss function: {lossfxn.__name__}")
+        logger.info(f"Loss function: {lossfxn.name()}")
         if uncertainty is not None:
             logger.info("Options:")
             logger.info(f"    - Uncertainty penalization: {pformat(uncertainty)}")
@@ -465,24 +465,38 @@ class train(DeepLearningTrainer):
         self.checkpoint = checkpoint
         self.test = test
 
-        # Data scattering
-        logger.info(f"Scattering data to workers...")
-        client = dask.distributed.get_client()
-        # self.chunks = [client.scatter(chunk) for chunk in chunks]
-        self.chunks = client.scatter(chunks, broadcast=True)
-        self.conditions = client.scatter(conditions, broadcast=True)
-        # self.conditions = [client.scatter(condition) for condition in conditions]
-        # self.targets = [client.scatter(target) for target in targets]
-        self.targets = OrderedDict()
-        for key, targets_ in targets.items():
-            self.targets[key] = [client.scatter(target) for target in targets_]
+        try:
+            # Data scattering
+            logger.info(f"Scattering data to workers...")
+            client = dask.distributed.get_client()
+            # self.chunks = [client.scatter(chunk) for chunk in chunks]
+            self.chunks = client.scatter(chunks, broadcast=True)
+            self.conditions = client.scatter(conditions, broadcast=True)
+            # self.conditions = [client.scatter(condition) for condition in conditions]
+            # self.targets = [client.scatter(target) for target in targets]
+            self.targets = OrderedDict()
+            for key, targets_ in targets.items():
+                self.targets[key] = [client.scatter(target) for target in targets_]
 
-        if forcetraining:
-            self.coordinates = [client.scatter(c) for c in coordinates]
+            if forcetraining:
+                self.coordinates = [client.scatter(c) for c in coordinates]
 
-        if uncertainty != None:
-            self.uncertainty = [client.scatter(u) for u in uncertainty]
-        else:
+            if uncertainty != None:
+                self.uncertainty = [client.scatter(u) for u in uncertainty]
+            else:
+                self.uncertainty = uncertainty
+        except ValueError:
+            self.chunks = chunks
+            self.conditions = conditions
+            # self.conditions = [client.scatter(condition) for condition in conditions]
+            # self.targets = [client.scatter(target) for target in targets]
+            self.targets = OrderedDict()
+            for key, targets_ in targets.items():
+                self.targets[key] = [target for target in targets_]
+
+            if forcetraining:
+                self.coordinates = coordinates
+
             self.uncertainty = uncertainty
 
         # Let the hunger games begin...
@@ -543,7 +557,10 @@ class train(DeepLearningTrainer):
         _rmse = []
         epoch = 0
 
-        client = dask.distributed.get_client()
+        try:
+            client = dask.distributed.get_client()
+        except ValueError:
+            client = None
 
         while not converged:
             epoch += 1
@@ -579,19 +596,26 @@ class train(DeepLearningTrainer):
 
             rmse = OrderedDict()
             for key, out in outputs.items():
-                rmse_ = client.submit(compute_rmse, *(out, self.targets[key]))
-                rmse[key] = rmse_.result()
+                if client != None:
+                    rmse_ = client.submit(compute_rmse, *(out, self.targets[key]))
+                    rmse[key] = rmse_.result()
+                else:
+                    rmse_ = compute_rmse(out, self.targets[key])
+                    rmse[key] = rmse_
 
             atoms_per_image = torch.cat(self.atoms_per_image)
 
             rmse_atom = OrderedDict()
             for key, out in outputs.items():
-                rmse_atom_ = client.submit(
-                    compute_rmse, *(out, self.targets[key], atoms_per_image)
-                )
-                rmse_atom[key] = rmse_atom_.result()
-            # rmse = rmse.result()
-            # rmse_atom = rmse_atom.result()
+                if client != None:
+                    rmse_atom_ = client.submit(
+                        compute_rmse, *(out, self.targets[key], atoms_per_image)
+                    )
+                    rmse_atom[key] = rmse_atom_.result()
+                else:
+                    rmse_atom_ = compute_rmse(out, self.targets[key], atoms_per_image)
+                    rmse_atom[key] = rmse_atom_
+
             _loss.append(loss.item())
             _rmse.append(rmse)
             # In the case that lr_scheduler is not None
@@ -700,18 +724,41 @@ class train(DeepLearningTrainer):
         """
 
         # Get client to send futures to the scheduler
-        client = dask.distributed.get_client()
+        try:
+            client = dask.distributed.get_client()
+        except ValueError:
+            client = None
 
         running_loss = torch.tensor(0, dtype=torch.float)
         accumulation = []
         grads = []
 
         # Accumulation of gradients
-        for index, chunk in enumerate(chunks):
-            accumulation.append(
-                client.submit(
-                    train.train_batches,
-                    *(
+        if client != None:
+            for index, chunk in enumerate(chunks):
+                accumulation.append(
+                    client.submit(
+                        train.train_batches,
+                        *(
+                            index,
+                            chunk,
+                            conditions,
+                            targets,
+                            uncertainty,
+                            model,
+                            lossfxn,
+                            atoms_per_image,
+                            device,
+                            forcetraining,
+                        ),
+                    )
+                )
+            dask.distributed.wait(accumulation)
+            accumulation = client.gather(accumulation)
+        else:
+            for index, chunk in enumerate(chunks):
+                accumulation.append(
+                    train.train_batches(
                         index,
                         chunk,
                         conditions,
@@ -724,9 +771,6 @@ class train(DeepLearningTrainer):
                         forcetraining,
                     ),
                 )
-            )
-        dask.distributed.wait(accumulation)
-        accumulation = client.gather(accumulation)
 
         outputs = OrderedDict()
 
@@ -808,9 +852,14 @@ class train(DeepLearningTrainer):
         loss = 0.0
         if uncertainty == None:
             for key, targets_ in targets.items():
-                loss += lossfxn(
-                    outputs[key], targets_[index].result(), atoms_per_image[index]
-                )
+                try:  # FIXME
+                    loss += lossfxn(
+                        outputs[key], targets_[index].result(), atoms_per_image[index]
+                    )
+                except:
+                    loss += lossfxn(
+                        outputs[key], targets_[index], atoms_per_image[index]
+                    )
         else:
             loss = lossfxn(outputs, targets, atoms_per_image[index], uncertainty[index])
 
