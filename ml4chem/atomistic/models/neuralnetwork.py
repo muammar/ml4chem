@@ -214,22 +214,22 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
         """Get activations of each hidden-layer
 
         This function allows to extract activations of each hidden-layer of
-        the neural network. 
+        the neural network.
 
         Parameters
         ----------
         image : dict
-           Image with structure hash, features. 
+           Image with structure hash, features.
         model : object
             A ML4Chem model object.
         numpy : bool
-            Whether we want numpy arrays or tensors. 
+            Whether we want numpy arrays or tensors.
 
 
         Returns
         -------
         activations : DataFrame
-            A DataFrame with activations for each layer.  
+            A DataFrame with activations for each layer.
         """
 
         activations = []
@@ -329,7 +329,7 @@ class train(DeepLearningTrainer):
         Set checkpoints. Dictionary with following structure:
 
         >>> checkpoint = {"label": label, "checkpoint": 100, "path": ""}
-        
+
         `label` refers to the name used to save the checkpoint, `checkpoint`
         is a integer or -1 for saving all epochs, and the path is where the
         checkpoint is stored. Default is None and no checkpoint is saved.
@@ -339,10 +339,10 @@ class train(DeepLearningTrainer):
 
         >>>  test = {"features": test_space, "targets": test_targets, "data": data_test}
 
-        The keys,values of the dictionary are: 
+        The keys,values of the dictionary are:
 
         - "data": a `Data` object.
-        - "targets": test set targets. 
+        - "targets": test set targets.
         - "features": a feature space obtained using `features.calculate()`.
 
     """
@@ -685,7 +685,7 @@ class train(DeepLearningTrainer):
         grads = sum(grads)
 
         for index, param in enumerate(model.parameters()):
-            param.grad = torch.tensor(grads[index])
+            param.grad = torch.tensor(grads[index], dtype=torch.float)
 
         del accumulation
         del grads
