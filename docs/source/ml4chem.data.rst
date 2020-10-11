@@ -44,7 +44,6 @@ ml4chem.data.utils module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 

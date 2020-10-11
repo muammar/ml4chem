@@ -20,7 +20,6 @@ ml4chem.backends.operations module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 

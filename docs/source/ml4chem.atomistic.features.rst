@@ -60,7 +60,6 @@ ml4chem.atomistic.features.gaussian module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 

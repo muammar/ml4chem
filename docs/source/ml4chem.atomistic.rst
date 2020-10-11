@@ -5,6 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
    ml4chem.atomistic.features
    ml4chem.atomistic.models
@@ -19,7 +20,6 @@ ml4chem.atomistic.potentials module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------
