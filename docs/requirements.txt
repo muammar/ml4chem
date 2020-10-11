@@ -15,4 +15,4 @@ msgpack_python
 scikit_learn
 sphinx
 sphinx_rtd_theme
-m2r
+-e git+https://github.com/crossnox/m2r@dev#egg=m2r
