@@ -12,5 +12,6 @@ pytest
 msgpack_numpy
 matplotlib
 dscribe
+msgpack>=0.6.0
 msgpack_python
 scikit_learn
