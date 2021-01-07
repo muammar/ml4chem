@@ -85,7 +85,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     #'recommonmark',
-    "m2r",
+    "m2r2",
     "sphinx.ext.githubpages",
 ]
 
