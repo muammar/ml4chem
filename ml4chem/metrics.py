@@ -21,7 +21,6 @@ def compute_rmse(outputs, targets, atoms_per_image=None):
     rmse : float
         Root-mean squared error.
     """
-
     # Concatenate outputs and targets if they come as list of tensors
     if isinstance(outputs, list):
         try:

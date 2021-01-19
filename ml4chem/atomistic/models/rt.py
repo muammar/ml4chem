@@ -7,7 +7,7 @@ import torch
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
-from ml4chem.metrics import compute_rmse
+from ml4chem.metrics import compute_mae
 from ml4chem.atomistic.models.base import DeepLearningModel, DeepLearningTrainer
 from ml4chem.atomistic.models.loss import AtomicMSELoss
 from ml4chem.optim.handler import get_optimizer, get_lr_scheduler, get_lr
@@ -42,7 +42,7 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
        (2016).
     """
 
-    NAME = "PytorchPotentials"
+    NAME = "RetentionTimes"
 
     @classmethod
     def name(cls):
@@ -101,25 +101,6 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
         for symbol in unique_element_symbols:
             linears = []
 
-            intercept_name = "intercept_" + symbol
-            slope_name = "slope_" + symbol
-
-            if purpose == "training":
-                intercept = (data.max_energy + data.min_energy) / 2.0
-                intercept = torch.nn.Parameter(
-                    torch.tensor(intercept, requires_grad=True)
-                )
-                slope = (data.max_energy - data.min_energy) / 2.0
-                slope = torch.nn.Parameter(torch.tensor(slope, requires_grad=True))
-
-                self.register_parameter(intercept_name, intercept)
-                self.register_parameter(slope_name, slope)
-            elif purpose == "inference":
-                intercept = torch.nn.Parameter(torch.tensor(0.0))
-                slope = torch.nn.Parameter(torch.tensor(0.0))
-                self.register_parameter(intercept_name, intercept)
-                self.register_parameter(slope_name, slope)
-
             for index in layers:
                 # This is the input layer
                 if index == 0:
@@ -133,6 +114,7 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
                     out_dimension = 1
                     _linear = torch.nn.Linear(inp_dimension, out_dimension)
                     linears.append(_linear)
+                    linears.append(activation["relu"]())
                 # These are hidden-layers
                 else:
                     inp_dimension = self.hiddenlayers[index - 1]
@@ -186,11 +168,11 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
             if isinstance(symbol, bytes):
                 symbol = symbol.decode("utf-8")
             x = self.linears[symbol](tensors)
-            intercept_name = "intercept_" + symbol
-            slope_name = "slope_" + symbol
-            slope = getattr(self, slope_name)
-            intercept = getattr(self, intercept_name)
-            x = (slope * x) + intercept
+            # intercept_name = "intercept_" + symbol
+            # slope_name = "slope_" + symbol
+            # slope = getattr(self, slope_name)
+            # intercept = getattr(self, intercept_name)
+            # x = (slope * x) + intercept
             x = (x.squeeze() * conditions[symbol]).sum(dim=1)
             outputs[symbol] = x
 
@@ -366,13 +348,13 @@ class train(DeepLearningTrainer):
         self.initial_time = time.time()
 
         if lossfxn is None:
-            lossfxn = AtomicMSELoss(forcetraining=forcetraining)
+            lossfxn = AtomicMSELoss
 
         logger.info("")
         logger.info("Training")
         logger.info("========")
         logger.info(f"Convergence criteria: {convergence}")
-        logger.info(f"Loss function: {lossfxn.name()}")
+        logger.info(f"Loss function: {lossfxn.__name__}")
         if uncertainty is not None:
             logger.info("Options:")
             logger.info(f"    - Uncertainty penalization: {pformat(uncertainty)}")
@@ -384,7 +366,7 @@ class train(DeepLearningTrainer):
             batch_size = len(inputs.values())
 
         if isinstance(batch_size, int):
-            # Data batches
+            # Input data batches
             chunks = get_chunks(inputs, batch_size, svm=False)
             atoms_per_image = list(get_chunks(atoms_per_image, batch_size, svm=False))
 
@@ -465,38 +447,24 @@ class train(DeepLearningTrainer):
         self.checkpoint = checkpoint
         self.test = test
 
-        try:
-            # Data scattering
-            logger.info(f"Scattering data to workers...")
-            client = dask.distributed.get_client()
-            # self.chunks = [client.scatter(chunk) for chunk in chunks]
-            self.chunks = client.scatter(chunks, broadcast=True)
-            self.conditions = client.scatter(conditions, broadcast=True)
-            # self.conditions = [client.scatter(condition) for condition in conditions]
-            # self.targets = [client.scatter(target) for target in targets]
-            self.targets = OrderedDict()
-            for key, targets_ in targets.items():
-                self.targets[key] = [client.scatter(target) for target in targets_]
+        # Data scattering
+        logger.info(f"Scattering data to workers...")
+        client = dask.distributed.get_client()
+        # self.chunks = [client.scatter(chunk) for chunk in chunks]
+        self.chunks = client.scatter(chunks, broadcast=True)
+        self.conditions = client.scatter(conditions, broadcast=True)
+        # self.conditions = [client.scatter(condition) for condition in conditions]
+        # self.targets = [client.scatter(target) for target in targets]
+        self.targets = OrderedDict()
+        for key, targets_ in targets.items():
+            self.targets[key] = [client.scatter(target) for target in targets_]
 
-            if forcetraining:
-                self.coordinates = [client.scatter(c) for c in coordinates]
+        if forcetraining:
+            self.coordinates = [client.scatter(c) for c in coordinates]
 
-            if uncertainty != None:
-                self.uncertainty = [client.scatter(u) for u in uncertainty]
-            else:
-                self.uncertainty = uncertainty
-        except ValueError:
-            self.chunks = chunks
-            self.conditions = conditions
-            # self.conditions = [client.scatter(condition) for condition in conditions]
-            # self.targets = [client.scatter(target) for target in targets]
-            self.targets = OrderedDict()
-            for key, targets_ in targets.items():
-                self.targets[key] = [target for target in targets_]
-
-            if forcetraining:
-                self.coordinates = coordinates
-
+        if uncertainty != None:
+            self.uncertainty = [client.scatter(u) for u in uncertainty]
+        else:
             self.uncertainty = uncertainty
 
         # Let the hunger games begin...
@@ -528,6 +496,18 @@ class train(DeepLearningTrainer):
             test_features = self.test.get("features", None)
             test_targets = self.test.get("targets", None)
             test_data = self.test.get("data", None)
+            test_features, conditions = self.model.feature_preparation(
+                test_features, test_data
+            )
+
+            # The preparation above is returning a list so the dictionary is
+            # inside and has to be indexed.
+            test_features, conditions = test_features[0], conditions[0]
+
+            # FIXME adding [] is an ugly hack that has to be fixed.
+            test_targets = [
+                torch.tensor(list(test_targets.values())[0], requires_grad=False)
+            ]
 
             logger.info(
                 "{:6s} {:19s} {:12s} {:12s} {:12s} {:12s} {:16s}".format(
@@ -553,14 +533,9 @@ class train(DeepLearningTrainer):
             )
 
         converged = False
-        _loss = []
-        _rmse = []
         epoch = 0
 
-        try:
-            client = dask.distributed.get_client()
-        except ValueError:
-            client = None
+        client = dask.distributed.get_client()
 
         while not converged:
             epoch += 1
@@ -592,32 +567,23 @@ class train(DeepLearningTrainer):
                 options = {"closure": self.closure, "current_loss": loss, "max_ls": 10}
                 self.optimizer.step(options)
 
-            # RMSE per image and per/atom
+            # MAE per image and per/atom
 
             rmse = OrderedDict()
             for key, out in outputs.items():
-                if client != None:
-                    rmse_ = client.submit(compute_rmse, *(out, self.targets[key]))
-                    rmse[key] = rmse_.result()
-                else:
-                    rmse_ = compute_rmse(out, self.targets[key])
-                    rmse[key] = rmse_
+                rmse_ = client.submit(compute_mae, *(out, self.targets[key]))
+                rmse[key] = rmse_.result()
 
             atoms_per_image = torch.cat(self.atoms_per_image)
 
             rmse_atom = OrderedDict()
             for key, out in outputs.items():
-                if client != None:
-                    rmse_atom_ = client.submit(
-                        compute_rmse, *(out, self.targets[key], atoms_per_image)
-                    )
-                    rmse_atom[key] = rmse_atom_.result()
-                else:
-                    rmse_atom_ = compute_rmse(out, self.targets[key], atoms_per_image)
-                    rmse_atom[key] = rmse_atom_
-
-            _loss.append(loss.item())
-            _rmse.append(rmse)
+                rmse_atom_ = client.submit(
+                    compute_mae, *(out, self.targets[key], atoms_per_image)
+                )
+                rmse_atom[key] = rmse_atom_.result()
+            # rmse = rmse.result()
+            # rmse_atom = rmse_atom.result()
             # In the case that lr_scheduler is not None
             if self.lr_scheduler is not None:
                 self.scheduler.step(loss)
@@ -635,21 +601,27 @@ class train(DeepLearningTrainer):
                 logger.info(info)
             else:
                 test_model = self.model.eval()
-                test_predictions = test_model(test_features).detach()
+                test_predictions = test_model(test_features, conditions)
+                # FIXME adding [] is an ugly hack that has to be fixed.
+                test_predictions = [torch.stack(list(test_predictions.values())).sum(0)]
+
                 rmse_test = client.submit(
-                    compute_rmse, *(test_predictions, test_targets)
+                    compute_mae, *(test_predictions, test_targets)
                 )
 
                 atoms_per_image_test = torch.tensor(
                     test_data.atoms_per_image, requires_grad=False
                 )
                 rmse_atom_test = client.submit(
-                    compute_rmse,
+                    compute_mae,
                     *(test_predictions, test_targets, atoms_per_image_test),
                 )
 
                 rmse_test = rmse_test.result()
                 rmse_atom_test = rmse_atom_test.result()
+
+                rmse = list(rmse.values())[0]
+                rmse_atom = list(rmse_atom.values())[0]
 
                 logger.info(
                     f"{epoch:6d} {ts} {loss.detach():8e} {rmse:4e} {rmse_atom:4e} {rmse_test:4e} {rmse_atom_test:4e}"
@@ -724,41 +696,18 @@ class train(DeepLearningTrainer):
         """
 
         # Get client to send futures to the scheduler
-        try:
-            client = dask.distributed.get_client()
-        except ValueError:
-            client = None
+        client = dask.distributed.get_client()
 
         running_loss = torch.tensor(0, dtype=torch.float)
         accumulation = []
         grads = []
 
         # Accumulation of gradients
-        if client != None:
-            for index, chunk in enumerate(chunks):
-                accumulation.append(
-                    client.submit(
-                        train.train_batches,
-                        *(
-                            index,
-                            chunk,
-                            conditions,
-                            targets,
-                            uncertainty,
-                            model,
-                            lossfxn,
-                            atoms_per_image,
-                            device,
-                            forcetraining,
-                        ),
-                    )
-                )
-            dask.distributed.wait(accumulation)
-            accumulation = client.gather(accumulation)
-        else:
-            for index, chunk in enumerate(chunks):
-                accumulation.append(
-                    train.train_batches(
+        for index, chunk in enumerate(chunks):
+            accumulation.append(
+                client.submit(
+                    train.train_batches,
+                    *(
                         index,
                         chunk,
                         conditions,
@@ -771,6 +720,9 @@ class train(DeepLearningTrainer):
                         forcetraining,
                     ),
                 )
+            )
+        dask.distributed.wait(accumulation)
+        accumulation = client.gather(accumulation)
 
         outputs = OrderedDict()
 
@@ -787,7 +739,7 @@ class train(DeepLearningTrainer):
         grads = sum(grads)
 
         for index, param in enumerate(model.parameters()):
-            param.grad = torch.tensor(grads[index], dtype=torch.float)
+            param.grad = torch.tensor(grads[index])
 
         del accumulation
         del grads
@@ -852,16 +804,17 @@ class train(DeepLearningTrainer):
         loss = 0.0
         if uncertainty == None:
             for key, targets_ in targets.items():
-                try:  # FIXME
-                    loss += lossfxn(
-                        outputs[key], targets_[index].result(), atoms_per_image[index]
-                    )
-                except:
-                    loss += lossfxn(
-                        outputs[key], targets_[index], atoms_per_image[index]
-                    )
+                loss += lossfxn(
+                    outputs[key], targets_[index].result(), atoms_per_image[index]
+                )
         else:
-            loss = lossfxn(outputs, targets, atoms_per_image[index], uncertainty[index])
+            for key, targets_ in targets.items():
+                loss += lossfxn(
+                    outputs[key],
+                    targets_[index].result(),
+                    atoms_per_image[index],
+                    uncertainty[index],
+                )
 
         loss.backward()
 

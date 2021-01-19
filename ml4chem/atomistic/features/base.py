@@ -43,7 +43,7 @@ class AtomisticFeatures(ABC):
         """
         hash, image = image
 
-        if scaled_feature_space is not None:
+        if scaled_feature_space != None:
             features = []
             for j, atom in enumerate(image):
                 symbol = atom.symbol
@@ -53,14 +53,15 @@ class AtomisticFeatures(ABC):
                 if isinstance(scaled, tuple):
                     symbol, scaled = scaled
 
-                if isinstance(scaled, np.ndarray) is False:
+                try:
                     scaled = scaled.compute()
+                except AttributeError:
+                    # When AttributeError raises, it means we have a tensor with no Dask.
+                    pass
 
-                if svm is False:
-                    scaled = torch.tensor(
-                        scaled, requires_grad=False, dtype=torch.float,
-                    )
                 features.append((symbol, scaled))
+        else:
+            raise RuntimeError("There are no scaled featured available")
 
         return hash, features
 

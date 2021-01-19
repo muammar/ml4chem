@@ -1,9 +1,13 @@
-from collections import OrderedDict
+from ase.geometry import wrap_positions
+from collections import OrderedDict, Counter
+from functools import partial
 from ml4chem.data.utils import ase_to_xyz
 from ml4chem.utils import get_hash
+import pandas as pd
 import datetime
 import logging
-import pandas as pd
+import torch
+
 
 logger = logging.getLogger()
 
@@ -25,21 +29,41 @@ class Data(object):
         List of images. Supported format is from ASE.
     purpose : str
         Is this data for training or inference purpose?. Supported strings are:
-        "training", and "inference".
+        "training", and "inference". Default is "inference".
+    forcetraining : bool, optional
+        Activate force training. Default is False.
+    target_keys : list
+        A list with the keys to build targets. For potentials the
+        target_keys are ["energies", "forces"].
+    svm : bool
+        Whether or not these features are going to be used for kernel
+        methods.
     """
 
-    def __init__(self, images, purpose=None):
+    def __init__(
+        self,
+        images,
+        purpose="inference",
+        forcetraining=False,
+        target_keys=None,
+        svm=False,
+    ):
 
         self.images = None
         self.targets = None
+        self.target_keys = target_keys
         self.unique_element_symbols = None
+        self.forcetraining = forcetraining
+        self.svm = svm
         logger.info("\nData")
         logger.info("====")
-        now = datetime.datetime.now()
-        logger.info("Module accessed on {}.".format(now.strftime("%Y-%m-%d %H:%M:%S")))
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        logger.info(f"Module accessed on {now}.")
 
         if self.is_valid_structure(images) is False:
-            logger.warning("Data structure is not compatible with ML4Chem.")
+            logger.warning(
+                "Data structure is not compatible with ML4Chem but will be automatically prepared for you..."
+            )
             self.prepare_images(images, purpose=purpose)
 
     def prepare_images(self, images, purpose=None):
@@ -52,14 +76,22 @@ class Data(object):
         purpose : str
             The purpose of the data so that structure is prepared accordingly.
             Supported are: 'training', 'inference'
-
         """
-        logger.info("Preparing images for {}...".format(purpose))
-        self.images = OrderedDict()
+        logger.info(f"Preparing images for {purpose}...")
+
+        if self.target_keys == None:
+            self.target_keys = ["energies"]
+
+        if self.forcetraining:
+            logger.info("Including forces in targets...")
+            self.target_keys.append("forces")
+
+        self.images, self.targets = OrderedDict(), OrderedDict()
         self.atoms_per_image = []
 
         if purpose == "training":
-            self.targets = []
+            for key in self.target_keys:
+                self.targets[key] = []
 
         duplicates = 0
 
@@ -68,34 +100,43 @@ class Data(object):
             if key in self.images.keys():
                 duplicates += 1
             else:
+                if self.svm == False:
+                    image.get_positions = partial(get_positions, image)
+                    image.arrays["positions"] = torch.tensor(
+                        image.positions, requires_grad=False,
+                    )
+
                 self.images[key] = image
                 if purpose == "training":
                     # When purpose is training then you also need targets and
                     # number of atoms in each image
                     try:
-                        self.targets.append(image.get_potential_energy())
+                        self.targets["energies"].append(image.get_potential_energy())
                     except RuntimeError:  # Atoms object has no calculator
                         pass
+
                     self.atoms_per_image.append(len(image))
 
-        if purpose == "training" and len(self.targets) > 0:
-            max_energy = max(self.targets)
-            max_index = self.targets.index(max_energy)
-            min_energy = min(self.targets)
-            min_index = self.targets.index(min_energy)
-
-            max_energy = max_energy / len(images[max_index])
-            min_energy = min_energy / len(images[min_index])
-
-            self.max_energy, self.min_energy = max_energy, min_energy
-        logger.info("Images hashed and processed...\n")
+                    if self.forcetraining:
+                        self.targets["forces"].append(image.get_forces())
 
         if purpose == "training":
-            logger.info(
-                "There are {} atoms in your data set.".format(
-                    self.get_total_number_atoms()
-                )
-            )
+            if "energies" in self.target_keys and len(self.targets["energies"]) > 0:
+                max_energy = max(self.targets["energies"])
+                max_index = self.targets["energies"].index(max_energy)
+                min_energy = min(self.targets["energies"])
+                min_index = self.targets["energies"].index(min_energy)
+
+                max_energy /= len(images[max_index])
+                min_energy /= len(images[min_index])
+
+                self.max_energy, self.min_energy = max_energy, min_energy
+        logger.info("Images hashed and processed...\n")
+
+        self.total_number_atoms = self.get_total_number_atoms()
+        self.total_number_molecules = len(self.atoms_per_image)
+
+        logger.info(f"There are {self.total_number_atoms} atoms in your data set.")
 
     def is_valid_structure(self, images):
         """Check if the data has a valid structure
@@ -195,6 +236,27 @@ class Data(object):
         """Get the total number of atoms"""
         return sum(self.atoms_per_image)
 
+    def get_largest_number_atoms(self, purpose):
+        """
+        Parameters
+        ----------
+        purpose : str
+            The purpose of the data so that structure is prepared accordingly.
+            Supported are: 'training', 'inference'
+        """
+        unique_element_symbols = self.get_unique_element_symbols(purpose=purpose)
+        self.largest_number_atoms = {
+            symbol: 0 for symbol in unique_element_symbols[purpose]
+        }
+
+        for _, image in self.images.items():
+            numbers = Counter(image.get_chemical_symbols())
+            for symbol in unique_element_symbols[purpose]:
+                if numbers[symbol] > self.largest_number_atoms[symbol]:
+                    self.largest_number_atoms[symbol] = numbers[symbol]
+
+        return self.largest_number_atoms
+
     def to_pandas(self):
         """Convert data to pandas DataFrame"""
         images = OrderedDict()
@@ -207,3 +269,27 @@ class Data(object):
         df["energy"] = self.targets
 
         return df
+
+
+"""
+Auxiliary functions
+"""
+
+
+def get_positions(self, wrap=False, **wrap_kw):
+    """Get array of positions.
+
+    Parameters:
+
+    wrap: bool
+        wrap atoms back to the cell before returning positions
+    wrap_kw: (keyword=value) pairs
+        optional keywords `pbc`, `center`, `pretty_translation`, `eps`,
+        see :func:`ase.geometry.wrap_positions`
+    """
+    if wrap:
+        if "pbc" not in wrap_kw:
+            wrap_kw["pbc"] = self.pbc
+        return wrap_positions(self.positions, self.cell, **wrap_kw)
+    else:
+        return self.arrays["positions"]

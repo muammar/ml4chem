@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 class BackendOperations(object):
@@ -10,12 +11,17 @@ class BackendOperations(object):
 
     Parameters
     ----------
-    backend : object
+    backend : str
         A backend object: numpy, tensorflow, or pytorch.
     """
 
     def __init__(self, backend):
-        self.backend = backend
+        _backends = {"numpy": np, "pytorch": torch}
+        self.backend = _backends.get(backend, None)
+
+        if self.backend == None:
+            raise RuntimeError(f"{backend} is not a supported backend.")
+
         self.name = self.backend.__name__
 
     def dot(self, a, b):

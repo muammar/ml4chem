@@ -237,6 +237,7 @@ class Potentials(Calculator, object):
         lossfxn=None,
         regularization=0.0,
         batch_size=None,
+        forcetraining=False,
         **kwargs
     ):
         """Method to train models
@@ -265,11 +266,13 @@ class Potentials(Calculator, object):
         batch_size : int
             Number of data points per batch to use for training. Default is
             None.
+        forcetraining : bool, optional
+            Activate force training. Default is False.
         """
 
         purpose = "training"
         # Raw input and targets aka X, y
-        data_handler = Data(training_set, purpose=purpose)
+        data_handler = Data(training_set, purpose=purpose, forcetraining=forcetraining)
         training_set, targets = data_handler.get_data(purpose=purpose)
 
         # Now let's featurize
@@ -339,6 +342,7 @@ class Potentials(Calculator, object):
                 lossfxn=lossfxn,
                 device=device,
                 batch_size=batch_size,
+                forcetraining=forcetraining,
                 **kwargs
             )
 
@@ -405,12 +409,16 @@ class Potentials(Calculator, object):
                     model.load_state_dict(torch.load(self.ml4chem_path), strict=False)
                 model.eval()
 
-                try:
-                    # A single-point energy calculation
-                    energy = model(features).item()
-                except ValueError:
-                    # A list of single-point energy calculations.
-                    energy = model(features).tolist()
+                number_molecules = len(features.keys())
+
+                features, conditions = model.feature_preparation(features, data_handler)
+
+                energy = model(features[0], conditions[0])
+                # A single-point energy calculation
+                if number_molecules == 1:
+                    energy = torch.stack(list(energy.values())).sum(0).item()
+                else:
+                    energy = torch.stack(list(energy.values())).sum(0).detach().numpy()
 
             # Populate ASE's self.results dict
             self.results["energy"] = energy

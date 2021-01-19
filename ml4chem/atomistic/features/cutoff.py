@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 
 
@@ -26,9 +27,19 @@ class Cosine(object):
         cutofffxn : float
             Value of the cutoff function.
         """
-        if rij > self.cutoff:
-            cutofffxn = 0.0
-        else:
-            cutofffxn = 0.5 * (np.cos(np.pi * rij / self.cutoff) + 1.0)
+        try:
+            # Serial
+            if rij > self.cutoff:
+                cutofffxn = 0.0
+            else:
+                cutofffxn = 0.5 * (np.cos(np.pi * rij / self.cutoff) + 1.0)
+        except (ValueError, RuntimeError):
+            # Vectorized
+            if isinstance(rij, np.ndarray):
+                cutofffxn = 0.5 * (np.cos(np.pi * rij / self.cutoff) + 1.0)
+                cutofffxn[rij > self.cutoff] = 0
+            else:
+                cutofffxn = 0.5 * (torch.cos(np.pi * rij / self.cutoff) + 1.0)
+                cutofffxn[rij > self.cutoff] = 0
 
         return cutofffxn

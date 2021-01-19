@@ -41,7 +41,7 @@ class ModelMerger(torch.nn.Module):
 
     def __init__(self, models):
         super(ModelMerger, self).__init__()
-        self.models = models
+        self.models = torch.nn.ModuleList(models)
 
     def forward(self, X, models):
         """Forward propagation

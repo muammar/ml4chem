@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 import time
+import torch
 import dask.array as da
 import numpy as np
 import pandas as pd
@@ -169,6 +170,31 @@ class Gaussian(AtomisticFeatures):
         else:
             raise RuntimeError("This case is not implemented yet...")
 
+    def __call__(self, images, **kwargs):
+        """Callable aspect of the Gaussian class
+
+        Parameters
+        ----------
+        image : dict
+            Hashed images using the Data class.
+        purpose : str
+            The supported purposes are: 'training', 'inference'.
+        data : obj
+            data object
+        svm : bool
+            Whether or not these features are going to be used for kernel
+            methods.
+
+        Returns
+        -------
+        feature_space : dict
+            A dictionary with key hash and value as a list with the following
+            structure: {'hash': [('H', [vector]]}
+        reference_space : dict
+            A reference space useful for SVM models.
+        """
+        return self.calculate(images=images, **kwargs)
+
     def calculate(self, images=None, purpose="training", data=None, svm=False, GP=None):
         """Calculate the features per atom in an atoms objects
 
@@ -193,7 +219,14 @@ class Gaussian(AtomisticFeatures):
             A reference space useful for SVM models.
         """
 
-        client = dask.distributed.get_client()
+        self.forcetraining = data.forcetraining
+        self.svm = svm
+
+        try:
+            client = dask.distributed.get_client()
+        except (AttributeError, ValueError):
+            # No dask operation
+            client = None
         logger.info(" ")
         logger.info("Featurization")
         logger.info("=============")
@@ -213,12 +246,13 @@ class Gaussian(AtomisticFeatures):
 
             if image_hashes == data_hashes:
                 # Check if both lists are the same.
+                self.dimension = len(data[list(data.keys())[0]][0][1])
                 return data
             elif any(i in image_hashes for i in data_hashes):
-                # Check if any of the elem
                 _data = {}
                 for hash in image_hashes:
                     _data[hash] = data[hash]
+                self.dimension = len(_data[list(_data.keys())[0]][0][1])
                 return _data
 
             if svm_keys == list(data.keys()):
@@ -268,7 +302,7 @@ class Gaussian(AtomisticFeatures):
         self.dimension = len(sample)
 
         preprocessor = Preprocessing(self.preprocessor, purpose=purpose)
-        preprocessor.set(purpose=purpose)
+        preprocessor.set(purpose=purpose, numpy=svm)
 
         # We start populating computations to get atomic features.
         logger.info("")
@@ -283,12 +317,16 @@ class Gaussian(AtomisticFeatures):
         chunks = get_chunks(images, self.batch_size, svm=svm)
 
         ini = end = 0
+        self.coordinates = []
+
         for chunk in chunks:
             images_ = OrderedDict(chunk)
+            coordinates_ = OrderedDict()
             intermediate = []
 
             for image in images_.items():
-                _, image = image
+                hash, image = image
+                coordinates_[hash] = []
                 end = ini + len(image)
                 atoms_index_map.append(list(range(ini, end)))
                 ini = end
@@ -332,26 +370,44 @@ class Gaussian(AtomisticFeatures):
                             )
                             neighborpositions[cutoff_key] = neighborpositions_
 
-                    afp = self.get_atomic_features(
-                        atom,
-                        index,
-                        symbol,
-                        n_symbols,
-                        neighborpositions,
-                        image_molecule=image,
-                        weighted=self.weighted,
-                        n_indices=n_indices,
-                    )
+                    if client == None:
+                        afp, Ri = self.get_atomic_features(
+                            atom,
+                            index,
+                            symbol,
+                            n_symbols,
+                            neighborpositions,
+                            image_molecule=image,
+                            weighted=self.weighted,
+                            n_indices=n_indices,
+                        )
+                    else:
+                        afp, Ri = dask.delayed(self.get_atomic_features)(
+                            atom,
+                            index,
+                            symbol,
+                            n_symbols,
+                            neighborpositions,
+                            image_molecule=image,
+                            weighted=self.weighted,
+                            n_indices=n_indices,
+                        )
 
+                    coordinates_[hash].append((symbol, Ri))
                     intermediate.append(afp)
 
-            intermediate = client.persist(intermediate, scheduler=self.scheduler)
+            if client == None:
+                pass
+            else:
+                intermediate = client.persist(intermediate, scheduler=self.scheduler)
             stacked_features += intermediate
+            self.coordinates.append(coordinates_)
             del intermediate
 
         scheduler_time = time.time() - initial_time
 
-        dask.distributed.wait(stacked_features)
+        if client != None:
+            dask.distributed.wait(stacked_features)
 
         h, m, s = convert_elapsed_time(scheduler_time)
         logger.info(
@@ -360,7 +416,7 @@ class Gaussian(AtomisticFeatures):
 
         logger.info("")
 
-        if self.preprocessor is not None:
+        if self.preprocessor != None and svm:
 
             scaled_feature_space = []
 
@@ -405,18 +461,30 @@ class Gaussian(AtomisticFeatures):
 
                 scaled_feature_space.append(features)
 
+        elif self.preprocessor != None and svm == False:
+            if purpose == "training":
+                scaled_feature_space = preprocessor.fit(stacked_features)
+            else:
+                stacked_features = preprocessor.transform(stacked_features)
+
         else:
+            # In this section, using the atom_index_map we gather the data to
+            # reconstruct a list of lists with the right number of features.
             scaled_feature_space = []
-            atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
-            stacked_features = client.scatter(stacked_features, broadcast=True)
+            if client != None:
+                atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
+                stacked_features = client.scatter(stacked_features, broadcast=True)
 
             for indices in atoms_index_map:
-                features = client.submit(
-                    self.stack_features, *(indices, stacked_features)
-                )
+                if client == None:
+                    features = self.stack_features(indices, stacked_features)
+                else:
+                    features = client.submit(
+                        self.stack_features, *(indices, stacked_features)
+                    )
                 scaled_feature_space.append(features)
-
-            scaled_feature_space = client.gather(scaled_feature_space)
+            if client != None:
+                scaled_feature_space = client.gather(scaled_feature_space)
 
         # Clean
         del stacked_features
@@ -429,27 +497,45 @@ class Gaussian(AtomisticFeatures):
             reference_space = []
 
             for i, image in enumerate(images.items()):
-                restacked = client.submit(
-                    self.restack_image, *(i, image, scaled_feature_space, svm)
-                )
+                if client == None:
+                    restacked = self.restack_image(i, image, scaled_feature_space, svm)
 
-                # image = (hash, ase_image) -> tuple
-                for atom in image[1]:
-                    restacked_atom = client.submit(
-                        self.restack_atom, *(i, atom, scaled_feature_space)
+                    # image = (hash, ase_image) -> tuple
+                    for atom in image[1]:
+                        restacked_atom = self.restack_atom(
+                            i, atom, scaled_feature_space
+                        )
+                        reference_space.append(restacked_atom)
+
+                    feature_space.append(restacked)
+                else:
+                    restacked = client.submit(
+                        self.restack_image, *(i, image, scaled_feature_space, svm)
                     )
-                    reference_space.append(restacked_atom)
 
-                feature_space.append(restacked)
+                    # image = (hash, ase_image) -> tuple
+                    for atom in image[1]:
+                        restacked_atom = client.submit(
+                            self.restack_atom, *(i, atom, scaled_feature_space)
+                        )
+                        reference_space.append(restacked_atom)
 
-            reference_space = client.gather(reference_space)
+                    feature_space.append(restacked)
+
+            if client != None:
+                reference_space = client.gather(reference_space)
 
         elif svm is False and purpose == "training":
             for i, image in enumerate(images.items()):
-                restacked = client.submit(
-                    self.restack_image, *(i, image, scaled_feature_space, svm)
-                )
-                feature_space.append(restacked)
+                if client == None:
+                    restacked = self.restack_image(i, image, scaled_feature_space, svm)
+                    feature_space.append(restacked)
+
+                else:
+                    restacked = client.submit(
+                        self.restack_image, *(i, image, scaled_feature_space, svm)
+                    )
+                    feature_space.append(restacked)
 
         else:
             try:
@@ -467,7 +553,9 @@ class Gaussian(AtomisticFeatures):
                     )
                     feature_space.append(restacked)
 
-        feature_space = client.gather(feature_space)
+        if client != None:
+            feature_space = client.gather(feature_space)
+
         feature_space = OrderedDict(feature_space)
 
         fp_time = time.time() - initial_time
@@ -480,7 +568,8 @@ class Gaussian(AtomisticFeatures):
         )
 
         if svm and purpose == "training":
-            client.restart()  # Reclaims memory aggressively
+            if client != None:
+                client.restart()  # Reclaims memory aggressively
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             if self.filename is not None:
@@ -494,7 +583,8 @@ class Gaussian(AtomisticFeatures):
             return self.feature_space, self.reference_space
 
         elif svm is False and purpose == "training":
-            client.restart()  # Reclaims memory aggressively
+            if client != None:
+                client.restart()  # Reclaims memory aggressively
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
             if self.filename is not None:
@@ -520,7 +610,6 @@ class Gaussian(AtomisticFeatures):
 
         return features
 
-    @dask.delayed
     def get_atomic_features(
         self,
         atom,
@@ -556,7 +645,14 @@ class Gaussian(AtomisticFeatures):
         """
         cutoff_keys = ["radial", "angular"]
         num_symmetries = len(self.GP[symbol])
+        # The central atom
         Ri = atom.position
+
+        if self.forcetraining and isinstance(Ri, (np.ndarray, np.generic)) == False:
+            Ri.requires_grad_(
+                True
+            )  # At this point the coordinates are a leaf and require gradients.
+
         features = [None] * num_symmetries
 
         # See https://listserv.brown.edu/cgi-bin/wa?A2=ind1904&L=AMP-USERS&P=19048
@@ -625,7 +721,10 @@ class Gaussian(AtomisticFeatures):
                 )
             features[count] = feature
 
-        return np.array(features)
+        if self.svm:
+            return np.array(features), Ri
+        else:
+            return torch.stack(features).float(), Ri
 
     def make_symmetry_functions(self, symbols, custom=None, angular_type="G3"):
         """Function to make symmetry functions
@@ -873,20 +972,35 @@ def calculate_G2(
         Rc = cutoff
     else:
         Rc = 1.0
+
+    Ris, Rjs, weights = [], [], []
+
     for count in range(num_neighbors):
         symbol = neighborsymbols[count]
         Rj = neighborpositions[count]
 
         if symbol == center_symbol:
-            Rij = np.linalg.norm(Rj - Ri)
-
-            feature += np.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
+            Ris.append(Ri)
+            Rjs.append(Rj)
 
             if weighted:
-                weighted_atom = image_molecule[n_indices[count]].number
-                feature *= weighted_atom
+                weights.append(image_molecule[n_indices[count]].number)
 
-    return feature
+    if isinstance(Ri, np.ndarray):
+        Ris = np.array(Ris)
+        Rjs = np.array(Rjs)
+        Rij = np.linalg.norm(Rjs - Ris, axis=1)
+        feature = np.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
+    else:
+        Ris = torch.stack(Ris)
+        Rjs = torch.stack(Rjs)
+        Rij = torch.norm(Rjs - Ris, dim=1)
+        feature = torch.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
+
+    if weighted:
+        feature *= weights
+
+    return feature.sum()
 
 
 def calculate_G3(
@@ -955,29 +1069,86 @@ def calculate_G3(
     else:
         Rc = 1.0
 
+    neighborpositions_j = []
+    neighborpositions_k = []
+
     for j in counts:
         for k in counts[(j + 1) :]:
             els = sorted([neighborsymbols[j], neighborsymbols[k]])
             if els != G_elements:
                 continue
+            neighborpositions_j.append(neighborpositions[j])
+            neighborpositions_k.append(neighborpositions[k])
 
-            Rij_vector = neighborpositions[j] - Ri
-            Rij = np.linalg.norm(Rij_vector)
-            Rik_vector = neighborpositions[k] - Ri
-            Rik = np.linalg.norm(Rik_vector)
-            Rjk_vector = neighborpositions[k] - neighborpositions[j]
-            Rjk = np.linalg.norm(Rjk_vector)
-            cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
-            term = (1.0 + gamma * cos_theta_ijk) ** zeta
-            term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
-            if weighted:
-                term *= weighted_h(image_molecule, n_indices)
-            term *= cutofffxn(Rij)
-            term *= cutofffxn(Rik)
-            term *= cutofffxn(Rjk)
-            feature += term
+    if isinstance(Ri, np.ndarray):
+        neighborpositions_j = np.array(neighborpositions_j)
+        Rij_vector = neighborpositions_j - Ri
+        Rij = np.sqrt(np.einsum("ij,ij->i", Rij_vector, Rij_vector))
+
+        neighborpositions_k = np.array(neighborpositions_k)
+        Rik_vector = neighborpositions_k - Ri
+        Rik = np.sqrt(np.einsum("ij,ij->i", Rik_vector, Rik_vector))
+
+        Rjk_vector = neighborpositions_k - neighborpositions_j
+        Rjk = np.sqrt(np.einsum("ij,ij->i", Rjk_vector, Rjk_vector))
+
+        cos_theta_ijk = angles_row_wise(Rij_vector, Rik_vector, numpy=True)
+        term = (1.0 + gamma * cos_theta_ijk) ** zeta
+        term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
+    else:
+        neighborpositions_j = torch.stack(neighborpositions_j)
+        Rij_vector = neighborpositions_j - Ri
+        Rij = torch.sqrt(torch.einsum("ij,ij->i", Rij_vector, Rij_vector))
+
+        neighborpositions_k = torch.stack(neighborpositions_k)
+        Rik_vector = neighborpositions_k - Ri
+        Rik = torch.sqrt(torch.einsum("ij,ij->i", Rik_vector, Rik_vector))
+
+        Rjk_vector = neighborpositions_k - neighborpositions_j
+        Rjk = torch.sqrt(torch.einsum("ij,ij->i", Rjk_vector, Rjk_vector))
+
+        cos_theta_ijk = angles_row_wise(Rij_vector, Rik_vector, numpy=False)
+        term = (1.0 + gamma * cos_theta_ijk) ** zeta
+        term *= torch.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
+
+    if weighted:
+        term *= weighted_h(image_molecule, n_indices)
+
+    term *= cutofffxn(Rij)
+    term *= cutofffxn(Rik)
+    term *= cutofffxn(Rjk)
+    feature += term
     feature *= 2.0 ** (1.0 - zeta)
-    return feature
+    return feature.sum()
+
+
+def angles_row_wise(a, b, numpy):
+    """Compute cosine angles row wise
+
+    Parameters
+    ----------
+    a : tensor
+        Tensor a. 
+    b : tensor
+        Tensor b.
+    numpy : bool
+        Are we operating a numpy or torch object?
+
+    Returns
+    -------
+    angles
+        The cosine angles row wise. 
+    """
+    if numpy:
+        p1 = np.einsum("ij,ij->i", a, b)
+        p2 = np.einsum("ij,ij->i", a, a)
+        p3 = np.einsum("ij,ij->i", b, b)
+        return p1 / np.sqrt(p2 * p3)
+    else:
+        p1 = torch.einsum("ij,ij->i", a, b)
+        p2 = torch.einsum("ij,ij->i", a, a)
+        p3 = torch.einsum("ij,ij->i", b, b)
+        return p1 / torch.sqrt(p2 * p3)
 
 
 def calculate_G4(

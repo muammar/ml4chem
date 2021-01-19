@@ -4,7 +4,7 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.sparse import csr_matrix
 
 
-def AtomicMSELoss(outputs, targets, atoms_per_image, uncertainty=None):
+class AtomicMSELoss(object):
     """Default loss function
 
     If user does not input loss function we provide mean-squared error loss
@@ -12,37 +12,73 @@ def AtomicMSELoss(outputs, targets, atoms_per_image, uncertainty=None):
 
     Parameters
     ----------
-    outputs : tensor
-        Outputs of the model.
-    targets : tensor
-        Expected value of outputs.
-    atoms_per_image : tensor
-        A tensor with the number of atoms per image.
-    uncertainty : tensor, optional
-        A tensor of uncertainties that are used to penalize during the loss
-        function evaluation.
+    forcetraining : bool
+        Activate force training, by default False.
+    force_coefficient : float
+        The weight of the force loss to the total loss. By default 0.1.
 
-
-    Returns
-    -------
-    loss : tensor
-        The value of the loss function.
     """
 
-    if uncertainty == None:
-        criterion = torch.nn.MSELoss(reduction="sum")
-        outputs_atom = torch.div(outputs, atoms_per_image)
-        targets_atom = torch.div(targets, atoms_per_image)
+    def __init__(self, force_coefficient=0.1, forcetraining=False):
+        self.forcetraining = forcetraining
+        self.force_coefficient = force_coefficient
 
-        loss = criterion(outputs_atom, targets_atom) * 0.5
-    else:
-        criterion = torch.nn.MSELoss(reduction="none")
-        outputs_atom = torch.div(outputs, atoms_per_image)
-        targets_atom = torch.div(targets, atoms_per_image)
-        loss = (
-            criterion(outputs_atom, targets_atom) / (2 * torch.pow(uncertainty, 2))
-        ).sum() * 0.5
-    return loss
+    def name(self):
+        return "Atomistic Loss"
+
+    def __call__(
+        self, outputs, targets, atoms_per_image, uncertainty=None,
+    ):
+        """Call the AtomicMSELoss loss
+
+        Parameters
+        ----------
+        outputs : tensor
+            Dictionary with energy and forces outputs of the model.
+        targets : tensor
+            Dictionary with energy and forces targets of the model.
+        atoms_per_image : tensor
+            A tensor with the number of atoms per image.
+        uncertainty : tensor, optional
+            A tensor of uncertainties that are used to penalize during the loss
+            function evaluation.
+
+        Returns
+        -------
+        loss : tensor
+            The value of the loss function.
+        """
+
+        if uncertainty == None:
+            atoms_per_image.unsqueeze_(1)
+            target_energy = torch.tensor(targets["energies"]).unsqueeze(1)
+            criterion = torch.nn.MSELoss(reduction="sum")
+            outputs_atom = torch.div(outputs["energies"].unsqueeze(1), atoms_per_image)
+            targets_atom = torch.div(target_energy, atoms_per_image)
+
+            energy_loss = criterion(outputs_atom, targets_atom) * 0.5
+
+            if self.forcetraining:
+                target_forces = torch.from_numpy(np.concatenate(targets["forces"]))
+                force_loss = criterion(outputs["forces"], target_forces)
+                print(force_loss)
+        else:
+            criterion = torch.nn.MSELoss(reduction="none")
+            outputs_atom = torch.div(outputs, atoms_per_image)
+            targets_atom = torch.div(targets, atoms_per_image)
+            energy_loss = (
+                criterion(outputs_atom, targets_atom) / (2 * torch.pow(uncertainty, 2))
+            ).sum() * 0.5
+
+            if self.forcetraining:
+                raise RuntimeError("This is not implemented yet.")
+
+        if self.forcetraining:
+            loss = energy_loss + (self.force_coefficient * force_loss)
+        else:
+            loss = energy_loss
+
+        return loss
 
 
 def SumSquaredDiff(outputs, targets):
@@ -379,36 +415,37 @@ def VAELoss(
 
 
 class TopologicalLoss(object):
+    """Computes topological loss function
+
+    This is an implementation of the loss function of the paper "Topological
+    Autoencoders" https://arxiv.org/abs/1906.00722. This function takes the
+    input space and latent space, perform persistent homology over them,
+    applies minimum spanning tree on the sparse distance matrices to obtain
+    edges, and finally uses minimum spanning tree to determine nodes. With
+    this information, it is possible to compute Eqs. 2 and 3 of the paper.
+
+
+    Parameters
+    ----------
+    loss_weights : dict, optional
+        A dictionary to weight reconstruction and topological
+        loss functions.
+
+    >>>  loss_weights = {"topology": 0.2, "reconstruction": 0.8}
+
+
+    Returns
+    -------
+    loss
+        The value of the loss function based on persistent homology.
+
+    Notes
+    -----
+    Thanks to Nicole Sanderson (LBL) and Edgar Jaramillo Rodriguez (UC Davis).
+
+    """
+
     def __init__(self, loss_weights=None):
-        """Computes topological loss function
-
-        This is an implementation of the loss function of the paper "Topological
-        Autoencoders" https://arxiv.org/abs/1906.00722. This function takes the
-        input space and latent space, perform persistent homology over them,
-        applies minimum spanning tree on the sparse distance matrices to obtain
-        edges, and finally uses minimum spanning tree to determine nodes. With
-        this information, it is possible to compute Eqs. 2 and 3 of the paper.
-
-
-        Parameters
-        ----------
-        loss_weights : dict, optional
-            A dictionary to weight reconstruction and topological
-            loss functions.
-
-        >>>  loss_weights = {"topology": 0.2, "reconstruction": 0.8}
-
-
-        Returns
-        -------
-        loss
-            The value of the loss function based on persistent homology.
-
-        Notes
-        -----
-        Thanks to Nicole Sanderson (LBL) and Edgar Jaramillo Rodriguez (UC Davis).
-
-        """
         keys = ["topology", "reconstruction"]
 
         if loss_weights != None and isinstance(loss_weights, dict) == False:
