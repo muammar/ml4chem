@@ -787,7 +787,7 @@ class train(DeepLearningTrainer):
         grads = sum(grads)
 
         for index, param in enumerate(model.parameters()):
-            param.grad = torch.tensor(grads[index])
+            param.grad = torch.tensor(grads[index], dtype=torch.float)
 
         del accumulation
         del grads

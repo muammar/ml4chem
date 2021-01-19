@@ -14,7 +14,7 @@ installed::
 
 Also, you have to install `m2r` from the following git repository::
 
-   pip install --upgrade 'git+https://github.com/crossnox/m2r@dev#egg=m2r'
+   pip install -U https://github.com/CrossNox/m2r2/archive/development.zip
 
 Finally, execute the `makedocs.sh` script::
 
