@@ -48,10 +48,7 @@ class AtomisticFeatures(ABC):
             for j, atom in enumerate(image):
                 symbol = atom.symbol
 
-                if svm:
-                    scaled = scaled_feature_space[index][j]
-                else:
-                    scaled = scaled_feature_space[j]
+                scaled = scaled_feature_space[index][j]
 
                 if isinstance(scaled, tuple):
                     symbol, scaled = scaled
@@ -63,6 +60,8 @@ class AtomisticFeatures(ABC):
                     pass
 
                 features.append((symbol, scaled))
+        else:
+            raise RuntimeError("There are no scaled featured available")
 
         return hash, features
 

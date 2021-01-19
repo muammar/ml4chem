@@ -468,6 +468,8 @@ class Gaussian(AtomisticFeatures):
                 stacked_features = preprocessor.transform(stacked_features)
 
         else:
+            # In this section, using the atom_index_map we gather the data to
+            # reconstruct a list of lists with the right number of features.
             scaled_feature_space = []
             if client != None:
                 atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
@@ -481,7 +483,6 @@ class Gaussian(AtomisticFeatures):
                         self.stack_features, *(indices, stacked_features)
                     )
                 scaled_feature_space.append(features)
-
             if client != None:
                 scaled_feature_space = client.gather(scaled_feature_space)
 
@@ -723,7 +724,7 @@ class Gaussian(AtomisticFeatures):
         if self.svm:
             return np.array(features), Ri
         else:
-            return torch.stack(features), Ri
+            return torch.stack(features).float(), Ri
 
     def make_symmetry_functions(self, symbols, custom=None, angular_type="G3"):
         """Function to make symmetry functions
