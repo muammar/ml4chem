@@ -169,7 +169,7 @@ class Gaussian(AtomisticFeatures):
         else:
             raise RuntimeError("This case is not implemented yet...")
 
-    def calculate(self, images=None, purpose="training", data=None, svm=False):
+    def calculate(self, images=None, purpose="training", data=None, svm=False, GP=None):
         """Calculate the features per atom in an atoms objects
 
         Parameters
@@ -246,7 +246,10 @@ class Gaussian(AtomisticFeatures):
             logger.info(f"Unique chemical elements: {unique_element_symbols}")
 
         # we make the features
-        self.GP = self.custom.get("GP", None)
+        if GP is None:
+            self.GP = self.custom.get("GP", None)
+        else:
+            self.GP = GP
 
         if self.GP is None:
             custom = self.custom.get("user_input", None)

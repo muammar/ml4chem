@@ -72,10 +72,13 @@ class Data(object):
                 if purpose == "training":
                     # When purpose is training then you also need targets and
                     # number of atoms in each image
-                    self.targets.append(image.get_potential_energy())
+                    try:
+                        self.targets.append(image.get_potential_energy())
+                    except RuntimeError:  # Atoms object has no calculator
+                        pass
                     self.atoms_per_image.append(len(image))
 
-        if purpose == "training":
+        if purpose == "training" and len(self.targets) > 0:
             max_energy = max(self.targets)
             max_index = self.targets.index(max_energy)
             min_energy = min(self.targets)
