@@ -677,7 +677,7 @@ class train(DeepLearningTrainer):
         accumulation = client.gather(accumulation)
 
         for outputs, loss, grad in accumulation:
-            grad = np.array(grad)
+            grad = np.array(grad, dtype=object)
             running_loss += loss
             outputs_.append(outputs)
             grads.append(grad)
