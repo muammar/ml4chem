@@ -201,7 +201,6 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
             forces = torch.autograd.grad(
                 energy, coordinates[index], retain_graph=True, create_graph=True
             )
-            print(energy)
         raise NotImplementedError
 
     def get_activations(self, images, model=None, numpy=True):
@@ -467,9 +466,9 @@ class train(DeepLearningTrainer):
 
         try:
             # Data scattering
-            logger.info(f"Scattering data to workers...")
             client = dask.distributed.get_client()
             # self.chunks = [client.scatter(chunk) for chunk in chunks]
+            logger.info("Scattering data to workers...")
             self.chunks = client.scatter(chunks, broadcast=True)
             self.conditions = client.scatter(conditions, broadcast=True)
             # self.conditions = [client.scatter(condition) for condition in conditions]
@@ -850,16 +849,13 @@ class train(DeepLearningTrainer):
             forces = model.get_forces(outputs["energies"], coordinates[index])
 
         loss = 0.0
-        if uncertainty == None:
+        if uncertainty is None:
             for key, targets_ in targets.items():
-                try:  # FIXME
-                    loss += lossfxn(
-                        outputs[key], targets_[index].result(), atoms_per_image[index]
-                    )
-                except:
-                    loss += lossfxn(
-                        outputs[key], targets_[index], atoms_per_image[index]
-                    )
+                try:
+                    targets_ = {"energies": targets_[index].result()}
+                except AttributeError:
+                    targets_ = {"energies": targets_[index]}
+                loss += lossfxn(outputs, targets_, atoms_per_image[index])
         else:
             loss = lossfxn(outputs, targets, atoms_per_image[index], uncertainty[index])
 

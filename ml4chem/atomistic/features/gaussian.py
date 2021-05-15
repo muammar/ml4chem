@@ -370,7 +370,7 @@ class Gaussian(AtomisticFeatures):
                             )
                             neighborpositions[cutoff_key] = neighborpositions_
 
-                    if client == None:
+                    if client is None:
                         afp, Ri = self.get_atomic_features(
                             atom,
                             index,
@@ -382,7 +382,7 @@ class Gaussian(AtomisticFeatures):
                             n_indices=n_indices,
                         )
                     else:
-                        afp, Ri = dask.delayed(self.get_atomic_features)(
+                        afp, Ri = dask.delayed(self.get_atomic_features, nout=2)(
                             atom,
                             index,
                             symbol,
@@ -396,7 +396,7 @@ class Gaussian(AtomisticFeatures):
                     coordinates_[hash].append((symbol, Ri))
                     intermediate.append(afp)
 
-            if client == None:
+            if client is None:
                 pass
             else:
                 intermediate = client.persist(intermediate, scheduler=self.scheduler)
@@ -406,7 +406,7 @@ class Gaussian(AtomisticFeatures):
 
         scheduler_time = time.time() - initial_time
 
-        if client != None:
+        if client is not None:
             dask.distributed.wait(stacked_features)
 
         h, m, s = convert_elapsed_time(scheduler_time)
@@ -416,7 +416,7 @@ class Gaussian(AtomisticFeatures):
 
         logger.info("")
 
-        if self.preprocessor != None and svm:
+        if self.preprocessor is not None and svm:
 
             scaled_feature_space = []
 
@@ -461,9 +461,14 @@ class Gaussian(AtomisticFeatures):
 
                 scaled_feature_space.append(features)
 
-        elif self.preprocessor != None and svm == False:
+        elif self.preprocessor is not None and svm is False:
             if purpose == "training":
-                scaled_feature_space = preprocessor.fit(stacked_features)
+                try:
+                    scaled_feature_space = preprocessor.fit(stacked_features)
+                except TypeError:
+                    scaled_feature_space = dask.delayed(preprocessor.fit)(
+                        stacked_features
+                    )
             else:
                 stacked_features = preprocessor.transform(stacked_features)
 
@@ -471,19 +476,19 @@ class Gaussian(AtomisticFeatures):
             # In this section, using the atom_index_map we gather the data to
             # reconstruct a list of lists with the right number of features.
             scaled_feature_space = []
-            if client != None:
+            if client is not None:
                 atoms_index_map = [client.scatter(chunk) for chunk in atoms_index_map]
                 stacked_features = client.scatter(stacked_features, broadcast=True)
 
             for indices in atoms_index_map:
-                if client == None:
+                if client is None:
                     features = self.stack_features(indices, stacked_features)
                 else:
                     features = client.submit(
                         self.stack_features, *(indices, stacked_features)
                     )
                 scaled_feature_space.append(features)
-            if client != None:
+            if client is not None:
                 scaled_feature_space = client.gather(scaled_feature_space)
 
         # Clean
@@ -497,7 +502,7 @@ class Gaussian(AtomisticFeatures):
             reference_space = []
 
             for i, image in enumerate(images.items()):
-                if client == None:
+                if client is None:
                     restacked = self.restack_image(i, image, scaled_feature_space, svm)
 
                     # image = (hash, ase_image) -> tuple
@@ -522,12 +527,12 @@ class Gaussian(AtomisticFeatures):
 
                     feature_space.append(restacked)
 
-            if client != None:
+            if client is not None:
                 reference_space = client.gather(reference_space)
 
         elif svm is False and purpose == "training":
             for i, image in enumerate(images.items()):
-                if client == None:
+                if client is None:
                     restacked = self.restack_image(i, image, scaled_feature_space, svm)
                     feature_space.append(restacked)
 
@@ -536,7 +541,6 @@ class Gaussian(AtomisticFeatures):
                         self.restack_image, *(i, image, scaled_feature_space, svm)
                     )
                     feature_space.append(restacked)
-
         else:
             try:
                 for i, image in enumerate(images.items()):
@@ -553,7 +557,7 @@ class Gaussian(AtomisticFeatures):
                     )
                     feature_space.append(restacked)
 
-        if client != None:
+        if client is not None:
             feature_space = client.gather(feature_space)
 
         feature_space = OrderedDict(feature_space)
@@ -568,7 +572,7 @@ class Gaussian(AtomisticFeatures):
         )
 
         if svm and purpose == "training":
-            if client != None:
+            if client is not None:
                 client.restart()  # Reclaims memory aggressively
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 
@@ -583,7 +587,7 @@ class Gaussian(AtomisticFeatures):
             return self.feature_space, self.reference_space
 
         elif svm is False and purpose == "training":
-            if client != None:
+            if client is not None:
                 client.restart()  # Reclaims memory aggressively
             preprocessor.save_to_file(preprocessor, self.save_preprocessor)
 

@@ -33,15 +33,16 @@ def main(**args):
         if args["plot"] in training_plots:
             metric = args["plot"]
             refresh = args["refresh"]
-            plt = read_log(_file, metric=metric, refresh=refresh)
+            read_log(_file, metric=metric, refresh=refresh)
 
         elif args["plot"].lower() in dim_visualization:
             method = args["plot"]
             backend = args["backend"]
             plot_atomic_features(_file, method=method, backend=backend)
 
-        else: 
+        else:
             raise NotImplementedError(f"Supported values are {training_plots}")
+
 
 if __name__ == "__main__":
     main()

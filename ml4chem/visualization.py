@@ -271,7 +271,7 @@ def plot_atomic_features(
         If set to True, this function returns only data in a dataframe with
         the following structure:
     """
-    if backend_kwargs == None:
+    if backend_kwargs is None:
         backend_kwargs = {}
 
     method = method.lower()

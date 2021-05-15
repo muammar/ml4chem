@@ -180,7 +180,7 @@ class KernelRidge(object):
         to apply the atomic decomposition Ansatz.
         """
 
-        if self.batch_size == None:
+        if self.batch_size is None:
             self.batch_size = data.get_total_number_atoms()
 
         if purpose == "training":

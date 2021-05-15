@@ -79,7 +79,7 @@ class Data(object):
         """
         logger.info(f"Preparing images for {purpose}...")
 
-        if self.target_keys == None:
+        if self.target_keys is None:
             self.target_keys = ["energies"]
 
         if self.forcetraining:

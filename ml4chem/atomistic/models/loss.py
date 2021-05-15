@@ -49,7 +49,7 @@ class AtomicMSELoss(object):
             The value of the loss function.
         """
 
-        if uncertainty == None:
+        if uncertainty is None:
             atoms_per_image.unsqueeze_(1)
             target_energy = torch.tensor(targets["energies"]).unsqueeze(1)
             criterion = torch.nn.MSELoss(reduction="sum")
@@ -453,7 +453,7 @@ class TopologicalLoss(object):
                 "You need to provide a dictionary with structure: loss_weights = {'topology': 0.2, 'reconstruction': 0.8}"
             )
 
-        if loss_weights == None:
+        if loss_weights is None:
             loss_weights = {key: 1.0 for key in keys}
 
         self.loss_weights = loss_weights

@@ -70,7 +70,7 @@ class DeepLearningModel(ABC):
                     for symbol in data.unique_element_symbols[purpose]:
                         tensors = image.get(symbol)
 
-                        if tensors == None:
+                        if tensors is None:
                             tensors = [torch.zeros(self.input_dimension)]
 
                         tensors = torch.stack(tensors)

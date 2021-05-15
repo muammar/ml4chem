@@ -19,7 +19,7 @@ class BackendOperations(object):
         _backends = {"numpy": np, "pytorch": torch}
         self.backend = _backends.get(backend, None)
 
-        if self.backend == None:
+        if self.backend is None:
             raise RuntimeError(f"{backend} is not a supported backend.")
 
         self.name = self.backend.__name__

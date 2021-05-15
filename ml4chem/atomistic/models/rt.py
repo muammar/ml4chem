@@ -448,7 +448,7 @@ class train(DeepLearningTrainer):
         self.test = test
 
         # Data scattering
-        logger.info(f"Scattering data to workers...")
+        logger.info("Scattering data to workers...")
         client = dask.distributed.get_client()
         # self.chunks = [client.scatter(chunk) for chunk in chunks]
         self.chunks = client.scatter(chunks, broadcast=True)
@@ -802,7 +802,7 @@ class train(DeepLearningTrainer):
             forces = model.get_forces(outputs["energies"], coordinates[index])
 
         loss = 0.0
-        if uncertainty == None:
+        if uncertainty is None:
             for key, targets_ in targets.items():
                 loss += lossfxn(
                     outputs[key], targets_[index].result(), atoms_per_image[index]

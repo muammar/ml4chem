@@ -1,5 +1,3 @@
-import torch
-import numpy as np
 from abc import ABC, abstractmethod
 
 
@@ -43,25 +41,21 @@ class AtomisticFeatures(ABC):
         """
         hash, image = image
 
-        if scaled_feature_space != None:
-            features = []
-            for j, atom in enumerate(image):
-                symbol = atom.symbol
+        features = []
+        for j, atom in enumerate(image):
+            symbol = atom.symbol
+            scaled = scaled_feature_space[index][j]
 
-                scaled = scaled_feature_space[index][j]
-
-                if isinstance(scaled, tuple):
-                    symbol, scaled = scaled
-
+            if isinstance(scaled, tuple):
+                symbol, scaled = scaled
+            else:
+                scaled = scaled_feature_space[index]
                 try:
                     scaled = scaled.compute()
                 except AttributeError:
-                    # When AttributeError raises, it means we have a tensor with no Dask.
                     pass
 
-                features.append((symbol, scaled))
-        else:
-            raise RuntimeError("There are no scaled featured available")
+            features.append((symbol, scaled))
 
         return hash, features
 

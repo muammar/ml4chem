@@ -133,7 +133,7 @@ class Potentials(Calculator, object):
         # Instantiation of fingerprint class
         fingerprint_params = ml4chem_params.get("features", None)
 
-        if fingerprint_params == None:
+        if fingerprint_params is None:
             features = None
         else:
             if "kwargs" in fingerprint_params.keys():
