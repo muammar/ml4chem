@@ -13,7 +13,16 @@ from ml4chem.data.serialization import load
 logger = logging.getLogger()
 
 
-def parity(predictions, true, scores=False, filename=None, **kwargs):
+def parity(
+    predictions,
+    true,
+    scores=False,
+    filename=None,
+    ax=None,
+    figsize=(6, 6),
+    scores_text_pos=None,
+    **kwargs
+):
     """A parity plot function
 
     Parameters
@@ -27,7 +36,12 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
     filename : str
         A name to save the plot to a file. If filename is non existent, we
         call plt.show().
-
+    ax : obj
+        Pass an axes matplotlib object. 
+    figsize : tuple
+        Figure size, by default (6, 6).
+    scores_text_pos : tuple
+        Set position of scores test in plot. 
     Notes
     -----
     kwargs accepts all valid keyword arguments for matplotlib.pyplot.savefig.
@@ -35,18 +49,26 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
 
     min_val = min(true)
     max_val = max(true)
-    fig = plt.figure(figsize=(6, 6))
-    ax = fig.add_subplot(111)
+
+    fig = plt.figure(figsize=figsize)
+
+    if ax is None:
+        ax = fig.add_subplot(111)
+
     ax.plot(true, predictions, "r.")
     ax.plot([min_val, max_val], [min_val, max_val], "k-", lw=0.3)
-    plt.xlabel("True Values")
-    plt.ylabel("ML4Chem Predictions")
+    ax.set_xlabel("True Values")
+    ax.set_ylabel("Predictions")
 
     if scores:
         rmse = np.sqrt(mean_squared_error(true, predictions))
         mae = mean_absolute_error(true, predictions)
         correlation = r2_score(true, predictions)
-        plt.text(
+
+        if scores_text_pos is not None:
+            min_val, max_val = scores_text_pos
+
+        ax.text(
             min_val,
             max_val,
             "R-squared = {:.2f} \n"
@@ -54,8 +76,10 @@ def parity(predictions, true, scores=False, filename=None, **kwargs):
             "MAE = {:.2f}\n".format(correlation, rmse, mae),
         )
 
-    if filename is None:
-        plt.show()
+    if filename is None and ax is None:
+        return plt, ax
+    elif filename is None and ax is not None:
+        return ax
     else:
         plt.savefig(filename, **kwargs)
 
