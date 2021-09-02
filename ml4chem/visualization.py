@@ -13,10 +13,6 @@ from ml4chem.data.serialization import load
 logger = logging.getLogger()
 
 
-import numpy as np
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
-
 def parity(
     predictions,
     true,
