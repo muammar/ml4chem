@@ -13,10 +13,15 @@ from ml4chem.data.serialization import load
 logger = logging.getLogger()
 
 
+import numpy as np
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+
 def parity(
     predictions,
     true,
     scores=False,
+    return_scores=False,
     filename=None,
     ax=None,
     figsize=(6, 6),
@@ -33,6 +38,8 @@ def parity(
         Targets or true values.
     scores : bool
         Print scores in parity plot.
+    return_scores : bool
+        Return scores. 
     filename : str
         A name to save the plot to a file. If filename is non existent, we
         call plt.show().
@@ -60,10 +67,13 @@ def parity(
     ax.set_xlabel("True Values")
     ax.set_ylabel("Predictions")
 
+    # Compute scores
+    rmse = np.sqrt(mean_squared_error(true, predictions))
+    mae = mean_absolute_error(true, predictions)
+    correlation = r2_score(true, predictions)
+    all_scores = {"RMSE": rmse, "MAE": mae, "R2": correlation}
+
     if scores:
-        rmse = np.sqrt(mean_squared_error(true, predictions))
-        mae = mean_absolute_error(true, predictions)
-        correlation = r2_score(true, predictions)
 
         if scores_text_pos is not None:
             min_val, max_val = scores_text_pos
@@ -77,9 +87,15 @@ def parity(
         )
 
     if filename is None and ax is None:
-        return plt, ax
+        if return_scores:
+            return plt, ax, all_scores
+        else:
+            return plt, ax
     elif filename is None and ax is not None:
-        return ax
+        if return_scores:
+            return ax, all_scores
+        else:
+            return ax
     else:
         plt.savefig(filename, **kwargs)
 
