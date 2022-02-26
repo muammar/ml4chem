@@ -22,7 +22,7 @@ def parity(
     ax=None,
     figsize=(6, 6),
     scores_text_pos=None,
-    **kwargs
+    **kwargs,
 ):
     """A parity plot function
 
