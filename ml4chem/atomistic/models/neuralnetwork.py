@@ -774,7 +774,7 @@ class train(DeepLearningTrainer):
         outputs = OrderedDict()
 
         for outputs_, loss, grad in accumulation:
-            grad = np.array(grad)
+            grad = np.array(grad, dtype=object)
             grads.append(grad)
             running_loss += loss
 

@@ -50,11 +50,12 @@ class AtomicMSELoss(object):
         """
 
         if uncertainty is None:
-            atoms_per_image.unsqueeze_(1)
             target_energy = torch.tensor(targets["energies"]).unsqueeze(1)
             criterion = torch.nn.MSELoss(reduction="sum")
-            outputs_atom = torch.div(outputs["energies"].unsqueeze(1), atoms_per_image)
-            targets_atom = torch.div(target_energy, atoms_per_image)
+            outputs_atom = torch.div(
+                outputs["energies"].unsqueeze(1), atoms_per_image.unsqueeze(1)
+            )
+            targets_atom = torch.div(target_energy, atoms_per_image.unsqueeze(1))
 
             energy_loss = criterion(outputs_atom, targets_atom) * 0.5
 
