@@ -983,12 +983,11 @@ def calculate_G2(
         symbol = neighborsymbols[count]
         Rj = neighborpositions[count]
 
-        if symbol == center_symbol:
-            Ris.append(Ri)
-            Rjs.append(Rj)
+        Ris.append(Ri)
+        Rjs.append(Rj)
 
-            if weighted:
-                weights.append(image_molecule[n_indices[count]].number)
+        if weighted:
+            weights.append(image_molecule[n_indices[count]].number)
 
     if isinstance(Ri, np.ndarray):
         Ris = np.array(Ris)
@@ -1079,8 +1078,6 @@ def calculate_G3(
     for j in counts:
         for k in counts[(j + 1) :]:
             els = sorted([neighborsymbols[j], neighborsymbols[k]])
-            if els != G_elements:
-                continue
             neighborpositions_j.append(neighborpositions[j])
             neighborpositions_k.append(neighborpositions[k])
 
@@ -1132,7 +1129,7 @@ def angles_row_wise(a, b, numpy):
     Parameters
     ----------
     a : tensor
-        Tensor a. 
+        Tensor a.
     b : tensor
         Tensor b.
     numpy : bool
@@ -1141,7 +1138,7 @@ def angles_row_wise(a, b, numpy):
     Returns
     -------
     angles
-        The cosine angles row wise. 
+        The cosine angles row wise.
     """
     if numpy:
         p1 = np.einsum("ij,ij->i", a, b)
