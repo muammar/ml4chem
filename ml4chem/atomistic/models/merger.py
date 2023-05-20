@@ -181,7 +181,6 @@ class ModelMerger(torch.nn.Module):
         if isinstance(batch_size, int):
             chunks = []
             for inputs_ in inputs:
-
                 if inspect.ismethod(inputs_):
                     chunks.append(inputs_)
                 else:
@@ -393,7 +392,6 @@ class ModelMerger(torch.nn.Module):
             inputs = []
             # FIXME this is not scaling to n number of models.
             for chunk_index, chunk in enumerate(self.chunks[index - 1]):
-
                 inputs_ = self.chunks[index][chunk_index](OrderedDict(chunk.result()))
                 inputs.append(client.scatter(inputs_))
 
@@ -424,7 +422,6 @@ class ModelMerger(torch.nn.Module):
             return loss, outputs_
 
         else:  # Models are dependent on each other
-
             running_loss = torch.tensor(0, dtype=torch.float)
             accumulation = []
 
@@ -481,7 +478,6 @@ class ModelMerger(torch.nn.Module):
 
         losses = []
         for model_index, model in enumerate(models):
-
             output = outputs[model_index]
 
             if model.name() == "PytorchPotentials":

@@ -12,9 +12,9 @@ class ActiveLearning(object):
     Parameters
     ----------
     labeled : list
-        List of graphs or objects. 
+        List of graphs or objects.
     unlabeled : object
-        List of graphs or objects. 
+        List of graphs or objects.
     atomistic : bool, optional
         Atomistic similarities?, by default False.
     """

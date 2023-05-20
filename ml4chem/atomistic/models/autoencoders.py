@@ -172,7 +172,6 @@ class AutoEncoder(DeepLearningModel, torch.nn.Module):
                 values = [h, mu, logvar]
                 encoder = torch.nn.ModuleDict(list(map(list, zip(keys, values))))
             else:
-
                 encoder = torch.nn.Sequential(*encoder)
 
             """
@@ -821,7 +820,6 @@ class train(object):
         lr_scheduler=None,
         **kwargs
     ):
-
         supported_keys = ["anneal", "penalize_latent"]
 
         if len(kwargs.items()) == 0:
@@ -1148,7 +1146,11 @@ class train(object):
                 }
 
             else:
-                outputs, mus_latent, logvars_latent, = model(inputs)
+                (
+                    outputs,
+                    mus_latent,
+                    logvars_latent,
+                ) = model(inputs)
 
                 args = {
                     "outputs": outputs,

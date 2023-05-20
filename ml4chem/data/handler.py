@@ -48,7 +48,6 @@ class Data(object):
         target_keys=None,
         svm=False,
     ):
-
         self.images = None
         self.targets = None
         self.target_keys = target_keys
@@ -103,7 +102,8 @@ class Data(object):
                 if self.svm == False:
                     image.get_positions = partial(get_positions, image)
                     image.arrays["positions"] = torch.tensor(
-                        image.positions, requires_grad=False,
+                        image.positions,
+                        requires_grad=False,
                     )
 
                 self.images[key] = image

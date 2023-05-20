@@ -166,12 +166,12 @@ def get_lr_scheduler(optimizer, lr_scheduler):
 
 def get_lr(optimizer):
     """Get current learning rate
-    
+
     Parameters
     ----------
     optimizer : obj
         An optimizer object.
-    
+
     Returns
     -------
     lr

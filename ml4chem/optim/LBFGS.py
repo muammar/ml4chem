@@ -5,7 +5,7 @@ from functools import reduce
 from copy import deepcopy
 from torch.optim import Optimizer
 
-#%% Helper Functions for L-BFGS
+# %% Helper Functions for L-BFGS
 
 
 def is_legal(v):
@@ -97,7 +97,7 @@ def polyinterp(points, x_min_bound=None, x_max_bound=None, plot=False):
             + points[1, 2]
             - 3 * ((points[0, 1] - points[1, 1]) / (points[0, 0] - points[1, 0]))
         )
-        d2 = np.sqrt(d1 ** 2 - points[0, 2] * points[1, 2])
+        d2 = np.sqrt(d1**2 - points[0, 2] * points[1, 2])
         if np.isreal(d2):
             x_sol = points[1, 0] - (points[1, 0] - points[0, 0]) * (
                 (points[1, 2] + d2 - d1) / (points[1, 2] - points[0, 2] + 2 * d2)
@@ -176,14 +176,14 @@ def polyinterp(points, x_min_bound=None, x_max_bound=None, plot=False):
     return x_sol
 
 
-#%% L-BFGS Optimizer
+# %% L-BFGS Optimizer
 
 
 class LBFGS(Optimizer):
     """
     Implements the L-BFGS algorithm. Compatible with multi-batch and full-overlap
-    L-BFGS implementations and (stochastic) Powell damping. Partly based on the 
-    original L-BFGS implementation in PyTorch, Mark Schmidt's minFunc MATLAB code, 
+    L-BFGS implementations and (stochastic) Powell damping. Partly based on the
+    original L-BFGS implementation in PyTorch, Mark Schmidt's minFunc MATLAB code,
     and Michael Overton's weak Wolfe line search MATLAB code.
 
     Implemented by: Hao-Jun Michael Shi and Dheevatsa Mudigere
@@ -205,26 +205,26 @@ class LBFGS(Optimizer):
         debug (bool): debugging mode
 
     References:
-    [1] Berahas, Albert S., Jorge Nocedal, and Martin Takác. "A Multi-Batch L-BFGS 
-        Method for Machine Learning." Advances in Neural Information Processing 
+    [1] Berahas, Albert S., Jorge Nocedal, and Martin Takác. "A Multi-Batch L-BFGS
+        Method for Machine Learning." Advances in Neural Information Processing
         Systems. 2016.
-    [2] Bollapragada, Raghu, et al. "A Progressive Batching L-BFGS Method for Machine 
+    [2] Bollapragada, Raghu, et al. "A Progressive Batching L-BFGS Method for Machine
         Learning." International Conference on Machine Learning. 2018.
     [3] Lewis, Adrian S., and Michael L. Overton. "Nonsmooth Optimization via Quasi-Newton
         Methods." Mathematical Programming 141.1-2 (2013): 135-163.
-    [4] Liu, Dong C., and Jorge Nocedal. "On the Limited Memory BFGS Method for 
+    [4] Liu, Dong C., and Jorge Nocedal. "On the Limited Memory BFGS Method for
         Large Scale Optimization." Mathematical Programming 45.1-3 (1989): 503-528.
-    [5] Nocedal, Jorge. "Updating Quasi-Newton Matrices With Limited Storage." 
+    [5] Nocedal, Jorge. "Updating Quasi-Newton Matrices With Limited Storage."
         Mathematics of Computation 35.151 (1980): 773-782.
     [6] Nocedal, Jorge, and Stephen J. Wright. "Numerical Optimization." Springer New York,
         2006.
-    [7] Schmidt, Mark. "minFunc: Unconstrained Differentiable Multivariate Optimization 
-        in Matlab." Software available at http://www.cs.ubc.ca/~schmidtm/Software/minFunc.html 
+    [7] Schmidt, Mark. "minFunc: Unconstrained Differentiable Multivariate Optimization
+        in Matlab." Software available at http://www.cs.ubc.ca/~schmidtm/Software/minFunc.html
         (2005).
-    [8] Schraudolph, Nicol N., Jin Yu, and Simon Günter. "A Stochastic Quasi-Newton 
-        Method for Online Convex Optimization." Artificial Intelligence and Statistics. 
+    [8] Schraudolph, Nicol N., Jin Yu, and Simon Günter. "A Stochastic Quasi-Newton
+        Method for Online Convex Optimization." Artificial Intelligence and Statistics.
         2007.
-    [9] Wang, Xiao, et al. "Stochastic Quasi-Newton Methods for Nonconvex Stochastic 
+    [9] Wang, Xiao, et al. "Stochastic Quasi-Newton Methods for Nonconvex Stochastic
         Optimization." SIAM Journal on Optimization 27.2 (2017): 927-956.
 
     """
@@ -238,7 +238,6 @@ class LBFGS(Optimizer):
         dtype=torch.float,
         debug=False,
     ):
-
         # ensure inputs are valid
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -317,14 +316,14 @@ class LBFGS(Optimizer):
     def line_search(self, line_search):
         """
         Switches line search option.
-        
+
         Inputs:
             line_search (str): designates line search to use
                 Options:
                     'None': uses steplength designated in algorithm
                     'Armijo': uses Armijo backtracking line search
                     'Wolfe': uses Armijo-Wolfe bracketing line search
-        
+
         """
 
         group = self.param_groups[0]
@@ -383,7 +382,7 @@ class LBFGS(Optimizer):
         Performs curvature update.
 
         Inputs:
-            flat_grad (tensor): 1-D tensor of flattened gradient for computing 
+            flat_grad (tensor): 1-D tensor of flattened gradient for computing
                 gradient difference with previously stored gradient
             eps (float): constant for curvature pair rejection or damping (default: 1e-2)
             damping (bool): flag for using Powell damping (default: False)
@@ -405,7 +404,6 @@ class LBFGS(Optimizer):
 
         # check if line search failed
         if not fail:
-
             d = state.get("d")
             t = state.get("t")
             old_dirs = state.get("old_dirs")
@@ -422,7 +420,6 @@ class LBFGS(Optimizer):
 
             # update L-BFGS matrix
             if ys > eps * sBs or damping == True:
-
                 # perform Powell damping
                 if damping == True and ys < eps * sBs:
                     if debug:
@@ -574,7 +571,6 @@ class LBFGS(Optimizer):
 
         # perform Armijo backtracking line search
         if line_search == "Armijo":
-
             # load options
             if options:
                 if "closure" not in options.keys():
@@ -680,7 +676,6 @@ class LBFGS(Optimizer):
 
             # check Armijo condition
             while F_new > F_k + c1 * t * gtd or not is_legal(F_new):
-
                 # check if maximum number of iterations reached
                 if ls_step >= max_ls:
                     if inplace:
@@ -781,7 +776,6 @@ class LBFGS(Optimizer):
 
         # perform weak Wolfe line search
         elif line_search == "Wolfe":
-
             # load options
             if options:
                 if "closure" not in options.keys():
@@ -900,7 +894,6 @@ class LBFGS(Optimizer):
 
             # main loop
             while True:
-
                 # check if maximum number of line search steps have been reached
                 if ls_step >= max_ls:
                     if inplace:
@@ -930,7 +923,6 @@ class LBFGS(Optimizer):
 
                 # check Armijo condition
                 if F_new > F_k + c1 * t * gtd:
-
                     # set upper bound
                     beta = t
                     t_prev = t
@@ -944,7 +936,6 @@ class LBFGS(Optimizer):
                             g_b = torch.tensor(np.nan, dtype=dtype)
 
                 else:
-
                     # compute gradient
                     F_new.backward()
                     g_new = self._gather_flat_grad()
@@ -960,7 +951,6 @@ class LBFGS(Optimizer):
 
                     # check curvature condition
                     if gtd_new < c2 * gtd:
-
                         # set lower bound
                         alpha = t
                         t_prev = t
@@ -1043,7 +1033,6 @@ class LBFGS(Optimizer):
             return F_new, g_new, t, ls_step, closure_eval, grad_eval, desc_dir, fail
 
         else:
-
             # perform update
             self._add_update(t, d)
 
@@ -1065,7 +1054,7 @@ class LBFGS(Optimizer):
         return self._step(p_k, g_Ok, g_Sk, options)
 
 
-#%% Full-Batch (Deterministic) L-BFGS Optimizer (Wrapper)
+# %% Full-Batch (Deterministic) L-BFGS Optimizer (Wrapper)
 
 
 class FullBatchLBFGS(LBFGS):
@@ -1114,7 +1103,7 @@ class FullBatchLBFGS(LBFGS):
 
         Inputs:
             options (dict): contains options for performing line search
-            
+
         General Options:
             'eps' (float): constant for curvature pair rejection or damping (default: 1e-2)
             'damping' (bool): flag for using Powell damping (default: False)

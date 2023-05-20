@@ -65,7 +65,6 @@ class Potentials(Calculator, object):
         preprocessor=None,
         batch_size=None,
     ):
-
         Calculator.__init__(self, label=label, atoms=atoms)
         self.features = features
         self.available_backends = available_backends()
@@ -114,7 +113,6 @@ class Potentials(Calculator, object):
                 del model_params[param]
 
             if model_type == "svm":
-
                 weights = load(model)
                 # TODO remove after de/serialization is fixed.
                 try:
@@ -385,7 +383,6 @@ class Potentials(Calculator, object):
         if "energy" in properties:
             logger.info("Computing energy...")
             if model_name in Potentials.svm_models:
-
                 try:
                     reference_space = load(self.reference_space)
                 except:

@@ -245,7 +245,6 @@ class Cartesian(AtomisticFeatures):
 
                     feature_space[key].append((symbol, scaled))
         else:
-
             feature_space = OrderedDict(zip(hashes, feature_space))
 
         fp_time = time.time() - initial_time

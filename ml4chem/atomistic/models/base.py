@@ -28,20 +28,20 @@ class DeepLearningModel(ABC):
 
     def feature_preparation(self, features, data, purpose="training"):
         """Vectorized data structure
-        
+
         Parameters
         ----------
         features : dict, iter
-            An iterator or dictionary. 
+            An iterator or dictionary.
         data : obj
-            An ML4Chem data object. 
+            An ML4Chem data object.
         purpose : str, optional
             Purpose of the features, by default "training"
-        
+
         Returns
         -------
         rearrengements, conditions
-            Rearranged features and conditions. 
+            Rearranged features and conditions.
         """
 
         data.get_largest_number_atoms(purpose)
@@ -77,7 +77,6 @@ class DeepLearningModel(ABC):
 
                         tensor_size = tensors.size()[0]
                         if tensor_size < data.largest_number_atoms[symbol]:
-
                             diff = data.largest_number_atoms[symbol] - tensor_size
                             expand = torch.zeros(diff, self.input_dimension)
                             tensors = torch.cat([tensors, expand])

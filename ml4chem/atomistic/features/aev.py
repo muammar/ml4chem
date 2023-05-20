@@ -175,7 +175,7 @@ class AEV(Gaussian):
         zetas : list
             List of zetas to build the Gaussian function.
         Rs : list
-            List to shift the center of the gaussian distributions. 
+            List to shift the center of the gaussian distributions.
         Rs_a : list
             List to shift the center of the gaussian distributions of angular
             symmetry functions.

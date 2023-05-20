@@ -12,7 +12,7 @@ def split_data(
     logfile="data_split.log",
 ):
     """Split Data
-    
+
     Parameters
     ----------
     images : str or object

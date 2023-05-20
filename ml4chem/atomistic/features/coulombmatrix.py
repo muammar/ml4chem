@@ -238,7 +238,6 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
         feature_space = []
 
         if svm and purpose == "training":
-
             for i, image in enumerate(images.items()):
                 restacked = client.submit(
                     self.restack_image, *(i, image, scaled_feature_space, svm)
@@ -319,7 +318,7 @@ class CoulombMatrix(AtomisticFeatures, CoulombMatrixDscribe):
             return self.feature_space
 
     def stack_features(self, symbols, image_index, stacked_features):
-        """Stack features """
+        """Stack features"""
 
         features = list(zip(symbols, stacked_features[image_index].result()))
 

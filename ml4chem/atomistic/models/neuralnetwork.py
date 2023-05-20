@@ -173,11 +173,11 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
         X : dict
             Dictionary of inputs in the feature space.
         condition : dict
-            A dict of tensors per atom type with conditions. 
+            A dict of tensors per atom type with conditions.
 
         Returns
         -------
-        outputs 
+        outputs
             A dict of tensors with energies per atom.
         """
         outputs = {}
@@ -235,7 +235,6 @@ class NeuralNetwork(DeepLearningModel, torch.nn.Module):
 
         for hash, data in images.items():
             for index, (symbol, features) in enumerate(data):
-
                 counter = 0
                 layer_counter = 0
                 for _, layer in enumerate(model.linears[symbol].modules()):
@@ -361,7 +360,6 @@ class train(DeepLearningTrainer):
         test=None,
         forcetraining=False,
     ):
-
         self.initial_time = time.time()
 
         if lossfxn is None:

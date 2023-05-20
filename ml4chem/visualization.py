@@ -35,16 +35,16 @@ def parity(
     scores : bool
         Print scores in parity plot.
     return_scores : bool
-        Return scores. 
+        Return scores.
     filename : str
         A name to save the plot to a file. If filename is non existent, we
         call plt.show().
     ax : obj
-        Pass an axes matplotlib object. 
+        Pass an axes matplotlib object.
     figsize : tuple
         Figure size, by default (6, 6).
     scores_text_pos : tuple
-        Set position of scores test in plot. 
+        Set position of scores test in plot.
     Notes
     -----
     kwargs accepts all valid keyword arguments for matplotlib.pyplot.savefig.
@@ -70,7 +70,6 @@ def parity(
     all_scores = {"RMSE": rmse, "MAE": mae, "R2": correlation}
 
     if scores:
-
         if scores_text_pos is not None:
             min_val, max_val = scores_text_pos
 

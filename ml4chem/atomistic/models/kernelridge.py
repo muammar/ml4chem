@@ -123,7 +123,6 @@ class KernelRidge(object):
         weights=None,
         **kwargs
     ):
-
         np.set_printoptions(precision=30, threshold=999999999)
         self.kernel = kernel
         self.sigma = sigma
@@ -305,7 +304,6 @@ class KernelRidge(object):
                         f_map.append(1)
 
                         if purpose == "training":
-
                             for j in range(counter, reference_lenght):
                                 j_symbol, j_afp = reference_features[j]
 
@@ -515,7 +513,7 @@ Auxiliary functions
 
 @dask.delayed
 def linear(feature_i, feature_j, i_symbol=None, j_symbol=None):
-    """ Compute a linear kernel
+    """Compute a linear kernel
 
     Parameters
     ----------
@@ -543,7 +541,7 @@ def linear(feature_i, feature_j, i_symbol=None, j_symbol=None):
 
 @dask.delayed
 def rbf(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.0):
-    """ Compute the rbf (AKA Gaussian) kernel.
+    """Compute the rbf (AKA Gaussian) kernel.
 
     Parameters
     ----------
@@ -586,14 +584,14 @@ def rbf(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.0):
             return anisotropic_rbf
         else:
             rbf = np.exp(
-                -(np.linalg.norm(feature_i - feature_j) ** 2.0) / (2.0 * sigma ** 2.0)
+                -(np.linalg.norm(feature_i - feature_j) ** 2.0) / (2.0 * sigma**2.0)
             )
             return rbf
 
 
 @dask.delayed
 def exponential(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.0):
-    """ Compute the exponential kernel
+    """Compute the exponential kernel
 
     Parameters
     ----------
@@ -639,14 +637,14 @@ def exponential(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.0):
             return anisotropic_exp
         else:
             exponential = np.exp(
-                -(np.linalg.norm(feature_i - feature_j)) / (2.0 * sigma ** 2)
+                -(np.linalg.norm(feature_i - feature_j)) / (2.0 * sigma**2)
             )
             return exponential
 
 
 @dask.delayed
 def laplacian(feature_i, feature_j, i_symbol=None, j_symbol=None, sigma=1.0):
-    """ Compute the laplacian kernel
+    """Compute the laplacian kernel
 
     Parameters
     ----------

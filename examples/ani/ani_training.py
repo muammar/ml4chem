@@ -72,7 +72,11 @@ def train():
     cutoff = {"radial": rcr, "angular": rca}
 
     calc = Potentials(
-        features=AEV(cutoff=cutoff, normalized=normalized, custom=custom,),
+        features=AEV(
+            cutoff=cutoff,
+            normalized=normalized,
+            custom=custom,
+        ),
         model=NeuralNetwork(hiddenlayers=(n, n), activation=activation),
         label="cu_training",
     )

@@ -32,7 +32,6 @@ class Preprocessing(object):
     """
 
     def __init__(self, preprocessor, purpose):
-
         # preprocessor has to be a tuple, but it might be the case that user
         # input is not that.
         if preprocessor is None:
@@ -63,7 +62,6 @@ class Preprocessing(object):
         logger.info("")
 
         if self.preprocessing == "minmaxscaler" and purpose == "training":
-
             if self.kwargs is None:
                 self.kwargs = {"feature_range": (-1, 1)}
 
@@ -203,7 +201,7 @@ class MinMaxScalerVectorized(object):
 
         Returns
         -------
-        scaled_features 
+        scaled_features
             A tensor with scaled features using requested preprocessor.
         """
 

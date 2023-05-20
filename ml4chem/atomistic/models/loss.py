@@ -27,7 +27,11 @@ class AtomicMSELoss(object):
         return "Atomistic Loss"
 
     def __call__(
-        self, outputs, targets, atoms_per_image, uncertainty=None,
+        self,
+        outputs,
+        targets,
+        atoms_per_image,
+        uncertainty=None,
     ):
         """Call the AtomicMSELoss loss
 
@@ -50,7 +54,13 @@ class AtomicMSELoss(object):
         """
 
         if uncertainty is None:
-            target_energy = torch.tensor(targets["energies"]).unsqueeze(1)
+            target_energy = (
+                torch.tensor(targets["energies"])
+                .unsqueeze(1)
+                .clone()
+                .detach()
+                .requires_grad_(True)
+            )
             criterion = torch.nn.MSELoss(reduction="sum")
             outputs_atom = torch.div(
                 outputs["energies"].unsqueeze(1), atoms_per_image.unsqueeze(1)
@@ -293,11 +303,11 @@ def get_pairwise_distances(x, y=None, squared=False):
     distances
         Pairwise distances.
     """
-    x_norm = (x ** 2).sum(1).view(-1, 1)
+    x_norm = (x**2).sum(1).view(-1, 1)
 
     if y is not None:
         y_t = torch.transpose(y, 0, 1)
-        y_norm = (y ** 2).sum(1).view(1, -1)
+        y_norm = (y**2).sum(1).view(1, -1)
     else:
         y_t = torch.transpose(x, 0, 1)
         y_norm = x_norm.view(1, -1)

@@ -143,7 +143,6 @@ def ani_to_ase(hdf5file, data_keys, trajfile=None):
 
     for hdf5 in hdf5file:
         for data in hdf5:
-
             symbols = data["species"]
             conformers = data["coordinates"]
 

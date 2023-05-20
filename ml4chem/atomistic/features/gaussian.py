@@ -313,8 +313,11 @@ class Gaussian(AtomisticFeatures):
 
         if self.batch_size is None:
             self.batch_size = data.get_total_number_atoms()
+        logger.info(f"Batch size: {self.batch_size}")
 
+        logger.info(f"Getting chunks with {self.batch_size}")
         chunks = get_chunks(images, self.batch_size, svm=svm)
+        logger.info(f"Chunks are ready!")
 
         ini = end = 0
         self.coordinates = []
@@ -399,7 +402,7 @@ class Gaussian(AtomisticFeatures):
             if client is None:
                 pass
             else:
-                intermediate = client.persist(intermediate, scheduler=self.scheduler)
+                intermediate = client.compute(intermediate, scheduler=self.scheduler)
             stacked_features += intermediate
             self.coordinates.append(coordinates_)
             del intermediate
@@ -417,7 +420,6 @@ class Gaussian(AtomisticFeatures):
         logger.info("")
 
         if self.preprocessor is not None and svm:
-
             scaled_feature_space = []
 
             # To take advantage of dask_ml we need to convert our numpy array
@@ -606,7 +608,7 @@ class Gaussian(AtomisticFeatures):
         return pd.DataFrame.from_dict(self.feature_space, orient="index")
 
     def stack_features(self, indices, stacked_features):
-        """Stack features """
+        """Stack features"""
 
         features = []
         for index in indices:
@@ -993,12 +995,12 @@ def calculate_G2(
         Ris = np.array(Ris)
         Rjs = np.array(Rjs)
         Rij = np.linalg.norm(Rjs - Ris, axis=1)
-        feature = np.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
+        feature = np.exp(-eta * (Rij**2.0) / (Rc**2.0)) * cutofffxn(Rij)
     else:
         Ris = torch.stack(Ris)
         Rjs = torch.stack(Rjs)
         Rij = torch.norm(Rjs - Ris, dim=1)
-        feature = torch.exp(-eta * (Rij ** 2.0) / (Rc ** 2.0)) * cutofffxn(Rij)
+        feature = torch.exp(-eta * (Rij**2.0) / (Rc**2.0)) * cutofffxn(Rij)
 
     if weighted:
         feature *= weights
@@ -1095,7 +1097,7 @@ def calculate_G3(
 
         cos_theta_ijk = angles_row_wise(Rij_vector, Rik_vector, numpy=True)
         term = (1.0 + gamma * cos_theta_ijk) ** zeta
-        term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
+        term *= np.exp(-eta * (Rij**2.0 + Rik**2.0 + Rjk**2.0) / (Rc**2.0))
     else:
         neighborpositions_j = torch.stack(neighborpositions_j)
         Rij_vector = neighborpositions_j - Ri
@@ -1110,7 +1112,7 @@ def calculate_G3(
 
         cos_theta_ijk = angles_row_wise(Rij_vector, Rik_vector, numpy=False)
         term = (1.0 + gamma * cos_theta_ijk) ** zeta
-        term *= torch.exp(-eta * (Rij ** 2.0 + Rik ** 2.0 + Rjk ** 2.0) / (Rc ** 2.0))
+        term *= torch.exp(-eta * (Rij**2.0 + Rik**2.0 + Rjk**2.0) / (Rc**2.0))
 
     if weighted:
         term *= weighted_h(image_molecule, n_indices)
@@ -1233,7 +1235,7 @@ def calculate_G4(
             Rik = np.linalg.norm(Rik_vector)
             cos_theta_ijk = np.dot(Rij_vector, Rik_vector) / Rij / Rik
             term = (1.0 + gamma * cos_theta_ijk) ** zeta
-            term *= np.exp(-eta * (Rij ** 2.0 + Rik ** 2.0) / (Rc ** 2.0))
+            term *= np.exp(-eta * (Rij**2.0 + Rik**2.0) / (Rc**2.0))
 
             if weighted:
                 term *= weighted_h(image_molecule, n_indices)
@@ -1246,7 +1248,7 @@ def calculate_G4(
 
 
 def weighted_h(image_molecule, n_indices):
-    """ Calculate the atomic numbers of neighboring atoms for a molecule,
+    """Calculate the atomic numbers of neighboring atoms for a molecule,
     then multiplies each neighor atomic number by each other.
 
     Parameters
